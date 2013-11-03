@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<root>
+   <endpoints>
+      <endpoint name="es" url="http://localhost:9200/">
+         <indextypes>
+            <indextype name="default" config="index.config.js" />
+         </indextypes>
+
+         <indexes>
+            <index name="giro" type="default" />
+         </indexes>
+      </endpoint>
+   </endpoints>
+
+   <converters>
+      <converter name="double" decimalsep="," groupsep="."/>
+      <converter name="date"   utc="true" formats="yyyyMMdd"/>
+      <converter name="lower" />
+      <converter name="upper" />
+      <converter name="trim" />
+   </converters>
+
+   <pipelines>
+      <pipeline name="pipe" trace="false" converters="trim" endpoint="giro/doc">
+         <action key="file/record_end" add="*" />
+         <action key="file/record/f0" field="date" converters="date"/>
+         <action key="file/record/f1" field="name"/>
+         <action key="file/record/f2" field="account"/>
+         <action key="file/record/f3" field="accountOther"/>
+         <action key="file/record/f4" field="mutationCode"/>
+         <action key="file/record/f5" field="af_bij" converters="lower,trim"/>
+         <action key="file/record/f6" field="amount" converters="double"/>
+         <action key="file/record/f7" field="mutationDesc"/>
+         <action key="file/record/f8" field="text"/>
+      </pipeline>
+   </pipelines>
+
+   <datasources>
+      <datasource name="abc" type="csv" trim="true" file="C:\Users\pweerd\Downloads\3477492_08-03-2012_18-10-2013.csv" pipeline="pipe" headers="true"></datasource>
+   </datasources>
+   
+</root>

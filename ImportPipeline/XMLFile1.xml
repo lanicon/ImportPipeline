@@ -37,6 +37,7 @@
 
    <datasources>
       <datasource name="abc" type="csv" trim="true" file="C:\Users\pweerd\Downloads\3477492_08-03-2012_18-10-2013.csv" pipeline="pipe" headers="true"></datasource>
+      <datasource name="a2" type="csv" trim="true" file="C:\Users\pweerd\Downloads\3477492_08-03-2012_18-10-2013.csv" pipeline="pipe" headers="true"></datasource>
    </datasources>
    
 </root>

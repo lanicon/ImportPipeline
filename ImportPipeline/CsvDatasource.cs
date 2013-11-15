@@ -18,8 +18,8 @@ namespace Bitmanager.ImportPipeline
       String file;
       char delimChar, quoteChar;
       bool hasHeaders, trim;
-   
-      public void Init(XmlNode node)
+
+      public void Init(PipelineContext ctx, XmlNode node)
       {
          file = node.ReadStr("@file");
          hasHeaders = node.OptReadBool("@headers", false);

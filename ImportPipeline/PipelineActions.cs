@@ -38,32 +38,6 @@ namespace Bitmanager.ImportPipeline
          addLogger.Log(accumulator.ToString (Newtonsoft.Json.Formatting.Indented));
       }
    }
-   public class PipelineContext
-   {
-      Logger addLogger = Logs.CreateLogger("pipelineAdder", "pipelineAdder");
-      JObject accumulator;
-      public PipelineContext()
-      {
-         Clear();
-      }
-
-      public void Clear()
-      {
-         accumulator = new JObject();
-      }
-
-      public void SetField(String fld, Object value)
-      {
-         addLogger.Log("-- setfield {0}: '{1}'", fld, value);
-         accumulator.WriteToken(fld, value); 
-      }
-
-      public void Add(String[] toWhat)
-      {
-         addLogger.Log(accumulator.ToString (Newtonsoft.Json.Formatting.Indented));
-      }
-   }
-
    public abstract class PipelineDataAction : NamedItem
    {
       protected Converter[] converters;

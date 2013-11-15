@@ -10,7 +10,7 @@ namespace Bitmanager.ImportPipeline
 {
    public interface Datasource
    {
-      void Init(XmlNode node);
+      void Init(PipelineContext ctx, XmlNode node);
       void Import(PipelineContext ctx, IDatasourceSink sink);
    }
    public interface IDatasourceSink
@@ -25,31 +25,23 @@ namespace Bitmanager.ImportPipeline
       public Pipeline Pipeline { get; private set; }
       public bool Active { get; private set; }
 
-      public DatasourceAdmin(ImportEngine engine, XmlNode node)
+      public DatasourceAdmin(PipelineContext ctx, XmlNode node)
          : base(node)
       {
          Type = node.ReadStr("@type");
          Active = node.OptReadBool("@active", true);
          String pipelineName = node.ReadStr("@pipeline");
-         Pipeline = engine.Pipelines.GetByName(pipelineName);
+         Pipeline = ctx.ImportEngine.Pipelines.GetByName(pipelineName);
 
          if (!Active) return;
          Datasource = createDatasource (Type);
-         Datasource.Init(node);
+         Datasource.Init(ctx, node);
       }
 
       private Datasource createDatasource(string type)
       {
-         Object ds;
-         switch (type.ToLowerInvariant())
-         {
-            case "csv": ds = new CsvDatasource(); break;
-            default:
-               throw new BMException ("Invalid datasource type: {0}.", type); 
-         }
-
-         Datasource ret = ds as Datasource;
-         if (ret == null) throw new BMException("Datasource type={0} (.Net type={1}) does not support IDatasource", type, ds.GetType().FullName);
+         Datasource ret = PipelineContext.CreateObject(type) as Datasource;
+         if (ret == null) throw new BMException("Datasource type={0} does not support IDatasource", type);
 
          return ret;
       }

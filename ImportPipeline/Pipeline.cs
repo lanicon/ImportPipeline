@@ -19,8 +19,8 @@ namespace Bitmanager.ImportPipeline
 
       public ActionAdmin(String key, int order, PipelineDataAction action)
       {
-         this.KeyLen = key.Length;
-         this.Key = key;
+         this.Key = key.ToLowerInvariant();
+         this.KeyLen = this.Key.Length;
          this.Order = order;
          this.Action = action;
       }

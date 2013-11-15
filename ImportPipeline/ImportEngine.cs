@@ -23,6 +23,7 @@ namespace Bitmanager.ImportPipeline
       public void Load(XmlHelper xml)
       {
          Xml = xml;
+         PipelineContext ctx = new PipelineContext(this);
 
          EndPoints = new EndPoints(this, xml.SelectMandatoryNode("endpoints"));
 
@@ -39,7 +40,7 @@ namespace Bitmanager.ImportPipeline
          Datasources = new NamedAdminCollection<DatasourceAdmin>(
             xml.SelectMandatoryNode("datasources"),
             "datasource",
-            (node) => new DatasourceAdmin(this, node),
+            (node) => new DatasourceAdmin(ctx, node),
             true);
       }
 
@@ -49,7 +50,7 @@ namespace Bitmanager.ImportPipeline
          EndPoints.Open(true);
          try
          {
-            PipelineContext ctx = new PipelineContext();
+            PipelineContext ctx = new PipelineContext(this);
             for (int i = 0; i < Datasources.Count; i++)
             {
                DatasourceAdmin admin = Datasources[i];

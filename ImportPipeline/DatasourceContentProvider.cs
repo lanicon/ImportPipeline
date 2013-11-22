@@ -6,7 +6,7 @@ using System.Xml;
 
 namespace Bitmanager.ImportPipeline
 {
-   public interface IDatasourceContentProvider : IEnumerable<Object>
+   public interface IDatasourceFeeder : IEnumerable<Object>
    {
       void Init(PipelineContext ctx, XmlNode node);
    }

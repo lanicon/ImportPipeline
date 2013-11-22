@@ -12,7 +12,7 @@ using Bitmanager.Json;
 namespace Bitmanager.ImportPipeline
 {
 
-   public class UrlProvider : IDatasourceContentProvider
+   public class UrlFeeder : IDatasourceFeeder
    {
       private List<Uri> urls;
       private static Uri createUri(Uri baseUri, String url)

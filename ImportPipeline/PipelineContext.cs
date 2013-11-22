@@ -43,7 +43,7 @@ namespace Bitmanager.ImportPipeline
             switch (objId.ToLowerInvariant())
             {
                case "csv": return new CsvDatasource();
-               case "urlprovider": return new UrlProvider();
+               case "urlprovider": return new UrlFeeder();
             }
          }
          return Objects.CreateObject (objId);

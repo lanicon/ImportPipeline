@@ -21,34 +21,34 @@ namespace HtmlDatasource
    public class BeursGorillaDS : Datasource
    {
       private DateTime date;
-      private IDatasourceContentProvider provider;
+      private IDatasourceFeeder feeder;
       public void Init(PipelineContext ctx, XmlNode node)
       {
          date = DateTime.Today;
-         provider = createProvider (ctx, node);
+         feeder = createFeeder (ctx, node);
       }
 
-      public IDatasourceContentProvider createProvider(PipelineContext ctx, XmlNode node, String expr)
+      public IDatasourceFeeder createFeeder(PipelineContext ctx, XmlNode node, String expr)
       {
          String p = node.ReadStr(expr);
          Object rawObj = PipelineContext.CreateObject(p);
 
-         IDatasourceContentProvider obj = rawObj as IDatasourceContentProvider;
+         IDatasourceFeeder obj = rawObj as IDatasourceFeeder;
          if (obj == null)
             throw new BMNodeException(node, "Object ({0}) does not support IDatasourceContentProvider.", rawObj.GetType().FullName);
          obj.Init(ctx, node);
          return obj;
       }
 
-      public IDatasourceContentProvider createProvider(PipelineContext ctx, XmlNode node)
+      public IDatasourceFeeder createFeeder(PipelineContext ctx, XmlNode node)
       {
          String type = node.OptReadStr ("@provider", null);
          if (type==null)
          {
             XmlNode child = node.SelectSingleNode ("provider");
-            if (child!= null) return createProvider (ctx, child, "@type"); 
+            if (child!= null) return createFeeder (ctx, child, "@type"); 
          }
-         return createProvider(ctx, node, "@provider");
+         return createFeeder(ctx, node, "@provider");
       }
 
       private static double toDouble(String x)
@@ -230,7 +230,7 @@ namespace HtmlDatasource
       public void Import(PipelineContext ctx, IDatasourceSink sink)
       {
          Regex regex = new Regex (@"instrumentcode=(.*)$", RegexOptions.CultureInvariant | RegexOptions.Compiled | RegexOptions.IgnoreCase);
-         foreach (Object objUri in provider)
+         foreach (Object objUri in feeder)
          {
             try
             {

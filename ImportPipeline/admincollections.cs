@@ -19,6 +19,10 @@ namespace Bitmanager.ImportPipeline
       {
          Name = node.ReadStr(attr);
       }
+      protected NamedItem(String name)
+      {
+         Name = name;
+      }
    }
 
    public class AdminCollection<T> : List<T>

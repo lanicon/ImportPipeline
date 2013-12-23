@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Xml;
 
 namespace Bitmanager.ImportPipeline
 {
@@ -68,7 +69,50 @@ namespace Bitmanager.ImportPipeline
          finally
          {
             EndPoints.Close(isError);
+            foreach (var p in Pipelines)
+            {
+               p.Dump("after import");
+            }
+
          }
       }
+
+      private static String replaceKnownTypes(String typeName)
+      {
+         if (typeName != null)
+         {
+            switch (typeName.ToLowerInvariant())
+            {
+               case "esendpoint": return typeof(ESEndPoint).FullName;
+               case "csv": return typeof(CsvDatasource).FullName;
+            }
+         }
+         return typeName;
+      }
+
+      private static String replaceKnownTypes(XmlNode node)
+      {
+         return replaceKnownTypes (node.ReadStr("@type"));
+      }
+      public static T CreateObject<T>(String typeName) where T : class
+      {
+         return Objects.CreateObject<T>(replaceKnownTypes(typeName));
+      }
+
+      public static T CreateObject<T>(String typeName, params Object[] parms) where T : class
+      {
+         return Objects.CreateObject<T>(replaceKnownTypes(typeName), parms);
+      }
+
+      public static T CreateObject<T>(XmlNode node) where T : class
+      {
+         return Objects.CreateObject<T>(replaceKnownTypes(node));
+      }
+
+      public static T CreateObject<T>(XmlNode node, params Object[] parms) where T : class
+      {
+         return Objects.CreateObject<T>(replaceKnownTypes(node), parms);
+      }
+
    }
 }

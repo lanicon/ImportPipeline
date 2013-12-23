@@ -38,20 +38,40 @@ namespace Bitmanager.ImportPipeline
          addLogger.Log(accumulator.ToString (Newtonsoft.Json.Formatting.Indented));
       }
    }
-   public abstract class PipelineDataAction : NamedItem
+   public abstract class PipelineAction : NamedItem
    {
       protected Converter[] converters;
       protected IDataEndpoint endPoint;
+      protected String endpointName, convertersName;
 
-
-      public PipelineDataAction(Pipeline pipeline, XmlNode node)
+      public PipelineAction(Pipeline pipeline, XmlNode node)
          : base(node, "@key")
       {
          String endpointName = node.OptReadStr("@endpoint", pipeline.DefaultEndPoint);
          if (endpointName == null) node.ReadStr("@endpoint");
+         String convertersName;
+         endPoint = pipeline.ImportEngine.EndPoints.GetDataEndPoint(ReadParameters(pipeline, node, out convertersName));
+         converters = pipeline.ImportEngine.Converters.ToConverters(convertersName);
+      }
 
-         endPoint = pipeline.ImportEngine.EndPoints.GetDataEndPoint(endpointName);
-         converters = pipeline.ImportEngine.Converters.ToConverters(node.OptReadStr("@converters", null));
+      protected PipelineAction(Pipeline pipeline, String name, String endpointName, String converters)
+         : base(name)
+      {
+         this.endpointName = endpointName;
+         this.convertersName = converters;
+         this.endPoint = pipeline.ImportEngine.EndPoints.GetDataEndPoint(endpointName);
+         this.converters = pipeline.ImportEngine.Converters.ToConverters(converters);
+      }
+      protected PipelineAction(String name)
+         : base(name)
+      {
+      }
+
+      public static String ReadParameters(Pipeline pipeline, XmlNode node, out String converters)
+      {
+         converters = node.OptReadStr("@converters", null);
+         String endpointName = node.OptReadStr("@endpoint", pipeline.DefaultEndPoint);
+         return (endpointName != null) ? endpointName : node.ReadStr("@endpoint");
       }
 
       protected Object Convert(Object obj)
@@ -62,17 +82,23 @@ namespace Bitmanager.ImportPipeline
          return obj;
       }
 
+      public override string ToString()
+      {
+         return String.Format ("{0}: (key={1}, endpoint={2}, conv={3}", this.GetType().Name, Name, endpointName, convertersName);
+      }
+
       public abstract void HandleValue(PipelineContext ctx, String key, Object value);
 
-      public static PipelineDataAction Create(Pipeline pipeline, XmlNode node)
+      public static PipelineAction Create(Pipeline pipeline, XmlNode node)
       {
          if (node.SelectSingleNode("@field") != null) return new PipelineFieldAction(pipeline, node);
          if (node.SelectSingleNode("@add") != null) return new PipelineAddAction(pipeline, node);
-         throw new BMNodeException(node, "Don't know how to create an action for this node."); 
+         if (node.SelectSingleNode("@nop") != null) return new PipelineNopAction(node);
+         throw new BMNodeException(node, "Don't know how to create an action for this node.");
       }
    }
 
-   public class PipelineFieldAction : PipelineDataAction
+   public class PipelineFieldAction : PipelineAction
    {
       protected String toField;
 
@@ -82,19 +108,37 @@ namespace Bitmanager.ImportPipeline
          toField = node.ReadStr("@field");
       }
 
+      //If you change something in the constructor, please check PipelineFieldTemplate as well
+      public PipelineFieldAction(Pipeline pipeline, String name, String endpointName, String converters, String field)
+         : base(pipeline, name, endpointName, converters)
+      {
+         this.toField = field;
+      }
+
+
       public override void HandleValue(PipelineContext ctx, String key, Object value)
       {
          value = Convert(value);
          endPoint.SetField (toField, value);
       }
+      public override string ToString()
+      {
+         return base.ToString() + ", field=" + toField + ")";
+      }
    }
 
 
 
-   public class PipelineAddAction : PipelineDataAction
+   public class PipelineAddAction : PipelineAction
    {
       public PipelineAddAction(Pipeline pipeline, XmlNode node)
          : base(pipeline, node)
+      {
+      }
+
+      //If you change something in the constructor, please check PipelineAddTemplate as well
+      public PipelineAddAction(Pipeline pipeline, String name, String endpointName, String converters)
+         : base(pipeline, name, endpointName, converters)
       {
       }
 
@@ -103,7 +147,36 @@ namespace Bitmanager.ImportPipeline
          endPoint.Add();
          endPoint.Clear();
       }
+
+      public override string ToString()
+      {
+         return base.ToString() + ")";
+      }
+
    }
 
+   public class PipelineNopAction : PipelineAction
+   {
+      public PipelineNopAction(XmlNode node)
+         : base (node.ReadStr ("@key"))
+      {
+      }
+
+      //If you change something in the constructor, please check PipelineAddTemplate as well
+      public PipelineNopAction(String name)
+         : base(name)
+      {
+      }
+
+      public override void HandleValue(PipelineContext ctx, String key, Object value)
+      {
+      }
+
+      public override string ToString()
+      {
+         return base.ToString() + ")";
+      }
+
+   }
 
 }

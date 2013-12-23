@@ -16,14 +16,14 @@ namespace Bitmanager.ImportPipeline
    {
       private StringDict<IDataEndpoint> endPointCache;
       public EndPoints(ImportEngine engine, XmlNode collNode)
-         : base(collNode, "endpoint", (n)=>new ESEndPoint(engine, n), true)
+         : base(collNode, "endpoint", (n) => ImportEngine.CreateObject<EndPoint>(n, engine, n), true)
       {
          endPointCache = new StringDict<IDataEndpoint>();
       }
 
       public IDataEndpoint GetDataEndPoint(String name)
       {
-         IDataEndpoint ret; 
+         IDataEndpoint ret;
          if (endPointCache == null) endPointCache = new StringDict<IDataEndpoint>();
          if (endPointCache.TryGetValue(name, out ret)) return ret;
 
@@ -32,17 +32,21 @@ namespace Bitmanager.ImportPipeline
          String namePart2 = name;
          if (ix < 0)
             endPoint = this[0];
-         else {
-            endPoint = this.GetByName (name.Substring(0, ix));
-            namePart2 = name.Substring(ix+1);
+         else
+         {
+            endPoint = this.GetByName(name.Substring(0, ix));
+            namePart2 = name.Substring(ix + 1);
          }
-         ret = endPoint.GetDataEndPoint (namePart2);
-         endPointCache.Add (name, ret);
+         endPoint.touched = true;
+         ret = endPoint.CreateDataEndPoint(namePart2);
+         endPointCache.Add(name, ret);
          return ret;
       }
+
       public void Open(bool isReindex)
       {
-         foreach (var x in this) x.Open(isReindex);
+         foreach (var x in this) 
+            if (x.touched) x.Open(isReindex);
 
          if (endPointCache == null) return;
          foreach (var kvp in endPointCache)
@@ -51,15 +55,34 @@ namespace Bitmanager.ImportPipeline
 
       public void Close(bool isError)
       {
-         foreach (var x in this) x.Close(isError);
+         foreach (var x in this) 
+            if (x.touched) x.Close(isError);
       }
    }
 
+   public enum ActiveMode {Active, Lazy, Inactive};
    public abstract class EndPoint : NamedItem
    {
+      internal bool touched;
+      public readonly bool Active;
       public EndPoint(XmlNode node)
          : base(node)
       {
+         String act = node.OptReadStr("@active", "lazy").ToLowerInvariant();
+         switch (act)
+         {
+            case "lazy":
+               Active = true;
+               break;
+            case "true":
+               Active = true;
+               touched = true;
+               break;
+            case "false":
+               break;
+            default:
+               throw new BMNodeException(node, "Invalid value for @active: {0}. Possible values: true, false, lazy.", act);
+         }
       }
 
       public virtual void Open(bool isReindex)
@@ -68,7 +91,7 @@ namespace Bitmanager.ImportPipeline
       public virtual void Close(bool isError)
       {
       }
-      public abstract IDataEndpoint GetDataEndPoint(string namePart2);
+      public abstract IDataEndpoint CreateDataEndPoint(string namePart2);
    }
 
    public interface IDataEndpoint
@@ -80,101 +103,39 @@ namespace Bitmanager.ImportPipeline
       void Add();
    }
 
-   public class ESDataEndpoint : IDataEndpoint
+   public abstract class JsonEndpointBase<T> : IDataEndpoint where T: EndPoint
    {
-      public readonly ESEndPoint EndPoint;
-      private String urlPart;
-      private ESConnection connection;
-      Logger addLogger = Logs.CreateLogger("pipelineAdder", "ESDataEndpoint");
+      public readonly T EndPoint;
+      protected Logger addLogger;
+      protected JObject accumulator;
 
-      public ESDataEndpoint(ESEndPoint endpoint, String urlPart)
+      public JsonEndpointBase(T endpoint)
       {
-         this.EndPoint = endpoint;
-         this.connection = endpoint.Connection;
-         this.urlPart = urlPart;
+         EndPoint = endpoint;
+         addLogger = Logs.CreateLogger("pipelineAdder", GetType().Name);
          Clear();
       }
 
-      public void Opened()
-      {
-         int ix = urlPart.IndexOf('/');
-         String index = urlPart.Substring(0, ix);
-         String doc = urlPart.Substring(ix + 1);
-
-         var def = EndPoint.Indexes.GetDefinition(index, true);
-         urlPart = def.GetPathForUrl(doc, true);
-      }
-
-      JObject accumulator;
-
-      public void Clear()
+      public virtual void Clear()
       {
          accumulator = new JObject();
       }
 
-      public Object GetField(String fld)
+      public virtual Object GetField(String fld)
       {
          addLogger.Log("-- getfield ({0})", fld);
          throw new Exception("notimpl");
       }
-      public void SetField(String fld, Object value)
+      public virtual void SetField(String fld, Object value)
       {
          addLogger.Log("-- setfield {0}: '{1}'", fld, value);
          accumulator.WriteToken(fld, value);
       }
 
-      public void Add()
+      public abstract void Add();
+
+      public virtual void Opened()
       {
-         addLogger.Log(accumulator.ToString(Newtonsoft.Json.Formatting.Indented));
-         connection.Post(urlPart, accumulator).ThrowIfError();
-      }
-
-   }
-
-   public class ESEndPoint : EndPoint
-   {
-      public readonly ESConnection Connection;
-      public readonly IndexDefinitionTypes IndexTypes;
-      public readonly IndexDefinitions Indexes;
-
-      private ESIndexCmd._CheckIndexFlags flags;
-
-      public ESEndPoint(ImportEngine engine, XmlNode node)
-         : base(node)
-      {
-         Connection = new ESConnection(node.ReadStr("@url"));
-         IndexTypes = new IndexDefinitionTypes(engine.Xml, node.SelectMandatoryNode("indextypes"));
-         Indexes = new IndexDefinitions(IndexTypes, node.SelectMandatoryNode("indexes"));
-      }
-
-      public override void Open(bool isReindex)
-      {
-         if (isReindex) flags = ESIndexCmd._CheckIndexFlags.ForceCreate | ESIndexCmd._CheckIndexFlags.AppendDate;
-         Indexes.CreateIndexes(Connection, flags);
-         WaitForGreenOrYellow();
-      }
-      public override void Close(bool isError)
-      {
-         if (isError) return;
-         Indexes.OptionalRename(Connection);
-      }
-
-      private const int TIMEOUT = 30000;
-      public bool WaitForGreenOrYellow(bool mustExcept = true)
-      {
-         return Connection.CreateHealthRequest().WaitForStatus(ClusterStatus.Green, ClusterStatus.Yellow, TIMEOUT, mustExcept);
-      }
-      public bool WaitForGreen(bool mustExcept = true)
-      {
-         return Connection.CreateHealthRequest().WaitForStatus(ClusterStatus.Green, TIMEOUT, mustExcept);
-
-      }
-
-      public override IDataEndpoint GetDataEndPoint(string namePart2)
-      {
-         if (namePart2.IndexOf('/') < 0)
-            throw new BMException ("Invalid endpoint name '{0}'. Data endpoint name must contain a '/'.", namePart2);
-         return new ESDataEndpoint(this, namePart2);
       }
    }
 }

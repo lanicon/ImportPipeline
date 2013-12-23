@@ -14,34 +14,35 @@ namespace Bitmanager.ImportPipeline
 
    public class UrlFeeder : IDatasourceFeeder
    {
-      private List<Uri> urls;
-      private static Uri createUri(Uri baseUri, String url)
+      private List<FeederElementBase> urlElements;
+      private static FeederElementBase createUri(XmlNode ctx, Uri baseUri, String url)
       {
-         return baseUri == null ? new Uri(url) : new Uri(baseUri, url);
+         return new FeederElementBase (ctx, baseUri == null ? new Uri(url) : new Uri(baseUri, url));
       }
       public void Init(PipelineContext ctx, XmlNode node)
       {
-         List<Uri> urls = new List<Uri>();
+         var urls = new List<FeederElementBase>();
          String baseUrl = node.OptReadStr("@baseurl", null);
          Uri baseUri = baseUrl == null ? null : new Uri(baseUrl);
          String url = node.OptReadStr("@url", null);
          if (url != null)
-            urls.Add(createUri(baseUri, url));
+            urls.Add(createUri(node, baseUri, url));
+         else
          {
             XmlNodeList list = node.SelectNodes("url");
             for (int i = 0; i < list.Count; i++)
             {
                String x = list[i].ReadStr(null);
-               urls.Add(createUri(baseUri, x));
+               urls.Add(createUri(list[i], baseUri, x));
             }
             if (urls.Count == 0) node.ReadStr("@url"); //Raise exception
          }
-         this.urls = urls;
+         this.urlElements = urls;
       }
-      public IEnumerator<object> GetEnumerator()
+      public IEnumerator<IDatasourceFeederElement> GetEnumerator()
       {
-         for (int i=0; i<urls.Count; i++)
-            yield return urls[i];
+         for (int i=0; i<urlElements.Count; i++)
+            yield return urlElements[i];
       }
 
       System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()

@@ -15,17 +15,19 @@ using System.IO;
 using HtmlAgilityPack;
 using System.Text.RegularExpressions;
 
-namespace HtmlDatasource
+namespace BeursGorilla
 {
 
    public class BeursGorillaDS : Datasource
    {
       private DateTime date;
       private IDatasourceFeeder feeder;
+      private bool needHistory;
       public void Init(PipelineContext ctx, XmlNode node)
       {
          date = DateTime.Today;
          feeder = createFeeder (ctx, node);
+         needHistory = node.OptReadBool("@history", true);
       }
 
       public IDatasourceFeeder createFeeder(PipelineContext ctx, XmlNode node, String expr)
@@ -169,8 +171,23 @@ namespace HtmlDatasource
             prices.Add (new PricePerDate(rows[i]));
       }
 
-      private void importUrl(PipelineContext ctx, IDatasourceSink sink, Regex regex, Uri url)
+      private StringDict getAttributes(XmlNode node)
       {
+         StringDict ret = new StringDict();
+         var coll = node.Attributes;
+         for (int i=0; i<coll.Count; i++)
+         {
+            var att = coll[i];
+            if (att.LocalName.Equals ("url", StringComparison.InvariantCultureIgnoreCase)) continue;
+            if (att.LocalName.Equals ("baseurl", StringComparison.InvariantCultureIgnoreCase)) continue;
+            ret[att.LocalName] = att.Value;
+         }
+         return ret;
+      }
+      private void importUrl(PipelineContext ctx, IDatasourceSink sink, Regex regex, IDatasourceFeederElement elt)
+      {
+         StringDict attribs = getAttributes(elt.Context);
+         Uri url = (Uri)elt.Element;
          const String expr = "//tr[@class='koersen_tabel_titelbalk']";
          sink.HandleValue (ctx, "html/_start", url);
          HtmlDocument doc = loadUrl(url);
@@ -201,26 +218,31 @@ namespace HtmlDatasource
             if (code == null) throw new BMException("Cannot extract code from href={0}", href); 
 
             String name = anchorNode.InnerText;
+            foreach (var kvp in attribs)
+               sink.HandleValue(ctx, "html/record/" + kvp.Key, kvp.Value);
+
             sink.HandleValue(ctx, "html/record/name", name);
             sink.HandleValue(ctx, "html/record/code", code);
             sink.HandleValue(ctx, "html/record/price", toDouble(tdNodes[2].InnerText));
             sink.HandleValue(ctx, "html/record/priceOpened", toDouble(tdNodes[5].InnerText));
             sink.HandleValue(ctx, "html/record/date", date);
 
-            posLogger.Log(); 
+            posLogger.Log();
 
-            List<PricePerDate> prices = loadHistory(url, code, name);
-            int dev;
-            sink.HandleValue(ctx, "html/record/history", toJArray(prices));
-            sink.HandleValue(ctx, "html/record/pos3m", computePos(prices, date.AddMonths(-3), name, out dev));
-            sink.HandleValue(ctx, "html/record/dev3m", dev);
-            sink.HandleValue(ctx, "html/record/pos6m", computePos(prices, date.AddMonths(-6), name, out dev));
-            sink.HandleValue(ctx, "html/record/dev6m", dev);
-            sink.HandleValue(ctx, "html/record/pos12m", computePos(prices, date.AddMonths(-12), name, out dev));
-            sink.HandleValue(ctx, "html/record/dev12m", dev);
-            sink.HandleValue(ctx, "html/record/pos36m", computePos(prices, date.AddMonths(-36), name, out dev));
-            sink.HandleValue(ctx, "html/record/dev36m", dev);
-
+            if (needHistory)
+            {
+               List<PricePerDate> prices = loadHistory(url, code, name);
+               int dev;
+               sink.HandleValue(ctx, "html/record/history", toJArray(prices));
+               sink.HandleValue(ctx, "html/record/pos3m", computePos(prices, date.AddMonths(-3), name, out dev));
+               sink.HandleValue(ctx, "html/record/dev3m", dev);
+               sink.HandleValue(ctx, "html/record/pos6m", computePos(prices, date.AddMonths(-6), name, out dev));
+               sink.HandleValue(ctx, "html/record/dev6m", dev);
+               sink.HandleValue(ctx, "html/record/pos12m", computePos(prices, date.AddMonths(-12), name, out dev));
+               sink.HandleValue(ctx, "html/record/dev12m", dev);
+               sink.HandleValue(ctx, "html/record/pos36m", computePos(prices, date.AddMonths(-36), name, out dev));
+               sink.HandleValue(ctx, "html/record/dev36m", dev);
+            }
 
             sink.HandleValue(ctx, "html/record", null);
          }
@@ -230,15 +252,15 @@ namespace HtmlDatasource
       public void Import(PipelineContext ctx, IDatasourceSink sink)
       {
          Regex regex = new Regex (@"instrumentcode=(.*)$", RegexOptions.CultureInvariant | RegexOptions.Compiled | RegexOptions.IgnoreCase);
-         foreach (Object objUri in feeder)
+         foreach (var elt in feeder)
          {
             try
             {
-               importUrl(ctx, sink, regex, (Uri)objUri);
+               importUrl(ctx, sink, regex, elt);
             }
             catch (Exception e)
             {
-               throw new BMException(e, e.Message + "\r\nUrl=" + objUri + ".");
+               throw new BMException(e, e.Message + "\r\nUrl=" + elt.Element + ".");
             }
          }
       }

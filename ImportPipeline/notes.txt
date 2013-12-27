@@ -1,0 +1,1 @@
+ws moet een datasource definitief kunnen worden uitgeschakeld. iets als active=true/false/disabled

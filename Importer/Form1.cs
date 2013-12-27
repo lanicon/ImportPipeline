@@ -50,7 +50,20 @@ namespace Bitmanager.Importer
          String settingsFile = comboBox1.Text;
          ImportEngine engine = new ImportEngine();
          engine.Load(settingsFile);
-         engine.Import();
+
+         String[] activeDSses = null;
+         var items = dsList.Items;
+         if (items.Count > 0)
+         {
+            var list = new List<String>();
+            for (int i=0; i<items.Count; i++)
+            {
+               if (!dsList.GetItemChecked(i)) continue;
+               list.Add ((String)items[i]);
+            }
+            activeDSses = list.ToArray();
+         }
+         engine.Import(activeDSses);
       }
       private void button1_Click(object sender, EventArgs e)
       {
@@ -65,6 +78,17 @@ namespace Bitmanager.Importer
          comboBox1.Items.Add(openFileDialog1.FileName);
          comboBox1.SelectedIndex = idx;
          import();
+      }
+
+      private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+      {
+         dsList.Items.Clear();
+         ImportEngine engine = new ImportEngine();
+         engine.Load(comboBox1.Text);
+         foreach (var ds in engine.Datasources)
+         {
+            dsList.Items.Add (ds.Name, ds.Active);
+         }
       }
    }
 }

@@ -87,7 +87,7 @@ namespace Bitmanager.ImportPipeline
          return String.Format ("{0}: (key={1}, endpoint={2}, conv={3}", this.GetType().Name, Name, endpointName, convertersName);
       }
 
-      public abstract void HandleValue(PipelineContext ctx, String key, Object value);
+      public abstract Object HandleValue(PipelineContext ctx, String key, Object value);
 
       public static PipelineAction Create(Pipeline pipeline, XmlNode node)
       {
@@ -116,10 +116,11 @@ namespace Bitmanager.ImportPipeline
       }
 
 
-      public override void HandleValue(PipelineContext ctx, String key, Object value)
+      public override Object HandleValue(PipelineContext ctx, String key, Object value)
       {
          value = Convert(value);
          endPoint.SetField (toField, value);
+         return null;
       }
       public override string ToString()
       {
@@ -142,10 +143,11 @@ namespace Bitmanager.ImportPipeline
       {
       }
 
-      public override void HandleValue(PipelineContext ctx, String key, Object value)
+      public override Object HandleValue(PipelineContext ctx, String key, Object value)
       {
          endPoint.Add();
          endPoint.Clear();
+         return null;
       }
 
       public override string ToString()
@@ -168,8 +170,9 @@ namespace Bitmanager.ImportPipeline
       {
       }
 
-      public override void HandleValue(PipelineContext ctx, String key, Object value)
+      public override Object  HandleValue(PipelineContext ctx, String key, Object value)
       {
+         return null;
       }
 
       public override string ToString()

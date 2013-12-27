@@ -15,7 +15,7 @@ namespace Bitmanager.ImportPipeline
    }
    public interface IDatasourceSink
    {
-      void HandleValue(PipelineContext ctx, String key, Object value);
+      Object HandleValue(PipelineContext ctx, String key, Object value);
    }
 
    public class DatasourceAdmin : NamedItem
@@ -33,17 +33,9 @@ namespace Bitmanager.ImportPipeline
          String pipelineName = node.ReadStr("@pipeline");
          Pipeline = ctx.ImportEngine.Pipelines.GetByName(pipelineName);
 
-         if (!Active) return;
-         Datasource = createDatasource (Type);
+         //if (!Active) return; Zie notes: ws moet een datasource definitief kunnen worden uitgeschakeld. iets als active=true/false/disabled
+         Datasource = ImportEngine.CreateObject<Datasource> (Type);
          Datasource.Init(ctx, node);
-      }
-
-      private Datasource createDatasource(string type)
-      {
-         Datasource ret = PipelineContext.CreateObject(type) as Datasource;
-         if (ret == null) throw new BMException("Datasource type={0} does not support IDatasource", type);
-
-         return ret;
       }
    }
 

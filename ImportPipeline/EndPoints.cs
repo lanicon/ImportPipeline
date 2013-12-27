@@ -15,10 +15,12 @@ namespace Bitmanager.ImportPipeline
    public class EndPoints : NamedAdminCollection<EndPoint>
    {
       private StringDict<IDataEndpoint> endPointCache;
+      public readonly ImportEngine engine;
       public EndPoints(ImportEngine engine, XmlNode collNode)
          : base(collNode, "endpoint", (n) => ImportEngine.CreateObject<EndPoint>(n, engine, n), true)
       {
          endPointCache = new StringDict<IDataEndpoint>();
+         this.engine = engine;
       }
 
       public IDataEndpoint GetDataEndPoint(String name)
@@ -45,12 +47,20 @@ namespace Bitmanager.ImportPipeline
 
       public void Open(bool isReindex)
       {
-         foreach (var x in this) 
+         engine.ImportLog.Log("Opening endpoints");
+         foreach (var x in this)
+         {
+            engine.ImportLog.Log("-- endpoint '{0}' mustopen={1}.", x.Name, x.touched);
             if (x.touched) x.Open(isReindex);
-
+         }
          if (endPointCache == null) return;
+
+         engine.ImportLog.Log("Opening datapoints");
          foreach (var kvp in endPointCache)
+         {
+            engine.ImportLog.Log("-- datapoint '{0}'.", kvp.Key);
             kvp.Value.Opened();
+         }
       }
 
       public void Close(bool isError)
@@ -61,13 +71,18 @@ namespace Bitmanager.ImportPipeline
    }
 
    public enum ActiveMode {Active, Lazy, Inactive};
-   public abstract class EndPoint : NamedItem
+   public class EndPoint : NamedItem
    {
+      public enum DebugFlags {_None=0, _LogField=1, _LogAdd=2};
       internal bool touched;
       public readonly bool Active;
+      public readonly DebugFlags Flags;
+
+      public EndPoint(ImportEngine engine, XmlNode node) : this(node) { }
       public EndPoint(XmlNode node)
          : base(node)
       {
+         Flags = node.OptReadEnum<DebugFlags>("@flags", 0);
          String act = node.OptReadStr("@active", "lazy").ToLowerInvariant();
          switch (act)
          {
@@ -91,7 +106,10 @@ namespace Bitmanager.ImportPipeline
       public virtual void Close(bool isError)
       {
       }
-      public abstract IDataEndpoint CreateDataEndPoint(string namePart2);
+      public virtual IDataEndpoint CreateDataEndPoint(string namePart2)
+      {
+         return new JsonEndpointBase<EndPoint>(this);
+      }
    }
 
    public interface IDataEndpoint
@@ -103,15 +121,17 @@ namespace Bitmanager.ImportPipeline
       void Add();
    }
 
-   public abstract class JsonEndpointBase<T> : IDataEndpoint where T: EndPoint
+   public class JsonEndpointBase<T> : IDataEndpoint where T: EndPoint
    {
       public readonly T EndPoint;
       protected Logger addLogger;
       protected JObject accumulator;
+      protected EndPoint.DebugFlags flags;
 
       public JsonEndpointBase(T endpoint)
       {
          EndPoint = endpoint;
+         flags = endpoint.Flags;
          addLogger = Logs.CreateLogger("pipelineAdder", GetType().Name);
          Clear();
       }
@@ -123,16 +143,21 @@ namespace Bitmanager.ImportPipeline
 
       public virtual Object GetField(String fld)
       {
-         addLogger.Log("-- getfield ({0})", fld);
          throw new Exception("notimpl");
       }
+
       public virtual void SetField(String fld, Object value)
       {
-         addLogger.Log("-- setfield {0}: '{1}'", fld, value);
+         if ((flags & Bitmanager.ImportPipeline.EndPoint.DebugFlags._LogField) != 0) addLogger.Log("-- setfield {0}: '{1}'", fld, value);
          accumulator.WriteToken(fld, value);
       }
 
-      public abstract void Add();
+      public virtual void Add()
+      {
+         if ((flags & Bitmanager.ImportPipeline.EndPoint.DebugFlags._LogAdd) == 0) return;
+         addLogger.Log("Add: " + accumulator.ToString(Newtonsoft.Json.Formatting.Indented));
+         Clear();
+      }
 
       public virtual void Opened()
       {

@@ -1,4 +1,5 @@
-﻿using Bitmanager.Elastic;
+﻿using Bitmanager.Core;
+using Bitmanager.Elastic;
 using Bitmanager.Xml;
 using System;
 using System.Collections.Generic;
@@ -15,7 +16,17 @@ namespace Bitmanager.ImportPipeline
       public Converters Converters;
       public NamedAdminCollection<DatasourceAdmin> Datasources;
       public NamedAdminCollection<Pipeline> Pipelines;
+      public readonly Logger ImportLog;
+      public readonly Logger DebugLog;
+      public readonly Logger ErrorLog;
 
+      public ImportEngine()
+      {
+         ImportLog = Logs.CreateLogger("import", "ImportEngine");
+         DebugLog = Logs.CreateLogger("import-debug", "ImportEngine");
+         ErrorLog = Logs.ErrorLog.Clone("ImportEngine");
+         Logs.DebugLog.Log(((InternalLogger)ImportLog)._Logger.Name);
+      }
       public void Load(String fileName)
       {
          XmlHelper xml = new XmlHelper(fileName);
@@ -45,26 +56,49 @@ namespace Bitmanager.ImportPipeline
             true);
       }
 
-      public void Import()
+      static bool isActive(String[] enabledDSses, DatasourceAdmin da)
       {
+         if (enabledDSses == null) return da.Active;
+         for (int i = 0; i < enabledDSses.Length; i++)
+         {
+            if (da.Name.Equals(enabledDSses[i], StringComparison.InvariantCultureIgnoreCase)) return true;
+         }
+         return da.Active;
+      }
+
+
+      public void Import(String enabledDSses)
+      {
+         Import(enabledDSses.SplitStandard());
+      }
+      public void Import(String[] enabledDSses=null)
+      {
+         ImportLog.Log();
+         ImportLog.Log(_LogType.ltProgress, "Starting import");
          bool isError = true;
          EndPoints.Open(true);
+         ImportLog.Log(_LogType.ltProgress, "Endpoints opened");
          try
          {
-            PipelineContext ctx = new PipelineContext(this);
             for (int i = 0; i < Datasources.Count; i++)
             {
                DatasourceAdmin admin = Datasources[i];
-               if (!admin.Active)
+               if (!isActive(enabledDSses, admin))
                {
+                  ImportLog.Log(_LogType.ltProgress, "[{0}]: not active", admin.Name);
                   continue;
                }
 
+
+               ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStart, "[{0}]: starting import", admin.Name);
                admin.Pipeline.Start(admin);
+               PipelineContext ctx = new PipelineContext(this, admin);
                admin.Datasource.Import(ctx, admin.Pipeline);
                admin.Pipeline.Stop(admin);
+               ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStop, "[{0}]: import ended", admin.Name);
                isError = false;
             }
+            ImportLog.Log(_LogType.ltProgress, "Import ended");
          }
          finally
          {
@@ -83,6 +117,7 @@ namespace Bitmanager.ImportPipeline
          {
             switch (typeName.ToLowerInvariant())
             {
+               case "endpoint": return typeof(EndPoint).FullName;
                case "esendpoint": return typeof(ESEndPoint).FullName;
                case "csv": return typeof(CsvDatasource).FullName;
             }
@@ -113,6 +148,5 @@ namespace Bitmanager.ImportPipeline
       {
          return Objects.CreateObject<T>(replaceKnownTypes(node), parms);
       }
-
    }
 }

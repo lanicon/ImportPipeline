@@ -26,31 +26,8 @@ namespace BeursGorilla
       public void Init(PipelineContext ctx, XmlNode node)
       {
          date = DateTime.Today;
-         feeder = createFeeder (ctx, node);
+         feeder = ctx.CreateFeeder (node);
          needHistory = node.OptReadBool("@history", true);
-      }
-
-      public IDatasourceFeeder createFeeder(PipelineContext ctx, XmlNode node, String expr)
-      {
-         String p = node.ReadStr(expr);
-         Object rawObj = PipelineContext.CreateObject(p);
-
-         IDatasourceFeeder obj = rawObj as IDatasourceFeeder;
-         if (obj == null)
-            throw new BMNodeException(node, "Object ({0}) does not support IDatasourceContentProvider.", rawObj.GetType().FullName);
-         obj.Init(ctx, node);
-         return obj;
-      }
-
-      public IDatasourceFeeder createFeeder(PipelineContext ctx, XmlNode node)
-      {
-         String type = node.OptReadStr ("@provider", null);
-         if (type==null)
-         {
-            XmlNode child = node.SelectSingleNode ("provider");
-            if (child!= null) return createFeeder (ctx, child, "@type"); 
-         }
-         return createFeeder(ctx, node, "@provider");
       }
 
       private static double toDouble(String x)

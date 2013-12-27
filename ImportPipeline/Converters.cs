@@ -56,7 +56,7 @@ namespace Bitmanager.ImportPipeline
             case "upper": return new ToUpperConverter(node);
             case "double": return new ToDoubleConverter(node);
          }
-         throw new BMNodeException(node, "Don't know how to create a Converter with type={0}.", type);
+         return Objects.CreateObject<Converter> (type, node);
       }
    }
 

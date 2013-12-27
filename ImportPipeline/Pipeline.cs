@@ -42,7 +42,11 @@ namespace Bitmanager.ImportPipeline
       {
          ImportEngine = engine;
          logger = Logs.CreateLogger("pipeline", Name);
+
          DefaultEndPoint = node.OptReadStr("@endpoint", null);
+         if (DefaultEndPoint == null && engine.EndPoints.Count > 0)
+            DefaultEndPoint = engine.EndPoints[0].Name;
+
          trace = node.OptReadBool ("@trace", false);
 
          AdminCollection<PipelineAction> rawActions = new AdminCollection<PipelineAction>(node, "action", (x) => PipelineAction.Create(this, x), true);
@@ -94,11 +98,11 @@ namespace Bitmanager.ImportPipeline
          missed = new StringDict();
       }
 
-      public void HandleValue(PipelineContext ctx, String key, Object value)
+      public Object HandleValue(PipelineContext ctx, String key, Object value)
       {
          if (trace) logger.Log("HandleValue ({0}, {1} ({2})", key, value, value==null ? "null": value.GetType().Name);
 
-         if (key == null) return;
+         if (key == null) goto EXIT_RTN;
          String lcKey = key.ToLowerInvariant();
          int keyLen = lcKey.Length;
          int ixStart = findAction(lcKey);
@@ -107,20 +111,24 @@ namespace Bitmanager.ImportPipeline
             if (!checkTemplates(ctx, key))
             {
                missed[lcKey] = null;
-               return;
+               goto EXIT_RTN; ;
             }
             ixStart = findAction(lcKey);
-            if (ixStart < 0) return;  //Should not happen, just to be sure!
+            if (ixStart < 0) goto EXIT_RTN; ;  //Should not happen, just to be sure!
          }
 
+         Object ret = null;
          for (int i = ixStart; i < actions.Count; i++)
          {
             ActionAdmin a = actions[i];
             if (a.KeyLen != keyLen) break;
             if (!lcKey.Equals(a.Key, StringComparison.InvariantCulture)) break;
 
-            a.Action.HandleValue(ctx, key, value);
+            Object tmp = a.Action.HandleValue(ctx, key, value);
+            if (tmp != null) ret = tmp;
          }
+
+      EXIT_RTN: return null;
       }
 
       private bool checkTemplates(PipelineContext ctx, String key)

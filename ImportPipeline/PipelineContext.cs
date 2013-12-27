@@ -1,52 +1,60 @@
 ﻿using Bitmanager.Core;
 using Newtonsoft.Json.Linq;
 using Bitmanager.Json;
+using Bitmanager.Xml;
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Xml;
 
 namespace Bitmanager.ImportPipeline
 {
    public class PipelineContext
    {
       public readonly ImportEngine ImportEngine;
-      Logger addLogger = Logs.CreateLogger("pipelineAdder", "pipelineAdder");
-      JObject accumulator;
+      public readonly Pipeline Pipeline;
+      public readonly DatasourceAdmin DatasourceAdmin;
+      public readonly Logger ImportLog;
+      public readonly Logger DebugLog;
+      public readonly Logger ErrorLog;
+
+      public PipelineContext(ImportEngine eng, DatasourceAdmin ds)
+      {
+         ImportEngine = eng;
+         DatasourceAdmin = ds;
+         Pipeline = ds.Pipeline;
+         ImportLog = eng.ImportLog.Clone (ds.Name);
+         DebugLog = eng.DebugLog.Clone(ds.Name);
+         ErrorLog = eng.ErrorLog.Clone(ds.Name);
+      }
       public PipelineContext(ImportEngine eng)
       {
          ImportEngine = eng;
-         Clear();
+         ImportLog = eng.ImportLog;
+         DebugLog = eng.DebugLog;
+         ErrorLog = eng.ErrorLog;
       }
 
-      public void Clear()
+      public IDatasourceFeeder CreateFeeder(XmlNode node, String expr)
       {
-         accumulator = new JObject();
+         String p = node.ReadStr(expr);
+         IDatasourceFeeder feeder = ImportEngine.CreateObject<IDatasourceFeeder>(p);
+         feeder.Init(this, node);
+         return feeder;
       }
 
-      public void SetField(String fld, Object value)
+      public IDatasourceFeeder CreateFeeder(XmlNode node)
       {
-         addLogger.Log("-- setfield {0}: '{1}'", fld, value);
-         accumulator.WriteToken(fld, value);
-      }
-
-      public void Add(String[] toWhat)
-      {
-         addLogger.Log(accumulator.ToString(Newtonsoft.Json.Formatting.Indented));
-      }
-
-      public static Object CreateObject(String objId)
-      {
-         if (objId != null)
+         String type = node.OptReadStr("@provider", null);
+         if (type == null)
          {
-            switch (objId.ToLowerInvariant())
-            {
-               case "csv": return new CsvDatasource();
-               case "urlprovider": return new UrlFeeder();
-            }
+            XmlNode child = node.SelectSingleNode("provider");
+            if (child != null) return CreateFeeder(child, "@type");
          }
-         return Objects.CreateObject (objId);
+         return CreateFeeder(node, "@provider");
       }
+
    }
 }

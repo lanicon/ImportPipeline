@@ -26,5 +26,9 @@ namespace Bitmanager.ImportPipeline
          Context = ctx;
          Element = element;
       }
+      public override string ToString()
+      {
+         return Element.ToString();
+      }
    }
 }

@@ -12,6 +12,7 @@ using Bitmanager.IO;
 using System.Reflection;
 using System.IO;
 using Bitmanager.ImportPipeline;
+using System.Threading;
 
 namespace Bitmanager.Importer
 {
@@ -45,25 +46,34 @@ namespace Bitmanager.Importer
       private void import()
       {
          if (comboBox1.SelectedIndex < 0) return;
-         History.SaveHistory(comboBox1, HISTORY_KEY);
 
-         String settingsFile = comboBox1.Text;
-         ImportEngine engine = new ImportEngine();
-         engine.Load(settingsFile);
-
-         String[] activeDSses = null;
-         var items = dsList.Items;
-         if (items.Count > 0)
+         UseWaitCursor = true;
+         try
          {
-            var list = new List<String>();
-            for (int i=0; i<items.Count; i++)
+            History.SaveHistory(comboBox1, HISTORY_KEY);
+
+            String settingsFile = comboBox1.Text;
+            ImportEngine engine = new ImportEngine();
+            engine.Load(settingsFile);
+
+            String[] activeDSses = null;
+            var items = dsList.Items;
+            if (items.Count > 0)
             {
-               if (!dsList.GetItemChecked(i)) continue;
-               list.Add ((String)items[i]);
+               var list = new List<String>();
+               for (int i = 0; i < items.Count; i++)
+               {
+                  if (!dsList.GetItemChecked(i)) continue;
+                  list.Add((String)items[i]);
+               }
+               activeDSses = list.ToArray();
             }
-            activeDSses = list.ToArray();
+            engine.Import(activeDSses);
          }
-         engine.Import(activeDSses);
+         finally
+         {
+            UseWaitCursor = false;
+         }
       }
       private void button1_Click(object sender, EventArgs e)
       {
@@ -91,4 +101,17 @@ namespace Bitmanager.Importer
          }
       }
    }
+
+   //public class Cursor : IDisposable
+   //{
+   //   public Cursor()
+   //   {
+   //   }
+
+
+   //   public void Dispose()
+   //   {
+   //      throw new NotImplementedException();
+   //   }
+   //}
 }

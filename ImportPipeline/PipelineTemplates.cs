@@ -15,56 +15,58 @@ namespace Bitmanager.ImportPipeline
    {
       public readonly String Expr;
       protected Regex regex;
-      protected String convertersName, endpointName;
-      protected Pipeline pipeline;
-
+      protected PipelineAction template;
       public PipelineTemplate(Pipeline pipeline, XmlNode node)
       {
-         this.pipeline = pipeline;
+         XmlElement e = (XmlElement)node;
          Expr = node.ReadStr("@expr");
+         e.SetAttribute("key", Expr);
          regex = new Regex(Expr, RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
-         endpointName = PipelineAction.ReadParameters(pipeline, node, out convertersName);
       }
 
       public abstract PipelineAction OptCreateAction(PipelineContext ctx, String key);
 
       public static PipelineTemplate Create(Pipeline pipeline, XmlNode node)
       {
-         if (node.SelectSingleNode("@field") != null) return new PipelineFieldTemplate(pipeline, node);
          if (node.SelectSingleNode("@add") != null) return new PipelineAddTemplate(pipeline, node);
-         throw new BMNodeException(node, "Don't know how to create a template for this node.");
+         if (node.SelectSingleNode("@nop") != null) return new PipelineNopTemplate(pipeline, node);
+         return new PipelineFieldTemplate(pipeline, node);
       }
 
       public override string ToString()
       {
-         return String.Format("{0}: (expr={1}, endpoint={2}, conv={3}", this.GetType().Name, Expr, endpointName, convertersName);
+         return String.Format("{0}: {1}", this.GetType().Name, template);
       }
 
    }
 
-   public class PipelineFieldTemplate : PipelineTemplate
+   public class PipelineNopTemplate : PipelineTemplate
    {
-      protected String field;
-
-      public PipelineFieldTemplate(Pipeline pipeline, XmlNode node)
+      public PipelineNopTemplate(Pipeline pipeline, XmlNode node)
          : base(pipeline, node)
       {
-         field = node.ReadStr("@field");
+         template = new PipelineNopAction(pipeline, node);
       }
 
       public override PipelineAction OptCreateAction(PipelineContext ctx, String key)
       {
          if (!regex.IsMatch(key)) return null;
-
-         String enpointName = regex.Replace(key, this.endpointName);
-         String convertersName = this.convertersName == null ? null : regex.Replace(key, this.convertersName);
-         String fieldName = regex.Replace(key, this.field);
-
-         return new PipelineFieldAction(pipeline, key, enpointName, convertersName, fieldName);
+         return new PipelineNopAction((PipelineNopAction)template, key, regex);
       }
-      public override string ToString()
+   }
+
+   public class PipelineFieldTemplate : PipelineTemplate
+   {
+      public PipelineFieldTemplate(Pipeline pipeline, XmlNode node)
+         : base(pipeline, node)
       {
-         return base.ToString() + ", field=" + field + ")";
+         template = new PipelineFieldAction(pipeline, node);
+      }
+
+      public override PipelineAction OptCreateAction(PipelineContext ctx, String key)
+      {
+         if (!regex.IsMatch(key)) return null;
+         return new PipelineFieldAction((PipelineFieldAction)template, key, regex);
       }
    }
 
@@ -73,39 +75,13 @@ namespace Bitmanager.ImportPipeline
       public PipelineAddTemplate(Pipeline pipeline, XmlNode node)
          : base(pipeline, node)
       {
+         template = new PipelineAddAction(pipeline, node);
       }
 
       public override PipelineAction OptCreateAction(PipelineContext ctx, String key)
       {
          if (!regex.IsMatch(key)) return null;
-
-         String enpointName = regex.Replace(key, this.endpointName);
-         String convertersName = this.convertersName == null ? null : regex.Replace(key, this.convertersName);
-         return new PipelineAddAction(pipeline, key, enpointName, convertersName);
-      }
-
-      public override string ToString()
-      {
-         return base.ToString() + ")";
-      }
-   }
-
-   public class PipelineNopTemplate : PipelineTemplate
-   {
-      public PipelineNopTemplate(Pipeline pipeline, XmlNode node)
-         : base(pipeline, node)
-      {
-      }
-
-      public override PipelineAction OptCreateAction(PipelineContext ctx, String key)
-      {
-         if (!regex.IsMatch(key)) return null;
-         return new PipelineNopAction(key);
-      }
-
-      public override string ToString()
-      {
-         return base.ToString() + ")";
+         return new PipelineAddAction((PipelineAddAction)template, key, regex);
       }
    }
 }

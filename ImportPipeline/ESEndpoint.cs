@@ -17,76 +17,104 @@ namespace Bitmanager.ImportPipeline
       public readonly ESConnection Connection;
       public readonly IndexDefinitionTypes IndexTypes;
       public readonly IndexDefinitions Indexes;
+      public readonly IndexDocTypes IndexDocTypes;
+      protected readonly ClusterStatus WaitFor, AltWaitFor;
+      protected readonly bool WaitForMustExcept;
+      protected readonly int WaitForTimeout;
 
-      private ESIndexCmd._CheckIndexFlags flags;
 
       public ESEndPoint(ImportEngine engine, XmlNode node)
          : base(node)
       {
          Connection = new ESConnection(node.ReadStr("@url"));
-         IndexTypes = new IndexDefinitionTypes(engine.Xml, node.SelectMandatoryNode("indextypes"));
-         Indexes = new IndexDefinitions(IndexTypes, node.SelectMandatoryNode("indexes"));
+         XmlNode typesNode = node.SelectSingleNode("indextypes");
+         if (typesNode != null)
+            IndexTypes = new IndexDefinitionTypes(engine.Xml, typesNode);
+         Indexes = new IndexDefinitions(IndexTypes, engine.Xml, node.SelectMandatoryNode("indexes"), false);
+         IndexDocTypes = new IndexDocTypes(Indexes, node.SelectMandatoryNode("types"));
+
+         String[] arr = node.OptReadStr ("waitfor/@status", "green|yellow").SplitStandard();
+         WaitForTimeout = node.OptReadInt("waitfor/@timeout", 30);
+         WaitForMustExcept = node.OptReadBool("waitfor/@except", false);
+         try
+         {
+            if (arr.Length == 1)
+            {
+               WaitFor = Invariant.ToEnum<ClusterStatus> (arr[0]);
+               AltWaitFor = WaitFor;
+            }
+            else
+            {
+               WaitFor = Invariant.ToEnum<ClusterStatus>(arr[0]);
+               AltWaitFor = Invariant.ToEnum<ClusterStatus>(arr[1]);
+            }
+         }
+         catch (Exception err)
+         {
+            throw new BMNodeException(node, err);
+         }
       }
 
-      public override void Open(bool isReindex)
+      public override void Open(PipelineContext ctx)
       {
-         if (isReindex) flags = ESIndexCmd._CheckIndexFlags.ForceCreate | ESIndexCmd._CheckIndexFlags.AppendDate;
+         ESIndexCmd._CheckIndexFlags flags = ESIndexCmd._CheckIndexFlags.AppendDate;
+         if ((ctx.Flags & _ImportFlags.ImportFull) != 0) flags |= ESIndexCmd._CheckIndexFlags.ForceCreate;
          Indexes.CreateIndexes(Connection, flags);
-         WaitForGreenOrYellow();
+         WaitForStatus();
       }
-      public override void Close(bool isError)
+      public override void Close(PipelineContext ctx, bool isError)
       {
          if (isError) return;
          Indexes.OptionalRename(Connection);
       }
 
-      private const int TIMEOUT = 30000;
-      public bool WaitForGreenOrYellow(bool mustExcept = true)
+      public bool WaitForStatus()
       {
-         return Connection.CreateHealthRequest().WaitForStatus(ClusterStatus.Green, ClusterStatus.Yellow, TIMEOUT, mustExcept);
-      }
-      public bool WaitForGreen(bool mustExcept = true)
-      {
-         return Connection.CreateHealthRequest().WaitForStatus(ClusterStatus.Green, TIMEOUT, mustExcept);
-
+         var cmd = Connection.CreateHealthRequest();
+         if (WaitFor==AltWaitFor)
+            return cmd.WaitForStatus(WaitFor, WaitForTimeout, WaitForMustExcept);
+         return cmd.WaitForStatus(WaitFor, AltWaitFor, WaitForTimeout, WaitForMustExcept);
       }
 
       public override IDataEndpoint CreateDataEndPoint(string namePart2)
       {
-         if (namePart2.IndexOf('/') < 0)
-            throw new BMException ("Invalid endpoint name '{0}'. Data endpoint name must contain a '/'.", namePart2);
-         return new ESDataEndpoint(this, namePart2);
+         if (String.IsNullOrEmpty(namePart2))
+            return new ESDataEndpoint(this, IndexDocTypes[0]);
+         return new ESDataEndpoint(this, IndexDocTypes.GetDocType(namePart2, true));
       }
    }
 
 
    public class ESDataEndpoint : JsonEndpointBase<ESEndPoint>
    {
-      private String urlPart;
-      private ESConnection connection;
+      private readonly ESConnection connection;
+      private readonly IndexDocType doctype;
 
-      public ESDataEndpoint(ESEndPoint endpoint, String urlPart): base (endpoint)
+      public ESDataEndpoint(ESEndPoint endpoint, IndexDocType doctype)
+         : base(endpoint)
       {
          this.connection = endpoint.Connection;
-         this.urlPart = urlPart;
+         this.doctype = doctype;
       }
 
-      public override void Opened()
+      public override void Opened(PipelineContext ctx)
       {
-         int ix = urlPart.IndexOf('/');
-         String index = urlPart.Substring(0, ix);
-         String doc = urlPart.Substring(ix + 1);
-
-         var def = EndPoint.Indexes.GetDefinition(index, true);
-         urlPart = def.GetPathForUrl(doc, true);
       }
 
-      public override void Add()
+      public override void Add(PipelineContext ctx)
       {
-         addLogger.Log(accumulator.ToString(Newtonsoft.Json.Formatting.Indented));
-         connection.Post(urlPart, accumulator).ThrowIfError();
+         OptLogAdd();
+         connection.Post(doctype.UrlPart, accumulator).ThrowIfError();
+         Clear();
       }
 
+      public override ExistState Exists(PipelineContext ctx, string key, DateTime? timeStamp)
+      {
+         ExistState st = doctype.Exists(connection, key, timeStamp);
+         Logs.DebugLog.Log("exist=" + st);
+         return st;
+         //return doctype.Exists(connection, key, timeStamp);
+      }
    }
 
 }

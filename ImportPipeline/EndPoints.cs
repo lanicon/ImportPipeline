@@ -25,48 +25,68 @@ namespace Bitmanager.ImportPipeline
 
       public IDataEndpoint GetDataEndPoint(String name)
       {
+         if (name == null) return null;
          IDataEndpoint ret;
          if (endPointCache == null) endPointCache = new StringDict<IDataEndpoint>();
          if (endPointCache.TryGetValue(name, out ret)) return ret;
 
-         int ix = name.IndexOf('.');
-         EndPoint endPoint;
-         String namePart2 = name;
-         if (ix < 0)
-            endPoint = this[0];
+         EndPoint endPoint = this[0];
+
+         if (String.IsNullOrEmpty(name))
+            ret = endPoint.CreateDataEndPoint(null);
          else
          {
-            endPoint = this.GetByName(name.Substring(0, ix));
-            namePart2 = name.Substring(ix + 1);
+            int ix = name.IndexOf('.');
+            if (ix < 0) 
+            {
+               endPoint = this.GetByName(name);
+               ret = endPoint.CreateDataEndPoint(null);
+            }
+            else
+            {
+               endPoint = this.GetByName(name.Substring(0, ix));
+               ret = endPoint.CreateDataEndPoint(name.Substring(ix + 1));
+            }
          }
          endPoint.touched = true;
-         ret = endPoint.CreateDataEndPoint(namePart2);
-         endPointCache.Add(name, ret);
+         endPointCache.Add(name, ret); //PW cache at this point is a MT issue!!!
          return ret;
       }
 
-      public void Open(bool isReindex)
+      public void Open(PipelineContext ctx)
       {
+         String fmt = "{0}\r\nEndpoint={1}.";
+         String name = null;
          engine.ImportLog.Log("Opening endpoints");
-         foreach (var x in this)
+         try
          {
-            engine.ImportLog.Log("-- endpoint '{0}' mustopen={1}.", x.Name, x.touched);
-            if (x.touched) x.Open(isReindex);
-         }
-         if (endPointCache == null) return;
+            foreach (var x in this)
+            {
+               name = x.Name;
+               engine.ImportLog.Log("-- endpoint '{0}' mustopen={1}.", x.Name, x.touched);
+               if (x.touched) x.Open(ctx);
+            }
+            if (endPointCache == null) return;
 
-         engine.ImportLog.Log("Opening datapoints");
-         foreach (var kvp in endPointCache)
+            fmt = "{0}\r\nData-Endpoint={1}.";
+            engine.ImportLog.Log("Opening datapoints");
+            foreach (var kvp in endPointCache)
+            {
+               name = kvp.Key;
+               engine.ImportLog.Log("-- datapoint '{0}'.", kvp.Key);
+               kvp.Value.Opened(ctx);
+            }
+         }
+         catch (Exception err)
          {
-            engine.ImportLog.Log("-- datapoint '{0}'.", kvp.Key);
-            kvp.Value.Opened();
+            throw new BMException(err, fmt, err.Message, name);
          }
       }
 
-      public void Close(bool isError)
+      public void Close(PipelineContext ctx, bool isError)
       {
          foreach (var x in this) 
-            if (x.touched) x.Close(isError);
+            if (x.touched) x.Close(ctx, isError);
       }
    }
 
@@ -100,10 +120,10 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
-      public virtual void Open(bool isReindex)
+      public virtual void Open(PipelineContext ctx)
       {
       }
-      public virtual void Close(bool isError)
+      public virtual void Close(PipelineContext ctx, bool isError)
       {
       }
       public virtual IDataEndpoint CreateDataEndPoint(string namePart2)
@@ -114,11 +134,12 @@ namespace Bitmanager.ImportPipeline
 
    public interface IDataEndpoint
    {
-      void Opened();
+      void Opened(PipelineContext ctx);
       void Clear();
       Object GetField(String fld);
       void SetField(String fld, Object value);
-      void Add();
+      void Add(PipelineContext ctx);
+      ExistState Exists(PipelineContext ctx, String key, DateTime? timeStamp);
    }
 
    public class JsonEndpointBase<T> : IDataEndpoint where T: EndPoint
@@ -149,18 +170,29 @@ namespace Bitmanager.ImportPipeline
       public virtual void SetField(String fld, Object value)
       {
          if ((flags & Bitmanager.ImportPipeline.EndPoint.DebugFlags._LogField) != 0) addLogger.Log("-- setfield {0}: '{1}'", fld, value);
-         accumulator.WriteToken(fld, value);
+         if (value == null) addLogger.Log("Field {0}==null", fld);
+           accumulator.WriteToken(fld, value);
       }
 
-      public virtual void Add()
+      protected void OptLogAdd()
       {
-         if ((flags & Bitmanager.ImportPipeline.EndPoint.DebugFlags._LogAdd) == 0) return;
-         addLogger.Log("Add: " + accumulator.ToString(Newtonsoft.Json.Formatting.Indented));
+         if ((flags & Bitmanager.ImportPipeline.EndPoint.DebugFlags._LogAdd) != 0)
+            addLogger.Log("Add: " + accumulator.ToString(Newtonsoft.Json.Formatting.Indented));
+      }
+      public virtual void Add(PipelineContext ctx)
+      {
+         OptLogAdd();
          Clear();
       }
 
-      public virtual void Opened()
+      public virtual void Opened(PipelineContext ctx)
       {
+      }
+
+
+      public virtual ExistState Exists(PipelineContext ctx, string key, DateTime? timeStamp)
+      {
+         return ExistState.NotExist;
       }
    }
 }

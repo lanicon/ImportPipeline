@@ -15,16 +15,20 @@ using System.IO;
 using HtmlAgilityPack;
 using System.Text.RegularExpressions;
 using System.Web;
+using System.Threading;
+using Bitmanager.Elastic;
 
 namespace Bitmanager.ImportPipeline
 {
    public class TikaDS: Datasource
    {
+      private String processName;
       private String uriBase;
       private IDatasourceFeeder feeder;
       private int abstractLength, abstractDelta;
       public void Init(PipelineContext ctx, XmlNode node)
       {
+         processName = node.ReadStr("@tikaprocess");
          uriBase = node.ReadStr("@tikaurl");
          if (!uriBase.EndsWith("/")) uriBase += "/";
          feeder = ctx.CreateFeeder (node);
@@ -35,7 +39,7 @@ namespace Bitmanager.ImportPipeline
 
       private HtmlProcessor loadUrl(String fn)
       {
-         Uri uri = new Uri(uriBase + fn);
+         Uri uri = new Uri(uriBase + HttpUtility.UrlEncode (fn));
          using (WebClient client = new WebClient())
          {
             byte[] bytes = client.DownloadData(uri);
@@ -62,13 +66,35 @@ namespace Bitmanager.ImportPipeline
          return ret;
       }
 
+      private static ExistState toExistState (Object result)
+      {
+         if (result == null || !(result is ExistState)) return ExistState.NotExist;
+         return (ExistState)result;
+      }
       private void importUrl(PipelineContext ctx, IDatasourceSink sink, IDatasourceFeederElement elt)
       {
          StringDict attribs = getAttributes(elt.Context);
-         String fileName = elt.ToString();
+         var fullElt = (FileNameFeederElement)elt;
+         String fileName = fullElt.FileName;
          sink.HandleValue (ctx, "record/_start", fileName);
          DateTime dtFile = File.GetLastWriteTimeUtc(fileName);
          sink.HandleValue(ctx, "record/lastmodutc", dtFile);
+         sink.HandleValue(ctx, "record/virtualFilename", fullElt.VirtualFileName);
+
+         ExistState existState = ExistState.NotExist;
+         if ((ctx.Flags & _ImportFlags.ImportFull) == 0) //Not a full import
+         {
+             existState = toExistState (sink.HandleValue(ctx, "record/_checkexist", null));
+         }
+
+         //Check if we need to convert this file
+         if ((existState & (ExistState.ExistSame | ExistState.ExistNewer | ExistState.Exist)) != 0)
+         {
+            ctx.Skipped++;
+            ctx.ImportLog.Log("Skipped: {0}. Date={1}", fullElt.VirtualFileName, dtFile);
+            return;
+         }
+
          var htmlProcessor = loadUrl(fileName);
 
          //Write html properties
@@ -90,6 +116,8 @@ namespace Bitmanager.ImportPipeline
 
       public void Import(PipelineContext ctx, IDatasourceSink sink)
       {
+         ctx.ImportEngine.JavaHostCollection.EnsureStarted(this.processName);
+         Thread.Sleep(1000);
          foreach (var elt in feeder)
          {
             try

@@ -9,6 +9,10 @@ using System.Xml;
 
 namespace Bitmanager.ImportPipeline
 {
+   public enum _ImportFlags
+   {
+      ImportFull = 1 << 0,
+   }
    public class ImportEngine
    {
       public XmlHelper Xml { get; private set; }
@@ -16,16 +20,22 @@ namespace Bitmanager.ImportPipeline
       public Converters Converters;
       public NamedAdminCollection<DatasourceAdmin> Datasources;
       public NamedAdminCollection<Pipeline> Pipelines;
+      public ProcessHostCollection JavaHostCollection;
       public readonly Logger ImportLog;
       public readonly Logger DebugLog;
       public readonly Logger ErrorLog;
+      public readonly Logger MissedLog;
+      public _ImportFlags ImportFlags;
 
-      public ImportEngine()
+
+      public ImportEngine(_ImportFlags flags = 0)
       {
          ImportLog = Logs.CreateLogger("import", "ImportEngine");
          DebugLog = Logs.CreateLogger("import-debug", "ImportEngine");
+         MissedLog = Logs.CreateLogger("import-missed", "ImportEngine");
          ErrorLog = Logs.ErrorLog.Clone("ImportEngine");
          Logs.DebugLog.Log(((InternalLogger)ImportLog)._Logger.Name);
+         ImportFlags = flags;
       }
       public void Load(String fileName)
       {
@@ -36,6 +46,8 @@ namespace Bitmanager.ImportPipeline
       {
          Xml = xml;
          PipelineContext ctx = new PipelineContext(this);
+
+         JavaHostCollection = new ProcessHostCollection(this, xml.SelectSingleNode("processes"));
 
          EndPoints = new EndPoints(this, xml.SelectMandatoryNode("endpoints"));
 
@@ -74,10 +86,12 @@ namespace Bitmanager.ImportPipeline
       public void Import(String[] enabledDSses=null)
       {
          ImportLog.Log();
-         ImportLog.Log(_LogType.ltProgress, "Starting import");
+         ImportLog.Log(_LogType.ltProgress, "Starting import. Flags={0}", ImportFlags);
          bool isError = true;
-         EndPoints.Open(true);
+         PipelineContext mainCtx = new PipelineContext(this);
+         EndPoints.Open(mainCtx);
          ImportLog.Log(_LogType.ltProgress, "Endpoints opened");
+
          try
          {
             for (int i = 0; i < Datasources.Count; i++)
@@ -91,22 +105,52 @@ namespace Bitmanager.ImportPipeline
 
 
                ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStart, "[{0}]: starting import", admin.Name);
-               admin.Pipeline.Start(admin);
                PipelineContext ctx = new PipelineContext(this, admin);
-               admin.Datasource.Import(ctx, admin.Pipeline);
-               admin.Pipeline.Stop(admin);
-               ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStop, "[{0}]: import ended", admin.Name);
-               isError = false;
+               try
+               {
+                  admin.Pipeline.Start(admin);
+                  admin.Datasource.Import(ctx, admin.Pipeline);
+                  admin.Pipeline.Stop(admin);
+                  ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStop, "[{0}]: import ended. {1}.", admin.Name, ctx.GetStats());
+                  isError = false;
+               }
+               catch (Exception err)
+               {
+                  ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStop, "[{0}]: crashed err={1}", admin.Name, err.Message);
+                  ImportLog.Log("-- " + ctx.GetStats());
+                  Exception toThrow = new BMException(err, "{0}\r\nDatasource={1}\r\nLastAction={2}.", err.Message, admin.Name, admin.Pipeline.LastAction);
+                  ErrorLog.Log(toThrow);
+                  throw toThrow;
+               }
+
+               foreach (var c in Converters) c.DumpMissed(ctx);
             }
             ImportLog.Log(_LogType.ltProgress, "Import ended");
+            JavaHostCollection.StopAll();
          }
          finally
          {
-            EndPoints.Close(isError);
+            ErrorLog.Log("final");
+            try
+            {
+               ErrorLog.Log("final1");
+               EndPoints.Close(mainCtx, isError);
+               ErrorLog.Log("final2");
+               JavaHostCollection.StopAll();
+               ErrorLog.Log("final3");
+            }
+            catch (Exception e2)
+            {
+               ErrorLog.Log("final4");
+               ErrorLog.Log(e2);
+            }
+            ErrorLog.Log("final5");
+
             foreach (var p in Pipelines)
             {
                p.Dump("after import");
             }
+            ErrorLog.Log("final6");
 
          }
       }

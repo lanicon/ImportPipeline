@@ -8,6 +8,7 @@ using Bitmanager.Xml;
 using Newtonsoft.Json.Linq;
 using Bitmanager.Json;
 using Bitmanager.IO;
+using System.IO;
 
 namespace Bitmanager.ImportPipeline
 {
@@ -15,7 +16,7 @@ namespace Bitmanager.ImportPipeline
    {
       private XmlNode ctx;
       private FileTree tree;
-      private string root;
+      private string root, virtualRoot;
       private bool recursive;
       private static Logger errLogger = Logs.ErrorLog.Clone("FileNameFeeder");
 
@@ -28,6 +29,7 @@ namespace Bitmanager.ImportPipeline
          tree = new FileTree();
          this.ctx = node;
          root = XmlUtils.ReadStr(node, "@root");
+         virtualRoot = XmlUtils.OptReadStr(node, "@virtualroot", null);
          recursive = XmlUtils.OptReadBool(node, "@recursive", true);
 
          String filter = XmlUtils.OptReadStr(node, "@filter", null);
@@ -71,7 +73,7 @@ namespace Bitmanager.ImportPipeline
          tree.ReadFiles (root, recursive ? (_ReadFileFlags.rfStoreFiles |  _ReadFileFlags.rfSubdirs) : (_ReadFileFlags.rfStoreFiles));
 
          for (int i = 0; i < tree.Files.Count; i++)
-            yield return new FileNameFeederElement (ctx, tree, tree.Files[i]);
+            yield return new FileNameFeederElement (ctx, tree, tree.Files[i], virtualRoot);
       }
 
       System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
@@ -84,11 +86,22 @@ namespace Bitmanager.ImportPipeline
    {
       public readonly String FileName;
       public readonly String RelativeName;
+      public readonly String VirtualRoot;
+      public readonly String VirtualFileName;
 
-      public FileNameFeederElement(XmlNode ctx, FileTree tree, String relname): base (ctx, tree.GetFullName(relname))
+      public FileNameFeederElement(XmlNode ctx, FileTree tree, String relname, String virtualRoot): base (ctx, tree.GetFullName(relname))
       {
          RelativeName = relname;
          FileName = (String)Element;
+         VirtualRoot = virtualRoot;
+         if (virtualRoot == null)
+            VirtualFileName = FileName;
+         else
+         {
+            VirtualRoot = virtualRoot;
+            VirtualFileName = Path.Combine (virtualRoot, relname);
+         }
+
       }
 
    }

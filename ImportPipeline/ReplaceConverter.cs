@@ -51,6 +51,12 @@ namespace Bitmanager.ImportPipeline
 
          return ((flags & ReplacerFlags.NoMatchReturnNull) != 0) ? null : arg;
       }
+      public override void DumpMissed(PipelineContext ctx)
+      {
+         DumpMissed(ctx.MissedLog);
+         missed = null;
+      }
+
 
       public String Replace(String val)
       {
@@ -85,7 +91,8 @@ namespace Bitmanager.ImportPipeline
 
       public void DumpMissed(Logger logger, String prefix = "-- ")
       {
-         if (MissedCount <= 0) return;
+         if (missed==null) return;
+         logger.Log ("Missed '{0}' conversions: {1}", Name, missed.Count);
          foreach (var kvp in missed)
          {
             logger.Log(prefix + kvp.Key);

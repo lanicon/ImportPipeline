@@ -59,6 +59,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="admincollections.cs" />
+    <Compile Include="ProcessHost.cs" />
     <Compile Include="Consumer.cs" />
     <Compile Include="Converters.cs" />
     <Compile Include="CsvDatasource.cs" />
@@ -68,6 +69,9 @@
     <Compile Include="ESEndpoint.cs" />
     <Compile Include="FileNameFeeder.cs" />
     <Compile Include="ImportEngine.cs" />
+    <Compile Include="ConsoleRunner.cs" />
+    <Compile Include="ProcessHostSettings.cs" />
+    <Compile Include="MissedAdmin.cs" />
     <Compile Include="Objects.cs" />
     <Compile Include="Pipeline.cs" />
     <Compile Include="PipelineActions.cs" />

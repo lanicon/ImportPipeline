@@ -28,6 +28,7 @@ namespace Bitmanager.ImportPipeline
 
    public class Pipeline : NamedItem, IDatasourceSink
    {
+      private Dictionary<String, Object> variables;
       public readonly String DefaultEndPoint;
       public readonly ImportEngine ImportEngine;
 
@@ -37,6 +38,8 @@ namespace Bitmanager.ImportPipeline
       internal Logger logger;
 
       StringDict missed;
+      private Object lastAction;
+      public Object LastAction { get { return lastAction;}}
 
       public Pipeline(ImportEngine engine, XmlNode node): base(node)
       {
@@ -70,6 +73,21 @@ namespace Bitmanager.ImportPipeline
          Dump("");
       }
 
+      public void SetVariable(String varName, Object value)
+      {
+         if (variables == null) variables = new Dictionary<string, object>();
+         variables[varName.ToLowerInvariant()] = value;
+      }
+      public Object GetVariable(String varName)
+      {
+         return (variables == null) ? null : variables[varName.ToLowerInvariant()];
+      }
+
+      public void ClearVariables()
+      {
+         variables = null;
+      }
+
       private static String[] splitEndPoint(String s)
       {
          if (String.IsNullOrEmpty(s)) return null;
@@ -100,6 +118,9 @@ namespace Bitmanager.ImportPipeline
 
       public Object HandleValue(PipelineContext ctx, String key, Object value)
       {
+         Object ret = null;
+         lastAction = null;
+         trace = true;
          if (trace) logger.Log("HandleValue ({0}, {1} ({2})", key, value, value==null ? "null": value.GetType().Name);
 
          if (key == null) goto EXIT_RTN;
@@ -111,24 +132,24 @@ namespace Bitmanager.ImportPipeline
             if (!checkTemplates(ctx, key))
             {
                missed[lcKey] = null;
-               goto EXIT_RTN; ;
+               goto EXIT_RTN; 
             }
             ixStart = findAction(lcKey);
             if (ixStart < 0) goto EXIT_RTN; ;  //Should not happen, just to be sure!
          }
 
-         Object ret = null;
          for (int i = ixStart; i < actions.Count; i++)
          {
             ActionAdmin a = actions[i];
             if (a.KeyLen != keyLen) break;
             if (!lcKey.Equals(a.Key, StringComparison.InvariantCulture)) break;
 
+            lastAction = a.Action;
             Object tmp = a.Action.HandleValue(ctx, key, value);
             if (tmp != null) ret = tmp;
          }
 
-      EXIT_RTN: return null;
+      EXIT_RTN: return ret;
       }
 
       private bool checkTemplates(PipelineContext ctx, String key)
@@ -138,6 +159,7 @@ namespace Bitmanager.ImportPipeline
          int i;
          for (i = 0; i < templates.Count; i++)
          {
+            lastAction = templates[i];
             a = templates[i].OptCreateAction(ctx, key);
             if (a != null) goto ADD_TEMPLATE;
          }

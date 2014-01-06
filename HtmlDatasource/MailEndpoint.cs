@@ -24,10 +24,10 @@ namespace BeursGorilla
          limit = node.OptReadFloat("@limitperc", 1.0);
       }
 
-      public override void Open(bool isReindex)
+      public override void Open(PipelineContext ctx)
       {
       }
-      public override void Close(bool isError)
+      public override void Close(PipelineContext ctx, bool isError)
       {
          if (isError) return;
          if (toMail.Count==0)
@@ -74,7 +74,7 @@ namespace BeursGorilla
          limitPerc = 1.0;
       }
 
-      public override void Add()
+      public override void Add(PipelineContext ctx)
       {
          try
          {

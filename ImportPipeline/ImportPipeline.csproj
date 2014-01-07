@@ -60,7 +60,6 @@
   <ItemGroup>
     <Compile Include="admincollections.cs" />
     <Compile Include="ProcessHost.cs" />
-    <Compile Include="Consumer.cs" />
     <Compile Include="Converters.cs" />
     <Compile Include="CsvDatasource.cs" />
     <Compile Include="Datasource.cs" />

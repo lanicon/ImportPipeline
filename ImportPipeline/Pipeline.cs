@@ -31,6 +31,7 @@ namespace Bitmanager.ImportPipeline
       private Dictionary<String, Object> variables;
       public readonly String DefaultEndPoint;
       public readonly ImportEngine ImportEngine;
+      public static readonly Object Handled = new Object();
 
       internal bool trace;
       internal List<ActionAdmin> actions;
@@ -123,7 +124,7 @@ namespace Bitmanager.ImportPipeline
          trace = true;
          if (trace) logger.Log("HandleValue ({0}, {1} ({2})", key, value, value==null ? "null": value.GetType().Name);
 
-         if (key == null) goto EXIT_RTN;
+         if (key == null) goto UNHANDLED;
          String lcKey = key.ToLowerInvariant();
          int keyLen = lcKey.Length;
          int ixStart = findAction(lcKey);
@@ -132,10 +133,10 @@ namespace Bitmanager.ImportPipeline
             if (!checkTemplates(ctx, key))
             {
                missed[lcKey] = null;
-               goto EXIT_RTN; 
+               goto UNHANDLED; 
             }
             ixStart = findAction(lcKey);
-            if (ixStart < 0) goto EXIT_RTN; ;  //Should not happen, just to be sure!
+            if (ixStart < 0) goto UNHANDLED; ;  //Should not happen, just to be sure!
          }
 
          for (int i = ixStart; i < actions.Count; i++)
@@ -148,8 +149,9 @@ namespace Bitmanager.ImportPipeline
             Object tmp = a.Action.HandleValue(ctx, key, value);
             if (tmp != null) ret = tmp;
          }
-
-      EXIT_RTN: return ret;
+         return ret == null ? Handled : ret;
+         
+         UNHANDLED: return null;
       }
 
       private bool checkTemplates(PipelineContext ctx, String key)
@@ -230,6 +232,14 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
+      public bool HandleException(PipelineContext ctx, string prefix, Exception err)
+      {
+         String pfx = String.IsNullOrEmpty(prefix) ? "_error" : prefix + "/_error";
+         HandleValue(ctx, pfx + "/object", err);
+         HandleValue(ctx, pfx + "/msg", err.Message);
+         HandleValue(ctx, pfx + "/trace", err.StackTrace);
+         return (HandleValue(ctx, pfx, null) != null);
+      }
    }
 
 

@@ -95,23 +95,32 @@ namespace Bitmanager.ImportPipeline
             return;
          }
 
-         var htmlProcessor = loadUrl(fileName);
-
-         //Write html properties
-         foreach (var kvp in htmlProcessor.Properties)
+         try
          {
-            sink.HandleValue (ctx, "record/"+kvp.Key, kvp.Value);
+
+            var htmlProcessor = loadUrl(fileName);
+
+            //Write html properties
+            foreach (var kvp in htmlProcessor.Properties)
+            {
+               sink.HandleValue(ctx, "record/" + kvp.Key, kvp.Value);
+            }
+
+            //Add dummy type to recognize the errors
+            //if (error)
+            //   doc.AddField("content_type", "ConversionError");
+
+            sink.HandleValue(ctx, "record/shortcontent", htmlProcessor.GetAbstract(abstractLength, abstractDelta));
+            sink.HandleValue(ctx, "record/content", htmlProcessor.GetNewHtml());
+
+            sink.HandleValue(ctx, "record/_end", fileName);
+            sink.HandleValue(ctx, "record", null);
          }
-
-         //Add dummy type to recognize the errors
-         //if (error)
-         //   doc.AddField("content_type", "ConversionError");
-
-         sink.HandleValue (ctx, "record/shortcontent", htmlProcessor.GetAbstract(abstractLength, abstractDelta));
-         sink.HandleValue (ctx, "record/content", htmlProcessor.GetNewHtml());
-
-         sink.HandleValue(ctx, "record/_end", fileName);
-         sink.HandleValue(ctx, "record", null);
+         catch (Exception e)
+         {
+            if (!sink.HandleException(ctx, "record", e))
+               throw;
+         }
       }
 
       public void Import(PipelineContext ctx, IDatasourceSink sink)

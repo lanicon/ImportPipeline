@@ -240,6 +240,43 @@ namespace Bitmanager.ImportPipeline
          HandleValue(ctx, pfx + "/trace", err.StackTrace);
          return (HandleValue(ctx, pfx, null) != null);
       }
+
+      public static void EmitToken(PipelineContext ctx, IDatasourceSink sink, JToken token, String key, int maxLevel)
+      {
+         if (token == null) return;
+         Object value = token;
+         maxLevel--; 
+         switch (token.Type)
+         {
+            case JTokenType.Array:
+               if (maxLevel <= 0) break;
+               var arr = (JArray)token;
+               for (int i=0; i<arr.Count; i++)
+                  EmitToken(ctx, sink, arr[i], key, maxLevel);
+               return;
+            case JTokenType.None:
+            case JTokenType.Null:
+            case JTokenType.Undefined:
+               value = null;
+               break;
+            case JTokenType.Date: value = (DateTime)token; break;
+            case JTokenType.String: value = (String)token; break;
+            case JTokenType.Float: value = (double)token; break;
+            case JTokenType.Integer: value = (Int64)token; break;
+            case JTokenType.Boolean: value = (bool)token; break;
+
+            case JTokenType.Object:
+               if (maxLevel <= 0) break;
+               JObject obj = (JObject)token;
+               int newLvl = maxLevel - 1;
+               foreach (var kvp in obj)
+               {
+                  EmitToken (ctx, sink, kvp.Value, key + "/" + kvp.Key, maxLevel);
+               }
+               return;
+         }
+         sink.HandleValue(ctx, key, value);
+      }
    }
 
 

@@ -18,7 +18,7 @@ using System.Text.RegularExpressions;
 namespace BeursGorilla
 {
 
-   public class BeursGorillaDS : Datasource
+   public class BeursGorillaDS : Datasource, IDatasourceSink
    {
       private DateTime date;
       private IDatasourceFeeder feeder;
@@ -62,8 +62,13 @@ namespace BeursGorilla
             String s = cols[0].InnerText;
             String[] arr = s.Split('-');
             if (arr.Length != 3) throw new BMException("Unexpected date: {0}.", s);
-            Date = new DateTime (Invariant.ToInt32(arr[2]), Invariant.ToInt32(arr[1]), Invariant.ToInt32(arr[0]));
+            Date = new DateTime(Invariant.ToInt32(arr[2]), Invariant.ToInt32(arr[1]), Invariant.ToInt32(arr[0]));
             Price = toDouble(cols[1].InnerText);
+         }
+         public PricePerDate(DateTime date, double price)
+         {
+            Date = date;
+            Price = price;
          }
          public JObject ToJObject()
          {
@@ -75,15 +80,26 @@ namespace BeursGorilla
       }
       private List<PricePerDate> loadHistory(Uri baseUri, String id, String name)
       {
-         List<PricePerDate> prices = new List<PricePerDate>();
          const String fmt = "/fonds-informatie.asp?naam={1}&cat=historie&symbol=&instrumentcode={0}&subcat=11";
          HtmlDocument doc = loadUrl(new Uri(baseUri, String.Format(fmt, id, name)));
 
-         loadHistory(prices, doc, "//table[@class='fonds_info_koersen_links']");
-         loadHistory(prices, doc, "//table[@class='fonds_info_koersen_rechts']");
+         loadHistory(doc, "//table[@class='fonds_info_koersen_links']");
+         loadHistory(doc, "//table[@class='fonds_info_koersen_rechts']");
 
-         Logs.ErrorLog.Log (_LogType.ltWarning, "Unexpected small history: {0} days. Name={1}, Id={2}", prices.Count, name, id);
+         var prices = history.Prices;
+         if (prices.Count < 100)
+            Logs.ErrorLog.Log (_LogType.ltWarning, "Unexpected small history: {0} days. Name={1}, Id={2}", prices.Count, name, id);
          return prices;
+      }
+      private void loadHistory(HtmlDocument doc, String expr)
+      {
+         var nodes = doc.DocumentNode.SelectNodes(expr);
+         if (nodes == null || nodes.Count != 1)
+            throw new BMException("No nodes or more than 1 node found for expr \"{0}\".", expr);
+
+         var rows = nodes[0].SelectNodes("tr");
+         for (int i = 1; i < rows.Count; i++)
+            history.Add(new PricePerDate(rows[i]));
       }
 
       private static JArray toJArray(List<PricePerDate> prices)
@@ -137,16 +153,6 @@ namespace BeursGorilla
       {
          return node == null ? "NULL" : node.InnerHtml;
       }
-      private void loadHistory(List<PricePerDate> prices, HtmlDocument doc, String expr)
-      {
-         var nodes = doc.DocumentNode.SelectNodes(expr);
-         if (nodes == null || nodes.Count != 1)
-            throw new BMException("No nodes or more than 1 node found for expr \"{0}\".", expr);
-
-         var rows = nodes[0].SelectNodes("tr");
-         for (int i=1; i<rows.Count; i++)
-            prices.Add (new PricePerDate(rows[i]));
-      }
 
       private StringDict getAttributes(XmlNode node)
       {
@@ -161,12 +167,15 @@ namespace BeursGorilla
          }
          return ret;
       }
+
+      private History history;
       private void importUrl(PipelineContext ctx, IDatasourceSink sink, Regex regex, IDatasourceFeederElement elt)
       {
+         history = new History();
          StringDict attribs = getAttributes(elt.Context);
          Uri url = (Uri)elt.Element;
          const String expr = "//tr[@class='koersen_tabel_titelbalk']";
-         sink.HandleValue (ctx, "html/_start", url);
+         sink.HandleValue (ctx, "_start", url);
          HtmlDocument doc = loadUrl(url);
          var nodes = doc.DocumentNode.SelectNodes(expr);
          if (nodes == null || nodes.Count != 1)
@@ -196,34 +205,35 @@ namespace BeursGorilla
 
             String name = anchorNode.InnerText;
             foreach (var kvp in attribs)
-               sink.HandleValue(ctx, "html/record/" + kvp.Key, kvp.Value);
+               sink.HandleValue(ctx, "record/" + kvp.Key, kvp.Value);
 
-            sink.HandleValue(ctx, "html/record/name", name);
-            sink.HandleValue(ctx, "html/record/code", code);
-            sink.HandleValue(ctx, "html/record/price", toDouble(tdNodes[2].InnerText));
-            sink.HandleValue(ctx, "html/record/priceOpened", toDouble(tdNodes[5].InnerText));
-            sink.HandleValue(ctx, "html/record/date", date);
+            sink.HandleValue(ctx, "record/name", name);
+            sink.HandleValue(ctx, "record/code", code);
+            sink.HandleValue(ctx, "record/price", toDouble(tdNodes[2].InnerText));
+            sink.HandleValue(ctx, "record/priceOpened", toDouble(tdNodes[5].InnerText));
+            sink.HandleValue(ctx, "record/date", date);
 
             posLogger.Log();
 
             if (needHistory)
             {
+               sink.HandleValue(ctx, "record/_preparehistory", null);
                List<PricePerDate> prices = loadHistory(url, code, name);
                int dev;
-               sink.HandleValue(ctx, "html/record/history", toJArray(prices));
-               sink.HandleValue(ctx, "html/record/pos3m", computePos(prices, date.AddMonths(-3), name, out dev));
-               sink.HandleValue(ctx, "html/record/dev3m", dev);
-               sink.HandleValue(ctx, "html/record/pos6m", computePos(prices, date.AddMonths(-6), name, out dev));
-               sink.HandleValue(ctx, "html/record/dev6m", dev);
-               sink.HandleValue(ctx, "html/record/pos12m", computePos(prices, date.AddMonths(-12), name, out dev));
-               sink.HandleValue(ctx, "html/record/dev12m", dev);
-               sink.HandleValue(ctx, "html/record/pos36m", computePos(prices, date.AddMonths(-36), name, out dev));
-               sink.HandleValue(ctx, "html/record/dev36m", dev);
+               sink.HandleValue(ctx, "record/history", toJArray(prices));
+               sink.HandleValue(ctx, "record/pos3m", computePos(prices, date.AddMonths(-3), name, out dev));
+               sink.HandleValue(ctx, "record/dev3m", dev);
+               sink.HandleValue(ctx, "record/pos6m", computePos(prices, date.AddMonths(-6), name, out dev));
+               sink.HandleValue(ctx, "record/dev6m", dev);
+               sink.HandleValue(ctx, "record/pos12m", computePos(prices, date.AddMonths(-12), name, out dev));
+               sink.HandleValue(ctx, "record/dev12m", dev);
+               sink.HandleValue(ctx, "record/pos36m", computePos(prices, date.AddMonths(-36), name, out dev));
+               sink.HandleValue(ctx, "record/dev36m", dev);
             }
 
-            sink.HandleValue(ctx, "html/record", null);
+            sink.HandleValue(ctx, "record", null);
          }
-         sink.HandleValue (ctx, "html/_end", url);
+         sink.HandleValue (ctx, "_end", url);
       }
 
       public void Import(PipelineContext ctx, IDatasourceSink sink)
@@ -242,6 +252,64 @@ namespace BeursGorilla
          }
       }
 
+      private DateTime histDate;
+      private double histPrice;
+      public object HandleValue(PipelineContext ctx, string key, object value)
+      {
+         switch (key.ToLowerInvariant())
+         {
+            case "history/date": histDate = (DateTime)value; break;
+            case "history/price": histPrice = (double)value; break;
+            case "history": histPrice = (double)value; break;
+         }
+         return Pipeline.Handled;
+      }
+
+      public bool HandleException(PipelineContext ctx, string prefix, Exception err)
+      {
+         return false;
+      }
+
+      class History
+      {
+         private List<PricePerDate> prices;
+         private Dictionary<DateTime, PricePerDate> dict;
+         private int maxCount;
+         public List<PricePerDate> Prices { get { return getPrices(); } }
+
+         private List<PricePerDate> getPrices()
+         {
+            prices.Sort((a, b) => Comparer<DateTime>.Default.Compare(b.Date, a.Date));
+            if (maxCount >= 0 && maxCount < prices.Count)
+            {
+               prices.RemoveRange(maxCount, prices.Count - maxCount); 
+            }
+            return prices;
+         }
+
+         public History(int maxCount=500)
+         {
+            this.maxCount = maxCount;
+            prices = new List<PricePerDate>();
+            dict = new Dictionary<DateTime, PricePerDate>();
+         }
+
+         public void Add(DateTime date, double price)
+         {
+            if (dict.ContainsKey(date)) return;
+            var ppd = new PricePerDate(date, price);
+            prices.Add(ppd);
+            dict.Add(ppd.Date, ppd);
+         }
+         public void Add(PricePerDate ppd)
+         {
+            if (dict.ContainsKey(ppd.Date)) return;
+            prices.Add(ppd);
+            dict.Add(ppd.Date, ppd);
+         }
+      }
    }
+
+
 
 }

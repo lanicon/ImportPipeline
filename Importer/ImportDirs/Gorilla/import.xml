@@ -3,13 +3,13 @@
    <tempdir dir="temp" clearonstart="true" />
    <endpoints>
       <endpoint name="es" type="ESEndPoint" url="http://localhost:9200/">
-         <indextypes>
-            <indextype name="default" config="index.config.js" />
-         </indextypes>
-
          <indexes>
-            <index name="gorilla" type="default" />
+            <index name="gorilla" config="index.config.js" />
          </indexes>
+         <types>
+            <type name="doc" index="gorilla" keyfield="_id" datefield="lastmod" />  
+         </types>
+
       </endpoint>
       <endpoint name="mail" type="htmldatasource#MailEndPoint" limit="1"/>
    </endpoints>
@@ -23,18 +23,19 @@
    </converters>
 
    <pipelines>
-      <pipeline name="gorilla" trace="false" converters="trim" endpoint="es.gorilla/doc">
-         <action key="html/record" add="*" />
-         <action key="html/record/name" field="name" converters="trim" />
-         <template expr="html/record/(price.*)" field="$1" converters="double"/>
-         <template expr="html/record/(.*)" field="$1" />
+      <pipeline name="gorilla" trace="false" converters="trim" endpoint="es.gorilla.doc">
+         <action key="record" add="*" />
+         <action key="record/name" field="name" converters="trim" />
+         <action key="record/_preparehistory" emitexisting="history" destination="datasource"/>
+         <template expr="record/(price.*)" field="$1" converters="double"/>
+         <template expr="record/(.*)" field="$1" />
       </pipeline>
       
       <pipeline name="gorillaMail" trace="false" converters="trim" endpoint="mail.mail">
-         <action key="html/record" add="*" />
-         <action key="html/record/name" field="name" converters="trim" />
-         <template expr="html/record/(price.*)" field="$1" converters="double"/>
-         <template expr="html/record/(.*)" field="$1" />
+         <action key="record" add="*" />
+         <action key="record/name" field="name" converters="trim" />
+         <template expr="record/(price.*)" field="$1" converters="double"/>
+         <template expr="record/(.*)" field="$1" />
       </pipeline>
    </pipelines>
 

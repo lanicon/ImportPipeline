@@ -140,6 +140,9 @@ namespace Bitmanager.ImportPipeline
       void SetField(String fld, Object value);
       void Add(PipelineContext ctx);
       ExistState Exists(PipelineContext ctx, String key, DateTime? timeStamp);
+      Object LoadRecord(PipelineContext ctx, String key);
+      void EmitRecord(PipelineContext ctx, String key, IDatasourceSink sink, String eventKey, int maxLevel);
+
    }
 
    public class JsonEndpointBase<T> : IDataEndpoint where T: EndPoint
@@ -194,5 +197,14 @@ namespace Bitmanager.ImportPipeline
       {
          return ExistState.NotExist;
       }
+      public virtual Object LoadRecord(PipelineContext ctx, String key)
+      {
+         return null;
+      }
+      public virtual void EmitRecord(PipelineContext ctx, String key, IDatasourceSink sink, String eventKey, int maxLevel)
+      {
+      }
+
+
    }
 }

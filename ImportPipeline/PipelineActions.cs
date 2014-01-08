@@ -102,6 +102,7 @@ namespace Bitmanager.ImportPipeline
       {
          if (node.SelectSingleNode("@add") != null) return new PipelineAddAction(pipeline, node);
          if (node.SelectSingleNode("@nop") != null) return new PipelineNopAction(pipeline, node);
+         if (node.SelectSingleNode("@emitexisting") != null) return new PipelineEmitAction(pipeline, node);
          return new PipelineFieldAction(pipeline, node);
       }
    }
@@ -209,5 +210,46 @@ namespace Bitmanager.ImportPipeline
       {
          return base.ToString() + ")";
       }
+   }
+
+   public class PipelineEmitAction : PipelineAction
+   {
+      enum Destination { PipeLine = 1, Datasource = 2 };
+
+      private String eventKey;
+      private int maxLevel;
+      private Destination destination; 
+      public PipelineEmitAction(Pipeline pipeline, XmlNode node)
+         : base(pipeline, node)
+      {
+         eventKey = node.ReadStr("@emitexisting");
+         destination = node.OptReadEnum("@destination", Destination.PipeLine);
+         maxLevel = node.OptReadInt("@maxlevel", 1);
+      }
+
+      internal PipelineEmitAction(PipelineEmitAction template, String name, Regex regex)
+         : base(template, name, regex)
+      {
+         this.eventKey = optReplace(regex, name, template.eventKey);
+         this.destination = template.destination;
+         this.maxLevel = template.maxLevel;
+      }
+
+      public override Object HandleValue(PipelineContext ctx, String key, Object value)
+      {
+         IDatasourceSink sink = ctx.Pipeline;
+         if (destination == Destination.Datasource) sink = (IDatasourceSink)ctx.DatasourceAdmin.Datasource;
+         String reckey = (String)ctx.Pipeline.GetVariable ("key");
+         if (reckey==null) return null;
+
+         this.endPoint.EmitRecord(ctx, reckey, sink, eventKey, maxLevel);
+         return null;
+      }
+
+      public override string ToString()
+      {
+         return String.Format("{0} eventKey={1}, dest={2}, maxlevel={3})", base.ToString(), eventKey, destination, maxLevel);
+      }
+
    }
 }

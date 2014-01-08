@@ -83,6 +83,7 @@
    mappings: {
          doc: {
             _meta: { lastmod:""}, 
+            _id: {path: "id"},
             "dynamic_templates" : [ 
                { 
                   "template_1" : { 
@@ -99,7 +100,7 @@
             properties: { 
                id: {
                   "type": "string",
-                  "index": "not_analyzed"   
+                  "index": "no"   
                },
                "name": {
                   "type": "string",

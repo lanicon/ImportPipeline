@@ -30,6 +30,7 @@ namespace Bitmanager.ImportPipeline
       {
          if (node.SelectSingleNode("@add") != null) return new PipelineAddTemplate(pipeline, node);
          if (node.SelectSingleNode("@nop") != null) return new PipelineNopTemplate(pipeline, node);
+         if (node.SelectSingleNode("@emitexisting") != null) return new PipelineEmitTemplate(pipeline, node);
          return new PipelineFieldTemplate(pipeline, node);
       }
 
@@ -82,6 +83,21 @@ namespace Bitmanager.ImportPipeline
       {
          if (!regex.IsMatch(key)) return null;
          return new PipelineAddAction((PipelineAddAction)template, key, regex);
+      }
+   }
+
+   public class PipelineEmitTemplate : PipelineTemplate
+   {
+      public PipelineEmitTemplate(Pipeline pipeline, XmlNode node)
+         : base(pipeline, node)
+      {
+         template = new PipelineEmitAction(pipeline, node);
+      }
+
+      public override PipelineAction OptCreateAction(PipelineContext ctx, String key)
+      {
+         if (!regex.IsMatch(key)) return null;
+         return new PipelineEmitAction((PipelineEmitAction)template, key, regex);
       }
    }
 }

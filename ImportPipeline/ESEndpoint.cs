@@ -115,6 +115,16 @@ namespace Bitmanager.ImportPipeline
          return st;
          //return doctype.Exists(connection, key, timeStamp);
       }
+      public override Object LoadRecord(PipelineContext ctx, String key)
+      {
+         return doctype.LoadByKey(connection, key);
+      }
+      public override void EmitRecord(PipelineContext ctx, String key, IDatasourceSink sink, String eventKey, int maxLevel)
+      {
+         JObject obj = doctype.LoadByKey(connection, key);
+         Pipeline.EmitToken(ctx, sink, obj, eventKey, maxLevel);
+      }
+
    }
 
 }

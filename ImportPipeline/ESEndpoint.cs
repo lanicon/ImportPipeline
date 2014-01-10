@@ -55,14 +55,14 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
-      public override void Open(PipelineContext ctx)
+      protected override void Open(PipelineContext ctx)
       {
          ESIndexCmd._CheckIndexFlags flags = ESIndexCmd._CheckIndexFlags.AppendDate;
          if ((ctx.Flags & _ImportFlags.ImportFull) != 0) flags |= ESIndexCmd._CheckIndexFlags.ForceCreate;
          Indexes.CreateIndexes(Connection, flags);
          WaitForStatus();
       }
-      public override void Close(PipelineContext ctx, bool isError)
+      protected override void Close(PipelineContext ctx, bool isError)
       {
          if (isError) return;
          Indexes.OptionalRename(Connection);
@@ -76,7 +76,7 @@ namespace Bitmanager.ImportPipeline
          return cmd.WaitForStatus(WaitFor, AltWaitFor, WaitForTimeout, WaitForMustExcept);
       }
 
-      public override IDataEndpoint CreateDataEndPoint(string namePart2)
+      protected override IDataEndpoint CreateDataEndPoint(string namePart2)
       {
          if (String.IsNullOrEmpty(namePart2))
             return new ESDataEndpoint(this, IndexDocTypes[0]);

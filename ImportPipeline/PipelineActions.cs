@@ -9,28 +9,34 @@ using Newtonsoft.Json.Linq;
 using Bitmanager.Json;
 using System.Text.RegularExpressions;
 using Bitmanager.Elastic;
+using System.Reflection;
 
 namespace Bitmanager.ImportPipeline
 {
+   //public enum ScriptReturnFlagsV
+   public delegate Object ScriptDelegate (PipelineContext ctx, String key, Object value); 
    public abstract class PipelineAction : NamedItem
    {
       protected readonly Pipeline pipeline;
+      protected readonly XmlNode node;
+      protected static Logger logger;
+      protected ScriptDelegate scriptDelegate;
       protected Converter[] converters;
       protected IDataEndpoint endPoint;
-      protected String endpointName, convertersName;
+      protected String endpointName, convertersName, scriptName;
       protected KeyCheckMode checkMode;
 
       public PipelineAction(Pipeline pipeline, XmlNode node)
          : base(node, "@key")
       {
          this.pipeline = pipeline;
+         this.node = node;
+         if (logger == null) logger = pipeline.ImportEngine.DebugLog.Clone("action");
          endpointName = node.OptReadStr("@endpoint", pipeline.DefaultEndPoint);
          if (endpointName == null) node.ReadStr("@endpoint");
-         endPoint = pipeline.ImportEngine.EndPoints.GetDataEndPoint(endpointName);
 
+         scriptName = node.OptReadStr("@script", null);
          convertersName = Converters.readConverters(node);
-         converters = pipeline.ImportEngine.Converters.ToConverters(convertersName);
-
          checkMode = node.OptReadEnum<KeyCheckMode>("@check", 0);
          if (checkMode == KeyCheckMode.date) checkMode |= KeyCheckMode.key;
       }
@@ -43,13 +49,28 @@ namespace Bitmanager.ImportPipeline
       {
          this.checkMode = template.checkMode;
          this.pipeline = template.pipeline;
-         var engine = template.pipeline.ImportEngine;
-
+         this.node = template.node;
          this.endpointName = optReplace (regex, name, template.endpointName);
          this.convertersName = optReplace (regex, name, template.convertersName); 
+         this.scriptName = optReplace (regex, name, template.scriptName);
+      }
 
-         this.endPoint = engine.EndPoints.GetDataEndPoint(endpointName);
-         this.converters = engine.Converters.ToConverters(convertersName);
+      public virtual void Start(PipelineContext ctx)
+      {
+         converters = ctx.ImportEngine.Converters.ToConverters(convertersName);
+         endPoint = ctx.ImportEngine.EndPoints.GetDataEndPoint(ctx, endpointName);
+         logger.Log("Script=" + scriptName);
+         if (scriptName != null)
+         {
+            Object scriptObj = pipeline.ScriptObject;
+            if (scriptObj == null) throw new BMNodeException(node, "Script without a script on the pipeline is not allowed!");
+            Type t = scriptObj.GetType();
+
+            MethodInfo mi = t.GetMethod(scriptName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance);
+            if (mi == null) throw new BMNodeException(node, "Cannot find method {0} in class {1}.", scriptName, t.FullName);
+            scriptDelegate = (ScriptDelegate)Delegate.CreateDelegate(typeof(ScriptDelegate), scriptObj, mi);
+            logger.Log("-- Created delegate={0}", scriptDelegate);
+         }
       }
 
       protected static String optReplace(Regex regex, String arg, String repl)
@@ -83,17 +104,28 @@ namespace Bitmanager.ImportPipeline
       /// <summary>
       /// Optional converts the value according to the supplied converters
       /// </summary>
-      protected Object Convert(Object obj)
+      protected Object ConvertAndCallScript(PipelineContext ctx, String key, Object value)
       {
-         if (converters == null) return obj;
+         if (scriptDelegate != null)
+         {
+            value = scriptDelegate(ctx, key, value);
+         }
+
+         if (converters == null) return value;
          for (int i = 0; i < converters.Length; i++)
-            obj = converters[i].Convert(obj);
-         return obj;
+            value = converters[i].Convert(value);
+         return value;
       }
 
       public override string ToString()
       {
-         return String.Format ("{0}: (key={1}, endpoint={2}, conv={3}", this.GetType().Name, Name, endpointName, convertersName);
+         StringBuilder b = new StringBuilder();
+         b.AppendFormat("{0}: (key={1}", this.GetType().Name, Name);
+         if (endpointName != null) b.AppendFormat(", endpoint={0}", endpointName);
+         if (convertersName != null) b.AppendFormat(", conv={0}", convertersName);
+         if (scriptName != null) b.AppendFormat(", script={0}", scriptName);
+         if (checkMode != 0) b.AppendFormat(", check={0}", checkMode);
+         return b.ToString();
       }
 
       public abstract Object HandleValue(PipelineContext ctx, String key, Object value);
@@ -131,7 +163,7 @@ namespace Bitmanager.ImportPipeline
 
       public override Object HandleValue(PipelineContext ctx, String key, Object value)
       {
-         value = Convert(value);
+         value = ConvertAndCallScript(ctx, key, value);
          if (toField != null) endPoint.SetField (toField, value);
          if (varName != null) ctx.Pipeline.SetVariable(varName, value);
          return base.handleCheck(ctx);
@@ -161,6 +193,7 @@ namespace Bitmanager.ImportPipeline
 
       public override Object HandleValue(PipelineContext ctx, String key, Object value)
       {
+         value = ConvertAndCallScript(ctx, key, value);
          if (checkMode != 0)
          {
             Object res = base.handleCheck(ctx);

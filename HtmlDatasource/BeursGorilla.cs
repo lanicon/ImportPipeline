@@ -174,26 +174,29 @@ namespace BeursGorilla
          history = new History();
          StringDict attribs = getAttributes(elt.Context);
          Uri url = (Uri)elt.Element;
-         const String expr = "//tr[@class='koersen_tabel_titelbalk']";
-         sink.HandleValue (ctx, "_start", url);
+
+         ctx.DebugLog.Log("-- Fetching url " + url);
+         const String expr = "//tr[@class='koersen_tabel_fondsen']";
+         sink.HandleValue(ctx, "_start", url);
          HtmlDocument doc = loadUrl(url);
          var nodes = doc.DocumentNode.SelectNodes(expr);
-         if (nodes == null || nodes.Count != 1)
-            throw new BMException("No nodes or more than 1 node found for expr \"{0}\".", expr);
-         var tableNode = nodes[0].ParentNode;
-         if (tableNode == null || (tableNode.Name != "tbody" && tableNode.Name != "table"))
-            throw new BMException("Parent of {0} is a {1} instead of tbody/table.", expr, tableNode == null ? "null" : tableNode.Name);
+         ctx.DebugLog.Log("-- -- <tr> count: {0}", nodes.Count); //.koersen_tabel_fondsen
+         if (nodes.Count == 0)
+            throw new BMException("No nodes found for expr \"{0}\".", expr);
 
-         nodes = tableNode.SelectNodes("tr");
          for (int i = 1; i < nodes.Count; i++)
          {
             var tdNodes = nodes[i].SelectNodes("td");
             if (tdNodes == null || tdNodes.Count != 7)
+            {
+               ctx.DebugLog.Log("Unexpected <tr> node:");
+               ctx.DebugLog.Log(nodes[i].OuterHtml);
                throw new BMException("Unexpected #td elements: {0}. Should be 7. Url={0}.", tdNodes == null ? 0 : tdNodes.Count, url);
+            }
             var anchorNode = tdNodes[0].SelectSingleNode("a");
             var href = anchorNode.GetAttributeValue("href", "");
             String code = null;
-            var matches = regex.Matches (href);
+            var matches = regex.Matches(href);
             if (matches.Count > 0)
             {
                if (matches[0].Groups.Count > 1)
@@ -201,7 +204,7 @@ namespace BeursGorilla
                   code = matches[0].Groups[1].Value;
                }
             }
-            if (code == null) throw new BMException("Cannot extract code from href={0}", href); 
+            if (code == null) throw new BMException("Cannot extract code from href={0}", href);
 
             String name = anchorNode.InnerText;
             foreach (var kvp in attribs)
@@ -233,7 +236,76 @@ namespace BeursGorilla
 
             sink.HandleValue(ctx, "record", null);
          }
-         sink.HandleValue (ctx, "_end", url);
+         sink.HandleValue(ctx, "_end", url);
+      }
+      private void importUrl2(PipelineContext ctx, IDatasourceSink sink, Regex regex, IDatasourceFeederElement elt)
+      {
+         history = new History();
+         StringDict attribs = getAttributes(elt.Context);
+         Uri url = (Uri)elt.Element;
+
+         ctx.DebugLog.Log("-- Fetching url " + url);
+         const String expr = "//tr[@class='koersen_tabel_titelbalk']";
+         sink.HandleValue(ctx, "_start", url);
+         HtmlDocument doc = loadUrl(url);
+         var nodes = doc.DocumentNode.SelectNodes(expr);
+         if (nodes == null || nodes.Count != 1)
+            throw new BMException("No nodes or more than 1 node found for expr \"{0}\".", expr);
+         var tableNode = nodes[0].ParentNode;
+         if (tableNode == null || (tableNode.Name != "tbody" && tableNode.Name != "table"))
+            throw new BMException("Parent of {0} is a {1} instead of tbody/table.", expr, tableNode == null ? "null" : tableNode.Name);
+
+         nodes = tableNode.SelectNodes("tr");
+         ctx.DebugLog.Log("-- -- <tr> count: {0}", nodes.Count); //.koersen_tabel_fondsen
+         for (int i = 1; i < nodes.Count; i++)
+         {
+            var tdNodes = nodes[i].SelectNodes("td");
+            if (tdNodes == null || tdNodes.Count != 7)
+               throw new BMException("Unexpected #td elements: {0}. Should be 7. Url={0}.", tdNodes == null ? 0 : tdNodes.Count, url);
+            var anchorNode = tdNodes[0].SelectSingleNode("a");
+            var href = anchorNode.GetAttributeValue("href", "");
+            String code = null;
+            var matches = regex.Matches(href);
+            if (matches.Count > 0)
+            {
+               if (matches[0].Groups.Count > 1)
+               {
+                  code = matches[0].Groups[1].Value;
+               }
+            }
+            if (code == null) throw new BMException("Cannot extract code from href={0}", href);
+
+            String name = anchorNode.InnerText;
+            foreach (var kvp in attribs)
+               sink.HandleValue(ctx, "record/" + kvp.Key, kvp.Value);
+
+            sink.HandleValue(ctx, "record/name", name);
+            sink.HandleValue(ctx, "record/code", code);
+            sink.HandleValue(ctx, "record/price", toDouble(tdNodes[2].InnerText));
+            sink.HandleValue(ctx, "record/priceOpened", toDouble(tdNodes[5].InnerText));
+            sink.HandleValue(ctx, "record/date", date);
+
+            posLogger.Log();
+
+            if (needHistory)
+            {
+               sink.HandleValue(ctx, "record/_preparehistory", null);
+               List<PricePerDate> prices = loadHistory(url, code, name);
+               int dev;
+               sink.HandleValue(ctx, "record/history", toJArray(prices));
+               sink.HandleValue(ctx, "record/pos3m", computePos(prices, date.AddMonths(-3), name, out dev));
+               sink.HandleValue(ctx, "record/dev3m", dev);
+               sink.HandleValue(ctx, "record/pos6m", computePos(prices, date.AddMonths(-6), name, out dev));
+               sink.HandleValue(ctx, "record/dev6m", dev);
+               sink.HandleValue(ctx, "record/pos12m", computePos(prices, date.AddMonths(-12), name, out dev));
+               sink.HandleValue(ctx, "record/dev12m", dev);
+               sink.HandleValue(ctx, "record/pos36m", computePos(prices, date.AddMonths(-36), name, out dev));
+               sink.HandleValue(ctx, "record/dev36m", dev);
+            }
+
+            sink.HandleValue(ctx, "record", null);
+         }
+         sink.HandleValue(ctx, "_end", url);
       }
 
       public void Import(PipelineContext ctx, IDatasourceSink sink)

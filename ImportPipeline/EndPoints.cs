@@ -23,7 +23,7 @@ namespace Bitmanager.ImportPipeline
          this.engine = engine;
       }
 
-      public IDataEndpoint GetDataEndPoint(String name)
+      public IDataEndpoint GetDataEndPoint(PipelineContext ctx, String name)
       {
          if (name == null) return null;
          IDataEndpoint ret;
@@ -33,69 +33,56 @@ namespace Bitmanager.ImportPipeline
          EndPoint endPoint = this[0];
 
          if (String.IsNullOrEmpty(name))
-            ret = endPoint.CreateDataEndPoint(null);
+            ret = endPoint._CheckOpen (ctx)._CreateDataEndPoint(ctx, null);
          else
          {
             int ix = name.IndexOf('.');
             if (ix < 0) 
             {
                endPoint = this.GetByName(name);
-               ret = endPoint.CreateDataEndPoint(null);
+               ret = endPoint._CheckOpen(ctx)._CreateDataEndPoint(ctx, null);
             }
             else
             {
                endPoint = this.GetByName(name.Substring(0, ix));
-               ret = endPoint.CreateDataEndPoint(name.Substring(ix + 1));
+               ret = endPoint._CheckOpen(ctx)._CreateDataEndPoint(ctx, name.Substring(ix + 1));
             }
          }
-         endPoint.touched = true;
          endPointCache.Add(name, ret); //PW cache at this point is a MT issue!!!
          return ret;
       }
 
       public void Open(PipelineContext ctx)
       {
-         String fmt = "{0}\r\nEndpoint={1}.";
          String name = null;
-         engine.ImportLog.Log("Opening endpoints");
+         engine.ImportLog.Log("Opening active, non-lazy endpoints");
          try
          {
             foreach (var x in this)
             {
                name = x.Name;
-               engine.ImportLog.Log("-- endpoint '{0}' mustopen={1}.", x.Name, x.touched);
-               if (x.touched) x.Open(ctx);
-            }
-            if (endPointCache == null) return;
-
-            fmt = "{0}\r\nData-Endpoint={1}.";
-            engine.ImportLog.Log("Opening datapoints");
-            foreach (var kvp in endPointCache)
-            {
-               name = kvp.Key;
-               engine.ImportLog.Log("-- datapoint '{0}'.", kvp.Key);
-               kvp.Value.Opened(ctx);
+               x._OptionalOpen(ctx);
             }
          }
          catch (Exception err)
          {
-            throw new BMException(err, fmt, err.Message, name);
+            throw new BMException(err, "{0}\r\nEndpoint={1}.", err.Message, name);
          }
       }
 
       public void Close(PipelineContext ctx, bool isError)
       {
          foreach (var x in this) 
-            if (x.touched) x.Close(ctx, isError);
+            x._Close (ctx, isError);
       }
    }
 
-   public enum ActiveMode {Active, Lazy, Inactive};
+   public enum ActiveMode {True, False, Lazy};
    public class EndPoint : NamedItem
    {
       public enum DebugFlags {_None=0, _LogField=1, _LogAdd=2};
-      internal bool touched;
-      public readonly bool Active;
+      internal bool opened;
+      public readonly ActiveMode ActiveMode;
       public readonly DebugFlags Flags;
 
       public EndPoint(ImportEngine engine, XmlNode node) : this(node) { }
@@ -103,30 +90,52 @@ namespace Bitmanager.ImportPipeline
          : base(node)
       {
          Flags = node.OptReadEnum<DebugFlags>("@flags", 0);
-         String act = node.OptReadStr("@active", "lazy").ToLowerInvariant();
-         switch (act)
-         {
-            case "lazy":
-               Active = true;
-               break;
-            case "true":
-               Active = true;
-               touched = true;
-               break;
-            case "false":
-               break;
-            default:
-               throw new BMNodeException(node, "Invalid value for @active: {0}. Possible values: true, false, lazy.", act);
-         }
+         ActiveMode = node.OptReadEnum("@active", ActiveMode.Lazy);
       }
 
-      public virtual void Open(PipelineContext ctx)
+      internal EndPoint _OptionalOpen(PipelineContext ctx)
+      {
+         return (ActiveMode == ImportPipeline.ActiveMode.True) ? _Open (ctx): this;
+      }
+      internal EndPoint _CheckOpen(PipelineContext ctx)
+      {
+         if (opened) return this;
+         if (ActiveMode == ImportPipeline.ActiveMode.False)
+            throw new BMException("Cannot open endpoint '{0}' because it is not active.", Name);
+         return _Open(ctx);
+      }
+
+      private EndPoint _Open(PipelineContext ctx)
+      {
+         ctx.ImportEngine.ImportLog.Log ("Opening endpoint '{0}'...", Name);
+         Open(ctx);
+         opened = true;
+         return this;
+      }
+      internal EndPoint _Close(PipelineContext ctx, bool isError)
+      {
+         if (!opened) return this;
+         ctx.ImportEngine.ImportLog.Log("Closing endpoint '{0}'...", Name);
+         Close(ctx, isError);
+         return this;
+      }
+
+      internal IDataEndpoint _CreateDataEndPoint(PipelineContext ctx, string namePart2)
+      {
+         IDataEndpoint x = CreateDataEndPoint (namePart2);
+         x.Opened (ctx);
+         return x;
+      }
+
+      protected virtual void Open(PipelineContext ctx)
       {
       }
-      public virtual void Close(PipelineContext ctx, bool isError)
+
+      protected virtual void Close(PipelineContext ctx, bool isError)
       {
       }
-      public virtual IDataEndpoint CreateDataEndPoint(string namePart2)
+
+      protected virtual IDataEndpoint CreateDataEndPoint(string namePart2)
       {
          return new JsonEndpointBase<EndPoint>(this);
       }

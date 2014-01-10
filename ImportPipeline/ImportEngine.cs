@@ -3,7 +3,9 @@ using Bitmanager.Elastic;
 using Bitmanager.Xml;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Xml;
 
@@ -21,6 +23,7 @@ namespace Bitmanager.ImportPipeline
       public NamedAdminCollection<DatasourceAdmin> Datasources;
       public NamedAdminCollection<Pipeline> Pipelines;
       public ProcessHostCollection JavaHostCollection;
+      public ScriptHost ScriptHost;
       public readonly Logger ImportLog;
       public readonly Logger DebugLog;
       public readonly Logger ErrorLog;
@@ -46,6 +49,17 @@ namespace Bitmanager.ImportPipeline
       {
          Xml = xml;
          PipelineContext ctx = new PipelineContext(this);
+
+         //Load the supplied script
+         XmlNode scriptNode = xml.SelectSingleNode("script");
+         if (scriptNode != null)
+         {
+            ScriptHost = new ScriptHost();
+            String fn = Path.Combine(Path.GetDirectoryName(xml.FileName), scriptNode.ReadStr("@file"));
+            ScriptHost.AddFile(fn);
+            ScriptHost.AddReference(Assembly.GetExecutingAssembly());
+            ScriptHost.Compile();
+         }
 
          JavaHostCollection = new ProcessHostCollection(this, xml.SelectSingleNode("processes"));
 
@@ -75,7 +89,7 @@ namespace Bitmanager.ImportPipeline
          {
             if (da.Name.Equals(enabledDSses[i], StringComparison.InvariantCultureIgnoreCase)) return true;
          }
-         return da.Active;
+         return false;
       }
 
 
@@ -86,11 +100,10 @@ namespace Bitmanager.ImportPipeline
       public void Import(String[] enabledDSses=null)
       {
          ImportLog.Log();
-         ImportLog.Log(_LogType.ltProgress, "Starting import. Flags={0}", ImportFlags);
+         ImportLog.Log(_LogType.ltProgress, "Starting import. Flags={0}, ActiveDS's='{1}'.", ImportFlags, enabledDSses==null ? null : String.Join (", ", enabledDSses));
          bool isError = true;
          PipelineContext mainCtx = new PipelineContext(this);
          EndPoints.Open(mainCtx);
-         ImportLog.Log(_LogType.ltProgress, "Endpoints opened");
 
          try
          {
@@ -103,14 +116,13 @@ namespace Bitmanager.ImportPipeline
                   continue;
                }
 
-
                ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStart, "[{0}]: starting import", admin.Name);
                PipelineContext ctx = new PipelineContext(this, admin);
                try
                {
-                  admin.Pipeline.Start(admin);
+                  admin.Pipeline.Start(ctx);
                   admin.Datasource.Import(ctx, admin.Pipeline);
-                  admin.Pipeline.Stop(admin);
+                  admin.Pipeline.Stop(ctx);
                   ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStop, "[{0}]: import ended. {1}.", admin.Name, ctx.GetStats());
                   isError = false;
                }
@@ -130,28 +142,19 @@ namespace Bitmanager.ImportPipeline
          }
          finally
          {
-            ErrorLog.Log("final");
             try
             {
-               ErrorLog.Log("final1");
                EndPoints.Close(mainCtx, isError);
-               ErrorLog.Log("final2");
                JavaHostCollection.StopAll();
-               ErrorLog.Log("final3");
             }
             catch (Exception e2)
             {
-               ErrorLog.Log("final4");
                ErrorLog.Log(e2);
             }
-            ErrorLog.Log("final5");
-
             foreach (var p in Pipelines)
             {
                p.Dump("after import");
             }
-            ErrorLog.Log("final6");
-
          }
       }
 

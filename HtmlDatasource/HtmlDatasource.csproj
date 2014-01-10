@@ -37,6 +37,9 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\_References\bmjson100.dll</HintPath>
     </Reference>
+    <Reference Include="FreeSMTP.Net">
+      <HintPath>..\..\_References\FreeSMTP.Net.dll</HintPath>
+    </Reference>
     <Reference Include="HtmlAgilityPack">
       <HintPath>..\..\_References\HtmlAgilityPack.dll</HintPath>
     </Reference>
@@ -62,6 +65,9 @@
       <Project>{b0c6c1db-fa8a-418e-89d8-2f21d7650d3e}</Project>
       <Name>ImportPipeline</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="HTMLPage1.html" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

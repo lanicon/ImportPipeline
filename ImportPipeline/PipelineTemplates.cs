@@ -38,7 +38,6 @@ namespace Bitmanager.ImportPipeline
       {
          return String.Format("{0}: {1}", this.GetType().Name, template);
       }
-
    }
 
    public class PipelineNopTemplate : PipelineTemplate

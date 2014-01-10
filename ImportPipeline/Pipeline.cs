@@ -31,10 +31,22 @@ namespace Bitmanager.ImportPipeline
       private Dictionary<String, Object> variables;
       public readonly String DefaultEndPoint;
       public readonly ImportEngine ImportEngine;
+      public readonly String ScriptTypeName;
       public static readonly Object Handled = new Object();
 
+      public Object ScriptObject { get; private set; }
+
       internal bool trace;
+      /// <summary>
+      /// List of active Actions (only valid in a running pipeline)
+      /// </summary>
       internal List<ActionAdmin> actions;
+
+      /// <summary>
+      /// List of defined Actions. Unmutable.
+      /// </summary>
+      internal List<ActionAdmin> definedActions;
+      
       internal List<PipelineTemplate> templates;
       internal Logger logger;
 
@@ -45,8 +57,9 @@ namespace Bitmanager.ImportPipeline
       public Pipeline(ImportEngine engine, XmlNode node): base(node)
       {
          ImportEngine = engine;
-         logger = Logs.CreateLogger("pipeline", Name);
+         logger = engine.DebugLog.Clone ("pipeline");
 
+         ScriptTypeName = node.OptReadStr("@script", null);
          DefaultEndPoint = node.OptReadStr("@endpoint", null);
          if (DefaultEndPoint == null && engine.EndPoints.Count > 0)
             DefaultEndPoint = engine.EndPoints[0].Name;
@@ -54,15 +67,15 @@ namespace Bitmanager.ImportPipeline
          trace = node.OptReadBool ("@trace", false);
 
          AdminCollection<PipelineAction> rawActions = new AdminCollection<PipelineAction>(node, "action", (x) => PipelineAction.Create(this, x), true);
-         actions = new List<ActionAdmin>();
+         definedActions = new List<ActionAdmin>();
          for (int i = 0; i < rawActions.Count; i++)
          {
             var action = rawActions[i];
             String[] keys = action.Name.SplitStandard();
             for (int k = 0; k < keys.Length; k++)
-               actions.Add(new ActionAdmin(keys[k], i, action));
+               definedActions.Add(new ActionAdmin(keys[k], i, action));
          }
-         actions.Sort(cbSortAction);
+         definedActions.Sort(cbSortAction);
 
          var templNodes = node.SelectNodes("template");
          templates = new List<PipelineTemplate>(templNodes.Count);
@@ -102,19 +115,33 @@ namespace Bitmanager.ImportPipeline
          return parts3;
       }
 
-      public void Start(DatasourceAdmin datasource)
+      public void Start(PipelineContext ctx)
       {
-         logger.Log("Starting datasource {0}", datasource.Name);
+         logger.Log("Starting datasource {0}", ctx.DatasourceAdmin.Name);
          missed = new StringDict();
+         if (ScriptTypeName != null)
+            ScriptObject = Objects.CreateObject(ScriptTypeName, ctx);
+         logger.Log("Script({0})={1}", ScriptTypeName, ScriptObject);
+
+         //Clone the list of actions and strat them
+         actions = new List<ActionAdmin>(definedActions.Count);
+         for (int i = 0; i < definedActions.Count; i++)
+         {
+            ActionAdmin act = definedActions[i];
+            act.Action.Start(ctx);
+            actions.Add(act);
+         }
       }
-      public void Stop(DatasourceAdmin datasource)
+
+      public void Stop(PipelineContext ctx)
       {
-         logger.Log("Stopped datasource {0}. {1} missed keys.", datasource.Name, missed.Count);
+         logger.Log("Stopped datasource {0}. {1} missed keys.", ctx.DatasourceAdmin.Name, missed.Count);
          foreach (var kvp in missed)
          {
             logger.Log("-- {0}", kvp.Key);
          }
          missed = new StringDict();
+         ScriptObject = null;
       }
 
       public Object HandleValue(PipelineContext ctx, String key, Object value)
@@ -172,16 +199,17 @@ namespace Bitmanager.ImportPipeline
 
       ADD_TEMPLATE:
          templateExpr = templates[i].Expr;
-         actions.Add(new ActionAdmin(a.Name, actions.Count, a));
-         for (i++; i < templates.Count; i++)
+         while (true)
          {
+            a.Start(ctx);
+            actions.Add(new ActionAdmin(a.Name, actions.Count, a));
+            i++;
+            if (i >= templates.Count) break;
             if (!templates[i].Expr.Equals(templateExpr, StringComparison.InvariantCultureIgnoreCase)) break;
             a = templates[i].OptCreateAction(ctx, key);
             if (a == null) break;
-            actions.Add(new ActionAdmin(a.Name, actions.Count, a));
          }
          actions.Sort(cbSortAction);
-
          return true;
       }
 
@@ -218,10 +246,10 @@ namespace Bitmanager.ImportPipeline
       public void Dump (String why)
       {
          logger.Log("Dumping pipeline {0} {1}", Name, why);
-         logger.Log("{0} actions", actions.Count);
-         for (int i = 0; i < actions.Count; i++)
+         logger.Log("{0} actions", definedActions.Count);
+         for (int i = 0; i < definedActions.Count; i++)
          {
-            var action = actions[i];
+            var action = definedActions[i];
             logger.Log ("-- action order={0} {1}", action.Order, action.Action);
          }
 

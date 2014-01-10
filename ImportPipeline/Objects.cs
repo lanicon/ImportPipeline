@@ -78,10 +78,17 @@ namespace Bitmanager.ImportPipeline
 
          //Need to load the assembly
          Assembly asm2 = Assembly.Load(arr[0]);
-         typeName = (arr[1][0] == '@') ? arr[1].Substring(1) : arr[1];
-         t = findExactType(asm2, typeName);
-         if (t != null || arr[1][0] == '@') return t;
-         return findNonExactType(asm2, typeName);
+         return FindType(asm2, arr[1]);
+      }
+
+      public static Type FindType(Assembly asm, String objId)
+      {
+         if (String.IsNullOrEmpty(objId)) throw new BMException("GetType() failed: progid cannot be empty.");
+         String typeName = (objId[0] == '@') ? objId.Substring(1) : objId;
+         Type t = findExactType(asm, typeName);
+         if (t != null) return t;
+         if (objId[0] == '@') return null;
+         return findNonExactType(asm, typeName);
       }
 
 
@@ -96,7 +103,7 @@ namespace Bitmanager.ImportPipeline
 
       public static Object CreateObject(String typeName)
       {
-         Type t = stringToType (typeName);
+         Type t = stringToType(typeName);
          try
          {
             return Activator.CreateInstance(t);
@@ -106,6 +113,7 @@ namespace Bitmanager.ImportPipeline
             throw new BMException("CreateObject({0}) failed: {1}", typeName, e.Message);
          }
       }
+
 
       public static Object CreateObject(String typeName, params Object[] parms)
       {

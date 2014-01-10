@@ -1,6 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <root>
    <tempdir dir="temp" clearonstart="true" />
+   <script file="myscript.cs" />
    <endpoints>
       <endpoint name="es" type="ESEndPoint" url="http://localhost:9200/">
          <indexes>
@@ -11,7 +12,7 @@
          </types>
 
       </endpoint>
-      <endpoint name="mail" type="htmldatasource#MailEndPoint" limit="1"/>
+      <endpoint name="mail" type="htmldatasource#MailEndPoint" limit="1" _email="pweerd@bitmanager.nl" server="bitmanager.nl:2525" force="heineken|imtech|grontmij"/>
    </endpoints>
 
    <converters>
@@ -23,8 +24,8 @@
    </converters>
 
    <pipelines>
-      <pipeline name="gorilla" trace="false" converters="trim" endpoint="es.gorilla.doc">
-         <action key="record" add="*" />
+      <pipeline name="gorilla" trace="false" converters="trim" script="MyScript" endpoint="es.doc">
+         <action key="record" add="*" script="Test"/>
          <action key="record/name" field="name" converters="trim" />
          <action key="record/_preparehistory" emitexisting="history" destination="datasource"/>
          <template expr="record/(price.*)" field="$1" converters="double"/>
@@ -44,16 +45,21 @@
          <provider type="UrlFeeder" baseurl="http://www.beursgorilla.nl/" >
             <url exchange="aex">aex.asp</url>
             <url exchange="amx">amx.asp</url>
+            <url exchange="ascx">koers.asp</url>
+            <url exchange="lokaal">lokaal.asp?b=a-d</url>
+            <url exchange="lokaal">lokaal.asp?b=e-o</url>
+            <url exchange="lokaal">lokaal.asp?b=p-z</url>
          </provider>   
       </datasource>
       <datasource name="gorilla" active="false" type="HtmlDatasource#BeursGorilla.BeursGorillaDS" trim="true" pipeline="gorilla">
          <provider type="UrlFeeder" baseurl="http://www.beursgorilla.nl/" >
             <url exchange="aex">aex.asp</url>
             <url exchange="amx">amx.asp</url>
+            <url exchange="ascx">koers.asp</url>
+            <url exchange="lokaal">lokaal.asp?b=a-d</url>
+            <url exchange="lokaal">lokaal.asp?b=e-o</url>
+            <url exchange="lokaal">lokaal.asp?b=p-z</url>
          </provider>   
-            <url>amx.asp</url>
-            <url>koers.asp</url>
-            <aurl>lokaal.asp?b=a-d</aurl>
       </datasource>
    </datasources>
    

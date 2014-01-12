@@ -1,7 +1,7 @@
 ﻿{
-      "number_of_shards" : 5,
-      "number_of_replicas" : 0,
    settings: {  
+      "number_of_shards" : 1,
+      "number_of_replicas" : 0,
       "analysis" : {
          "char_filter" : {
             "html_strip" : {
@@ -104,13 +104,13 @@
                },
                "name": {
                   "type": "string",
-                  "analyzer": "lc_keyword",
+                  "analyzer": "lc_text",
                   "include_in_all": false,
                   "omit_norms": true
                },
                "code": {
                   "type": "string",
-                  "index": "no"
+                  "analyzer": "lc_keyword"
                },
                "price": {
                   "type": "double",

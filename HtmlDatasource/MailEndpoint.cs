@@ -21,6 +21,8 @@ namespace BeursGorilla
       public const String F_perc = "perc";
       public const String F_name = "name";
       public const String F_exchange = "exchange";
+      public const String F_checkTime = "checktime";
+
 
 
       private List<JObject> toMail;
@@ -65,7 +67,7 @@ namespace BeursGorilla
             "</style></head><body><table>";
          const String htmlEnd = "</body></html>";
 
-         bldr.Append("<table><thead><tr><td class='left'>Stock</td><td>Change</td><td>Price</td><td>Opened</td></tr></thead>\r\n");
+         bldr.Append("<table><thead><tr><td class='left'>Stock</td><td>Change</td><td>Price</td><td>Opened</td><td>Checked at</td></tr></thead>\r\n");
          for (int i=0; i<toMail.Count; i++) objToLine(bldr, toMail[i]);
          bldr.Append("</table>\r\n");
          logger.Log(bldr.ToString());
@@ -111,9 +113,10 @@ namespace BeursGorilla
          b.Append ((perc < 0.0) ? "<tr class='red'>" : "<tr>");
          b.Append("<td class='left'>");
          b.AppendFormat("{0}[{1}]</td>", obj.ReadStr(F_name), obj.ReadStr(F_exchange));
-         b.AppendFormat("<td>{0:F2}</td>", obj.ReadDbl(F_perc));
+         b.AppendFormat("<td>{0:F2}%</td>", obj.ReadDbl(F_perc));
          b.AppendFormat("<td>{0:F3}</td>", obj.ReadDbl(F_price));
          b.AppendFormat("<td>{0:F3}</td>", obj.ReadDbl(F_priceOpened));
+         b.AppendFormat("<td>{0}</td>", obj.ReadStr(F_checkTime));
          b.AppendFormat("</tr>\r\n");
       }
 

@@ -25,10 +25,11 @@ namespace BeursGorilla
       private bool needHistory;
       public void Init(PipelineContext ctx, XmlNode node)
       {
-         date = DateTime.Today;
+         date = DateTime.UtcNow;
          feeder = ctx.CreateFeeder (node);
          needHistory = node.OptReadBool("@history", true);
       }
+
 
       private static double toDouble(String x)
       {
@@ -62,12 +63,12 @@ namespace BeursGorilla
             String s = cols[0].InnerText;
             String[] arr = s.Split('-');
             if (arr.Length != 3) throw new BMException("Unexpected date: {0}.", s);
-            Date = new DateTime(Invariant.ToInt32(arr[2]), Invariant.ToInt32(arr[1]), Invariant.ToInt32(arr[0]));
+            Date = new DateTime(Invariant.ToInt32(arr[2]), Invariant.ToInt32(arr[1]), Invariant.ToInt32(arr[0]), 0, 0, 0, DateTimeKind.Utc);
             Price = toDouble(cols[1].InnerText);
          }
          public PricePerDate(DateTime date, double price)
          {
-            Date = date;
+            Date = ToUtcDateWithoutTime (date);
             Price = price;
          }
          public JObject ToJObject()
@@ -77,6 +78,12 @@ namespace BeursGorilla
             ret.WriteToken("date", Date);
             return ret;
          }
+
+         public static DateTime ToUtcDateWithoutTime(DateTime x)
+         {
+            return new DateTime(x.Year, x.Month, x.Day, 0, 0, 0, DateTimeKind.Utc);
+         }
+
       }
       private List<PricePerDate> loadHistory(Uri baseUri, String id, String name)
       {
@@ -111,42 +118,65 @@ namespace BeursGorilla
       }
 
       static Logger posLogger = Logs.CreateLogger ("pos", "pos");
-      private int computePos (List<PricePerDate> prices, DateTime minDate, String name, out int dev)
+      class Stats
       {
-         dev = 0;
-         if (prices.Count < 2) return -1;
+         public double priceLo;
+         public double priceHi;
+         public double price;
+         public double stdDev;
+         public int position;
+         public int possibleGain;
+         public int score;
+
+         public override string ToString()
+         {
+            return String.Format("prices={0} [{1} - {2}] pos={3}, gain={4}, score={5}, std={6}", price, priceLo, priceHi, position, possibleGain, score, stdDev);
+         }
+      }
+      private static int toPercentage(double x)
+      {
+         return (int)(0.5 + 100 * x);
+      }
+      private Stats computePos(List<PricePerDate> prices, DateTime minDate, String name)
+      {
+         Stats ret = new Stats();
+         if (prices.Count < 1) return ret;
          var elt = prices[0];
          double min = elt.Price;
          double max = elt.Price;
          double price = elt.Price;
          double mean = price;
          double totDev = 0.0;
+         ret.price = price;
 
-         int n = 0;
+         int n = 1;
          for (int i = 1; i < prices.Count; i++)
          {
             elt = prices[i];
             if (elt.Date < minDate) break;
-            n = i;
+            n++;
             if (elt.Price > max) max = elt.Price;
             else if (elt.Price < min) min = elt.Price;
          }
-         if (max-min < 0.01) return 100;
 
-         mean = mean / (n+1);
-         for (int i = 0; i <= n; i++)
+         ret.priceLo = min;
+         ret.priceHi = max;
+
+         mean = mean / n;
+         for (int i = 0; i < n; i++)
          {
             totDev += Math.Abs(prices[i].Price - mean);
          }
-         dev = (int)(0.5 + 100* (totDev / n) / price);
+         ret.stdDev = (int)(0.5 + 100* (totDev / (n)) / price);
+         double pos =  (price - min) / (max - min);
+         double gain = (max - price) / price;
 
+         ret.score = toPercentage ((1.0-pos)*gain);
+         ret.position = toPercentage(pos);
+         ret.possibleGain = toPercentage(gain);
+         posLogger.Log("{0}: {1}, N={2}/{3}", name, ret, n, prices.Count);
 
-
-
-         int tmp = (int)(0.5 + 100 * (price - min) / (max - min));
-         posLogger.Log("{0}: min={1}, max={2}, cnt={3}, lim={4}, ret={5}, dev={6}", name, min, max, prices.Count, n, tmp, dev); 
-
-         return (int)(0.5 + 100 * (price - min) / (max - min));
+         return ret;
       }
 
       private String saveInner(HtmlNode node)
@@ -169,9 +199,8 @@ namespace BeursGorilla
       }
 
       private History history;
-      private void importUrl(PipelineContext ctx, IDatasourceSink sink, Regex regex, IDatasourceFeederElement elt)
+      private void importGorillaUrl(PipelineContext ctx, IDatasourceSink sink, Regex regex, IDatasourceFeederElement elt)
       {
-         history = new History();
          StringDict attribs = getAttributes(elt.Context);
          Uri url = (Uri)elt.Element;
 
@@ -186,16 +215,18 @@ namespace BeursGorilla
 
          for (int i = 1; i < nodes.Count; i++)
          {
-            var tdNodes = nodes[i].SelectNodes("td");
+            var trNode = nodes[i];
+            var tdNodes = trNode.SelectNodes("td");
             if (tdNodes == null || tdNodes.Count != 7)
             {
                ctx.DebugLog.Log("Unexpected <tr> node:");
-               ctx.DebugLog.Log(nodes[i].OuterHtml);
+               ctx.DebugLog.Log(trNode.OuterHtml);
                throw new BMException("Unexpected #td elements: {0}. Should be 7. Url={0}.", tdNodes == null ? 0 : tdNodes.Count, url);
             }
             var anchorNode = tdNodes[0].SelectSingleNode("a");
             var href = anchorNode.GetAttributeValue("href", "");
             String code = null;
+            //code = trNode.GetAttributeValue("id", null);
             var matches = regex.Matches(href);
             if (matches.Count > 0)
             {
@@ -204,103 +235,72 @@ namespace BeursGorilla
                   code = matches[0].Groups[1].Value;
                }
             }
-            if (code == null) throw new BMException("Cannot extract code from href={0}", href);
+            if (code == null)
+            {
+               ctx.DebugLog.Log(trNode.OuterHtml);
+               throw new BMException("Cannot extract code from href={0}", href);
+            }
 
             String name = anchorNode.InnerText;
             foreach (var kvp in attribs)
                sink.HandleValue(ctx, "record/" + kvp.Key, kvp.Value);
 
+            double price = toDouble(tdNodes[2].InnerText);
             sink.HandleValue(ctx, "record/name", name);
             sink.HandleValue(ctx, "record/code", code);
-            sink.HandleValue(ctx, "record/price", toDouble(tdNodes[2].InnerText));
-            sink.HandleValue(ctx, "record/priceOpened", toDouble(tdNodes[5].InnerText));
+            sink.HandleValue(ctx, "record/price", price);
+
+            String pricePrev = tdNodes[5].InnerText.TrimToNull();
+            sink.HandleValue(ctx, "record/priceOpened", pricePrev == null ? price : toDouble(pricePrev));
+
+            String time = tdNodes[6].InnerText.TrimToNull();
+            if (time != null && !time.Equals("details", StringComparison.InvariantCultureIgnoreCase))
+               sink.HandleValue(ctx, "record/checktime", time);
             sink.HandleValue(ctx, "record/date", date);
 
             posLogger.Log();
 
             if (needHistory)
             {
+               history = new History();
+               histDate = DateTime.MinValue;
+               histPrice = double.MinValue;
+
+               history.Add(date, price);
                sink.HandleValue(ctx, "record/_preparehistory", null);
                List<PricePerDate> prices = loadHistory(url, code, name);
-               int dev;
-               sink.HandleValue(ctx, "record/history", toJArray(prices));
-               sink.HandleValue(ctx, "record/pos3m", computePos(prices, date.AddMonths(-3), name, out dev));
-               sink.HandleValue(ctx, "record/dev3m", dev);
-               sink.HandleValue(ctx, "record/pos6m", computePos(prices, date.AddMonths(-6), name, out dev));
-               sink.HandleValue(ctx, "record/dev6m", dev);
-               sink.HandleValue(ctx, "record/pos12m", computePos(prices, date.AddMonths(-12), name, out dev));
-               sink.HandleValue(ctx, "record/dev12m", dev);
-               sink.HandleValue(ctx, "record/pos36m", computePos(prices, date.AddMonths(-36), name, out dev));
-               sink.HandleValue(ctx, "record/dev36m", dev);
-            }
-
-            sink.HandleValue(ctx, "record", null);
-         }
-         sink.HandleValue(ctx, "_end", url);
-      }
-      private void importUrl2(PipelineContext ctx, IDatasourceSink sink, Regex regex, IDatasourceFeederElement elt)
-      {
-         history = new History();
-         StringDict attribs = getAttributes(elt.Context);
-         Uri url = (Uri)elt.Element;
-
-         ctx.DebugLog.Log("-- Fetching url " + url);
-         const String expr = "//tr[@class='koersen_tabel_titelbalk']";
-         sink.HandleValue(ctx, "_start", url);
-         HtmlDocument doc = loadUrl(url);
-         var nodes = doc.DocumentNode.SelectNodes(expr);
-         if (nodes == null || nodes.Count != 1)
-            throw new BMException("No nodes or more than 1 node found for expr \"{0}\".", expr);
-         var tableNode = nodes[0].ParentNode;
-         if (tableNode == null || (tableNode.Name != "tbody" && tableNode.Name != "table"))
-            throw new BMException("Parent of {0} is a {1} instead of tbody/table.", expr, tableNode == null ? "null" : tableNode.Name);
-
-         nodes = tableNode.SelectNodes("tr");
-         ctx.DebugLog.Log("-- -- <tr> count: {0}", nodes.Count); //.koersen_tabel_fondsen
-         for (int i = 1; i < nodes.Count; i++)
-         {
-            var tdNodes = nodes[i].SelectNodes("td");
-            if (tdNodes == null || tdNodes.Count != 7)
-               throw new BMException("Unexpected #td elements: {0}. Should be 7. Url={0}.", tdNodes == null ? 0 : tdNodes.Count, url);
-            var anchorNode = tdNodes[0].SelectSingleNode("a");
-            var href = anchorNode.GetAttributeValue("href", "");
-            String code = null;
-            var matches = regex.Matches(href);
-            if (matches.Count > 0)
-            {
-               if (matches[0].Groups.Count > 1)
+               if (prices.Count <= 1)
                {
-                  code = matches[0].Groups[1].Value;
+                  ctx.ErrorLog.Log("Share without history detected: " + name);
+                  this.SharesWithoutHistory++;
                }
-            }
-            if (code == null) throw new BMException("Cannot extract code from href={0}", href);
 
-            String name = anchorNode.InnerText;
-            foreach (var kvp in attribs)
-               sink.HandleValue(ctx, "record/" + kvp.Key, kvp.Value);
+               Stats stats3m = computePos(prices, date.AddMonths(-3), name);
+               Stats stats6m = computePos(prices, date.AddMonths(-6), name);
+               Stats stats12m = computePos(prices, date.AddMonths(-12), name);
+               Stats stats36m = computePos(prices, date.AddMonths(-36), name);
 
-            sink.HandleValue(ctx, "record/name", name);
-            sink.HandleValue(ctx, "record/code", code);
-            sink.HandleValue(ctx, "record/price", toDouble(tdNodes[2].InnerText));
-            sink.HandleValue(ctx, "record/priceOpened", toDouble(tdNodes[5].InnerText));
-            sink.HandleValue(ctx, "record/date", date);
+               sink.HandleValue(ctx, "record/pos3m", stats3m.position);
+               sink.HandleValue(ctx, "record/pos6m", stats6m.position);
+               sink.HandleValue(ctx, "record/pos12m", stats12m.position);
+               sink.HandleValue(ctx, "record/pos36m", stats36m.position);
 
-            posLogger.Log();
+               sink.HandleValue(ctx, "record/gain3m", stats3m.possibleGain);
+               sink.HandleValue(ctx, "record/gain6m", stats6m.possibleGain);
+               sink.HandleValue(ctx, "record/gain12m", stats12m.possibleGain);
+               sink.HandleValue(ctx, "record/gain36m", stats36m.possibleGain);
 
-            if (needHistory)
-            {
-               sink.HandleValue(ctx, "record/_preparehistory", null);
-               List<PricePerDate> prices = loadHistory(url, code, name);
-               int dev;
+               sink.HandleValue(ctx, "record/score3m", stats3m.score);
+               sink.HandleValue(ctx, "record/score6m", stats6m.score);
+               sink.HandleValue(ctx, "record/score12m", stats12m.score);
+               sink.HandleValue(ctx, "record/score36m", stats36m.score);
+            
+               sink.HandleValue(ctx, "record/stddev3m", stats3m.stdDev);
+               sink.HandleValue(ctx, "record/stddev6m", stats6m.stdDev);
+               sink.HandleValue(ctx, "record/stddev12m", stats12m.stdDev);
+               sink.HandleValue(ctx, "record/stddev36m", stats36m.stdDev);
+
                sink.HandleValue(ctx, "record/history", toJArray(prices));
-               sink.HandleValue(ctx, "record/pos3m", computePos(prices, date.AddMonths(-3), name, out dev));
-               sink.HandleValue(ctx, "record/dev3m", dev);
-               sink.HandleValue(ctx, "record/pos6m", computePos(prices, date.AddMonths(-6), name, out dev));
-               sink.HandleValue(ctx, "record/dev6m", dev);
-               sink.HandleValue(ctx, "record/pos12m", computePos(prices, date.AddMonths(-12), name, out dev));
-               sink.HandleValue(ctx, "record/dev12m", dev);
-               sink.HandleValue(ctx, "record/pos36m", computePos(prices, date.AddMonths(-36), name, out dev));
-               sink.HandleValue(ctx, "record/dev36m", dev);
             }
 
             sink.HandleValue(ctx, "record", null);
@@ -308,19 +308,26 @@ namespace BeursGorilla
          sink.HandleValue(ctx, "_end", url);
       }
 
+      private int SharesWithoutHistory; 
       public void Import(PipelineContext ctx, IDatasourceSink sink)
       {
+         SharesWithoutHistory = 0;
          Regex regex = new Regex (@"instrumentcode=(.*)$", RegexOptions.CultureInvariant | RegexOptions.Compiled | RegexOptions.IgnoreCase);
          foreach (var elt in feeder)
          {
             try
             {
-               importUrl(ctx, sink, regex, elt);
+               importGorillaUrl(ctx, sink, regex, elt);
             }
             catch (Exception e)
             {
                throw new BMException(e, e.Message + "\r\nUrl=" + elt.Element + ".");
             }
+         }
+         if (SharesWithoutHistory > 0)
+         {
+            ctx.ErrorLog.Log("{0} Shares without history detected", SharesWithoutHistory);
+            //throw new BMException("{0} Shares without history detected", SharesWithoutHistory);
          }
       }
 
@@ -328,11 +335,21 @@ namespace BeursGorilla
       private double histPrice;
       public object HandleValue(PipelineContext ctx, string key, object value)
       {
-         switch (key.ToLowerInvariant())
+         if (history != null)
          {
-            case "history/date": histDate = (DateTime)value; break;
-            case "history/price": histPrice = (double)value; break;
-            case "history": histPrice = (double)value; break;
+            if ((ctx.Flags & _ImportFlags.TraceValues) != 0) ctx.DebugLog.Log("HIST HandleValue ({0}, {1} [{2}]", key, value, value == null ? "null" : value.GetType().Name);
+            switch (key.ToLowerInvariant())
+            {
+               case "history/date": histDate = (DateTime)value; break;
+               case "history/price": histPrice = (double)value; break;
+               case "history":
+                  if (histDate == DateTime.MinValue || histPrice < 0)
+                     throw new BMException("Unexpected history: date={0}, price={1}", histDate, histPrice);
+                  history.Add(histDate, histPrice);
+                  histDate = DateTime.MinValue;
+                  histPrice = double.MinValue;
+                  break;
+            }
          }
          return Pipeline.Handled;
       }
@@ -359,7 +376,7 @@ namespace BeursGorilla
             return prices;
          }
 
-         public History(int maxCount=500)
+         public History(int maxCount=-1)
          {
             this.maxCount = maxCount;
             prices = new List<PricePerDate>();

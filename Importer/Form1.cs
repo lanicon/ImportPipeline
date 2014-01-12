@@ -47,7 +47,9 @@ namespace Bitmanager.Importer
       {
          if (comboBox1.SelectedIndex < 0) return;
 
+         Cursor.Current = Cursors.WaitCursor;
          UseWaitCursor = true;
+         Application.DoEvents();
          try
          {
             History.SaveHistory(comboBox1, HISTORY_KEY);
@@ -55,6 +57,7 @@ namespace Bitmanager.Importer
             String settingsFile = comboBox1.Text;
             ImportEngine engine = new ImportEngine();
             engine.Load(settingsFile);
+            uiToFlags(engine);
 
             String[] activeDSses = null;
             var items = dsList.Items;
@@ -95,10 +98,40 @@ namespace Bitmanager.Importer
          dsList.Items.Clear();
          ImportEngine engine = new ImportEngine();
          engine.Load(comboBox1.Text);
+         uiFromFlags (engine);
+
          foreach (var ds in engine.Datasources)
          {
             dsList.Items.Add (ds.Name, ds.Active);
          }
+      }
+
+      private void uiFromFlags(ImportEngine eng)
+      {
+         foreach (var c in grpFlags.Controls)
+         {
+            CheckBox cb = c as CheckBox;
+            if (cb == null) continue;
+            _ImportFlags flag = Invariant.ToEnum<_ImportFlags>(cb.Text);
+            cb.Checked = (eng.ImportFlags & flag) != 0;
+         }
+      }
+      private void uiToFlags(ImportEngine eng)
+      {
+         eng.ImportFlags = 0;
+         foreach (var c in grpFlags.Controls)
+         {
+            CheckBox cb = c as CheckBox;
+            if (cb == null) continue;
+            _ImportFlags flag = Invariant.ToEnum<_ImportFlags>(cb.Text);
+            if (cb.Checked) eng.ImportFlags |= flag;
+         }
+      }
+
+
+      private void button3_Click(object sender, EventArgs e)
+      {
+         comboBox1_SelectedIndexChanged(comboBox1, e);
       }
    }
 

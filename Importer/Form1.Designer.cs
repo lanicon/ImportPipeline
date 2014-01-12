@@ -35,6 +35,12 @@
          this.dsList = new System.Windows.Forms.CheckedListBox();
          this.label1 = new System.Windows.Forms.Label();
          this.label2 = new System.Windows.Forms.Label();
+         this.grpFlags = new System.Windows.Forms.GroupBox();
+         this.button3 = new System.Windows.Forms.Button();
+         this.CbFullImport = new System.Windows.Forms.CheckBox();
+         this.cbDoNotRename = new System.Windows.Forms.CheckBox();
+         this.cbTraceValues = new System.Windows.Forms.CheckBox();
+         this.grpFlags.SuspendLayout();
          this.SuspendLayout();
          // 
          // comboBox1
@@ -102,11 +108,65 @@
          this.label2.TabIndex = 5;
          this.label2.Text = "Import XML";
          // 
+         // grpFlags
+         // 
+         this.grpFlags.Controls.Add(this.cbTraceValues);
+         this.grpFlags.Controls.Add(this.cbDoNotRename);
+         this.grpFlags.Controls.Add(this.CbFullImport);
+         this.grpFlags.Location = new System.Drawing.Point(30, 155);
+         this.grpFlags.Name = "grpFlags";
+         this.grpFlags.Size = new System.Drawing.Size(165, 159);
+         this.grpFlags.TabIndex = 7;
+         this.grpFlags.TabStop = false;
+         this.grpFlags.Text = "Flags";
+         // 
+         // button3
+         // 
+         this.button3.Location = new System.Drawing.Point(605, 81);
+         this.button3.Name = "button3";
+         this.button3.Size = new System.Drawing.Size(50, 23);
+         this.button3.TabIndex = 8;
+         this.button3.Text = "redo";
+         this.button3.UseVisualStyleBackColor = true;
+         this.button3.Click += new System.EventHandler(this.button3_Click);
+         // 
+         // CbFullImport
+         // 
+         this.CbFullImport.AutoSize = true;
+         this.CbFullImport.Location = new System.Drawing.Point(17, 22);
+         this.CbFullImport.Name = "CbFullImport";
+         this.CbFullImport.Size = new System.Drawing.Size(81, 19);
+         this.CbFullImport.TabIndex = 10;
+         this.CbFullImport.Text = "FullImport";
+         this.CbFullImport.UseVisualStyleBackColor = true;
+         // 
+         // cbDoNotRename
+         // 
+         this.cbDoNotRename.AutoSize = true;
+         this.cbDoNotRename.Location = new System.Drawing.Point(17, 47);
+         this.cbDoNotRename.Name = "cbDoNotRename";
+         this.cbDoNotRename.Size = new System.Drawing.Size(104, 19);
+         this.cbDoNotRename.TabIndex = 11;
+         this.cbDoNotRename.Text = "DoNotRename";
+         this.cbDoNotRename.UseVisualStyleBackColor = true;
+         // 
+         // cbTraceValues
+         // 
+         this.cbTraceValues.AutoSize = true;
+         this.cbTraceValues.Location = new System.Drawing.Point(17, 72);
+         this.cbTraceValues.Name = "cbTraceValues";
+         this.cbTraceValues.Size = new System.Drawing.Size(89, 19);
+         this.cbTraceValues.TabIndex = 12;
+         this.cbTraceValues.Text = "TraceValues";
+         this.cbTraceValues.UseVisualStyleBackColor = true;
+         // 
          // Form1
          // 
          this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
          this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
          this.ClientSize = new System.Drawing.Size(1143, 401);
+         this.Controls.Add(this.button3);
+         this.Controls.Add(this.grpFlags);
          this.Controls.Add(this.label2);
          this.Controls.Add(this.label1);
          this.Controls.Add(this.dsList);
@@ -118,6 +178,8 @@
          this.Name = "Form1";
          this.Text = "Datasource importer";
          this.Load += new System.EventHandler(this.Form1_Load);
+         this.grpFlags.ResumeLayout(false);
+         this.grpFlags.PerformLayout();
          this.ResumeLayout(false);
          this.PerformLayout();
 
@@ -132,6 +194,11 @@
       private System.Windows.Forms.CheckedListBox dsList;
       private System.Windows.Forms.Label label1;
       private System.Windows.Forms.Label label2;
+      private System.Windows.Forms.GroupBox grpFlags;
+      private System.Windows.Forms.Button button3;
+      private System.Windows.Forms.CheckBox cbTraceValues;
+      private System.Windows.Forms.CheckBox cbDoNotRename;
+      private System.Windows.Forms.CheckBox CbFullImport;
    }
 }
 

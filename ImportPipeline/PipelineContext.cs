@@ -21,7 +21,7 @@ namespace Bitmanager.ImportPipeline
       public readonly Logger ErrorLog;
       public readonly Logger MissedLog;
       public int Added, Deleted, Skipped;
-      public readonly _ImportFlags Flags;
+      public _ImportFlags Flags;
 
       public PipelineContext(ImportEngine eng, DatasourceAdmin ds)
       {

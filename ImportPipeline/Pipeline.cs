@@ -117,6 +117,7 @@ namespace Bitmanager.ImportPipeline
 
       public void Start(PipelineContext ctx)
       {
+         if (trace) ctx.Flags |= _ImportFlags.TraceValues;
          logger.Log("Starting datasource {0}", ctx.DatasourceAdmin.Name);
          missed = new StringDict();
          if (ScriptTypeName != null)
@@ -148,8 +149,7 @@ namespace Bitmanager.ImportPipeline
       {
          Object ret = null;
          lastAction = null;
-         trace = true;
-         if (trace) logger.Log("HandleValue ({0}, {1} ({2})", key, value, value==null ? "null": value.GetType().Name);
+         if ((ctx.Flags & _ImportFlags.TraceValues) != 0) logger.Log("HandleValue ({0}, {1} [{2}]", key, value, value==null ? "null": value.GetType().Name);
 
          if (key == null) goto UNHANDLED;
          String lcKey = key.ToLowerInvariant();
@@ -277,7 +277,7 @@ namespace Bitmanager.ImportPipeline
          switch (token.Type)
          {
             case JTokenType.Array:
-               if (maxLevel <= 0) break;
+               if (maxLevel < 0) break;
                var arr = (JArray)token;
                for (int i=0; i<arr.Count; i++)
                   EmitToken(ctx, sink, arr[i], key, maxLevel);
@@ -294,7 +294,7 @@ namespace Bitmanager.ImportPipeline
             case JTokenType.Boolean: value = (bool)token; break;
 
             case JTokenType.Object:
-               if (maxLevel <= 0) break;
+               if (maxLevel < 0) break;
                JObject obj = (JObject)token;
                int newLvl = maxLevel - 1;
                foreach (var kvp in obj)

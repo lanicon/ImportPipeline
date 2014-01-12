@@ -150,7 +150,7 @@ namespace Bitmanager.ImportPipeline
       void Add(PipelineContext ctx);
       ExistState Exists(PipelineContext ctx, String key, DateTime? timeStamp);
       Object LoadRecord(PipelineContext ctx, String key);
-      void EmitRecord(PipelineContext ctx, String key, IDatasourceSink sink, String eventKey, int maxLevel);
+      void EmitRecord(PipelineContext ctx, String recordKey, String recordField, IDatasourceSink sink, String eventKey, int maxLevel);
 
    }
 
@@ -210,7 +210,7 @@ namespace Bitmanager.ImportPipeline
       {
          return null;
       }
-      public virtual void EmitRecord(PipelineContext ctx, String key, IDatasourceSink sink, String eventKey, int maxLevel)
+      public virtual void EmitRecord(PipelineContext ctx, String recordKey, String recordField, IDatasourceSink sink, String eventKey, int maxLevel)
       {
       }
 

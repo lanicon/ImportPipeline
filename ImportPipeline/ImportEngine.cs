@@ -11,9 +11,14 @@ using System.Xml;
 
 namespace Bitmanager.ImportPipeline
 {
+   [Flags]
    public enum _ImportFlags
    {
       ImportFull = 1 << 0,
+      FullImport = 1 << 0,
+      DoNotRename = 1 << 1,
+      TraceValues = 1<<2,
+
    }
    public class ImportEngine
    {
@@ -49,37 +54,48 @@ namespace Bitmanager.ImportPipeline
       {
          Xml = xml;
          PipelineContext ctx = new PipelineContext(this);
+         ImportFlags = xml.OptReadEnum("@importflags", ImportFlags);
 
          //Load the supplied script
+         ImportLog.Log(_LogType.ltTimerStart, "loading: scripts"); 
          XmlNode scriptNode = xml.SelectSingleNode("script");
          if (scriptNode != null)
          {
             ScriptHost = new ScriptHost();
-            String fn = Path.Combine(Path.GetDirectoryName(xml.FileName), scriptNode.ReadStr("@file"));
+            String fn = xml.CombinePath (scriptNode.ReadStr("@file"));
             ScriptHost.AddFile(fn);
             ScriptHost.AddReference(Assembly.GetExecutingAssembly());
             ScriptHost.Compile();
          }
 
+         ImportLog.Log(_LogType.ltTimer, "loading: helper process definitions ");
          JavaHostCollection = new ProcessHostCollection(this, xml.SelectSingleNode("processes"));
 
+         ImportLog.Log(_LogType.ltTimer, "loading: endpoints");
          EndPoints = new EndPoints(this, xml.SelectMandatoryNode("endpoints"));
 
+         ImportLog.Log(_LogType.ltTimer, "loading: converters");
          Converters = new Converters(
             xml.SelectSingleNode("converters"),
             "converter",
             (node) => Converter.Create (node),
             false);
+
+         ImportLog.Log(_LogType.ltTimer, "loading: pipelines");
          Pipelines = new NamedAdminCollection<Pipeline>(
             xml.SelectMandatoryNode("pipelines"),
             "pipeline",
             (node) => new Pipeline(this, node),
             true);
+         
+         ImportLog.Log(_LogType.ltTimer, "loading: datasources");
          Datasources = new NamedAdminCollection<DatasourceAdmin>(
             xml.SelectMandatoryNode("datasources"),
             "datasource",
             (node) => new DatasourceAdmin(ctx, node),
             true);
+      
+         ImportLog.Log(_LogType.ltTimerStop, "loading: finished");
       }
 
       static bool isActive(String[] enabledDSses, DatasourceAdmin da)

@@ -64,7 +64,9 @@ namespace Bitmanager.ImportPipeline
       }
       protected override void Close(PipelineContext ctx, bool isError)
       {
-         if (isError) return;
+         ctx.ImportLog.Log ("Closing endpoint '{0}', error={1}, flags={2}", Name, isError, ctx.Flags);
+         if (isError || (ctx.Flags & _ImportFlags.DoNotRename) != 0) return;
+         ctx.ImportLog.Log("-- Rename indexes");
          Indexes.OptionalRename(Connection);
       }
 
@@ -119,12 +121,13 @@ namespace Bitmanager.ImportPipeline
       {
          return doctype.LoadByKey(connection, key);
       }
-      public override void EmitRecord(PipelineContext ctx, String key, IDatasourceSink sink, String eventKey, int maxLevel)
+      public override void EmitRecord(PipelineContext ctx, String recordKey, String recordField, IDatasourceSink sink, String eventKey, int maxLevel)
       {
-         JObject obj = doctype.LoadByKey(connection, key);
-         Pipeline.EmitToken(ctx, sink, obj, eventKey, maxLevel);
+         JObject obj = doctype.LoadByKey(connection, recordKey);
+         if (obj==null) return;
+         JToken token = (recordField == null) ? obj : obj.GetValue (recordField, StringComparison.InvariantCultureIgnoreCase);
+         if (token != null)
+            Pipeline.EmitToken(ctx, sink, token, eventKey, maxLevel);
       }
-
    }
-
 }

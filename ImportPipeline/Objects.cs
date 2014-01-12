@@ -139,11 +139,22 @@ namespace Bitmanager.ImportPipeline
                      arr = new Object[paramCnt];
                      Array.Copy(parms, arr, paramCnt);
                   }
+                  continue;
                }
                throw new BMException(e, "CreateObject({0}) failed: {1}", typeName, e.GetBestMessage());
             }
          }
-         return null; //to keep compiler happy... Cannot happen
+         return null;
+
+         ////Retry using default constructor
+         //try
+         //{
+         //   return Activator.CreateInstance(t); //Default constructor
+         //}
+         //catch (Exception e)
+         //{
+         //   throw new BMException(e, "CreateObject({0}) failed: {1}", typeName, e.GetBestMessage());
+         //}
       }
 
       public static Object CreateObject(XmlNode node)

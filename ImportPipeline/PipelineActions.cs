@@ -250,6 +250,7 @@ namespace Bitmanager.ImportPipeline
       enum Destination { PipeLine = 1, Datasource = 2 };
 
       private String eventKey;
+      private String recField;
       private int maxLevel;
       private Destination destination; 
       public PipelineEmitAction(Pipeline pipeline, XmlNode node)
@@ -258,12 +259,14 @@ namespace Bitmanager.ImportPipeline
          eventKey = node.ReadStr("@emitexisting");
          destination = node.OptReadEnum("@destination", Destination.PipeLine);
          maxLevel = node.OptReadInt("@maxlevel", 1);
+         recField = node.OptReadStr("@emitfield", null);
       }
 
       internal PipelineEmitAction(PipelineEmitAction template, String name, Regex regex)
          : base(template, name, regex)
       {
          this.eventKey = optReplace(regex, name, template.eventKey);
+         this.recField = optReplace(regex, name, template.recField);
          this.destination = template.destination;
          this.maxLevel = template.maxLevel;
       }
@@ -275,7 +278,7 @@ namespace Bitmanager.ImportPipeline
          String reckey = (String)ctx.Pipeline.GetVariable ("key");
          if (reckey==null) return null;
 
-         this.endPoint.EmitRecord(ctx, reckey, sink, eventKey, maxLevel);
+         this.endPoint.EmitRecord(ctx, reckey, recField, sink, eventKey, maxLevel);
          return null;
       }
 

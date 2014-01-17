@@ -31,8 +31,8 @@ namespace Bitmanager.ImportPipeline
       {
          Type = node.ReadStr("@type");
          Active = node.OptReadBool("@active", true);
-         String pipelineName = node.ReadStr("@pipeline");
-         Pipeline = ctx.ImportEngine.Pipelines.GetByName(pipelineName);
+         String pipelineName = node.OptReadStr("@pipeline", null);
+         Pipeline = ctx.ImportEngine.Pipelines.GetByNamesOrFirst(pipelineName, Name);
 
          //if (!Active) return; Zie notes: ws moet een datasource definitief kunnen worden uitgeschakeld. iets als active=true/false/disabled
          Datasource = ImportEngine.CreateObject<Datasource> (Type);

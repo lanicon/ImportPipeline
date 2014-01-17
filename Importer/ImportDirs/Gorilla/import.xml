@@ -45,7 +45,7 @@
    </pipelines>
 
    <datasources>
-      <datasource name="gorillaMail" active="false" type="HtmlDatasource#BeursGorilla.BeursGorillaDS" trim="true" pipeline="gorillaMail" history="false">
+      <datasource name="gorillaMail" active="false" type="HtmlDatasource#BeursGorilla.BeursGorillaDS" trim="true" history="false">
          <provider type="UrlFeeder" baseurl="http://www.beursgorilla.nl/" >
             <url exchange="aex">aex-streaming-live.asp</url>
             <url exchange="amx">amx-streaming-live.asp</url>
@@ -55,7 +55,7 @@
             <url exchange="lokaal">lokaal-streaming-live.asp?b=p-z</url>
          </provider>   
       </datasource>
-      <datasource name="gorilla" active="true" type="HtmlDatasource#BeursGorilla.BeursGorillaDS" trim="true" pipeline="gorilla">
+      <datasource name="gorilla" active="true" type="HtmlDatasource#BeursGorilla.BeursGorillaDS" trim="true" >
          <provider type="UrlFeeder" baseurl="http://www.beursgorilla.nl/" >
             <url exchange="aex">aex-streaming-live.asp</url>
             <url exchange="amx">amx-streaming-live.asp</url>

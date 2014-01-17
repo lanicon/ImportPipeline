@@ -16,7 +16,7 @@ namespace Bitmanager.ImportPipeline
    public class CsvDatasource: Datasource
    {
       String file;
-      char delimChar, quoteChar;
+      char delimChar, quoteChar, commentChar;
       bool hasHeaders, trim;
 
       public void Init(PipelineContext ctx, XmlNode node)
@@ -26,6 +26,7 @@ namespace Bitmanager.ImportPipeline
          trim = node.OptReadBool("@trim", true);
          delimChar = readChar(node, "@dlm", ',');
          quoteChar = readChar(node, "@quote", '"');
+         commentChar = readChar(node, "@comment", '#');
       }
 
       private char readChar(XmlNode node, String attr, char def)
@@ -34,8 +35,17 @@ namespace Bitmanager.ImportPipeline
          if (v==null) return def;
 
          int x;
-         if (v.Length == 6 && v.StartsWith(@"\u", StringComparison.InvariantCultureIgnoreCase)) goto TRY_CONVERT;
-         if (v.Length >= 4 && v.StartsWith(@"0x", StringComparison.InvariantCultureIgnoreCase)) goto TRY_CONVERT;
+         switch (v.Length)
+         {
+            case 1: return v[0];
+            case 4:
+               if (v.StartsWith(@"0x", StringComparison.InvariantCultureIgnoreCase)) goto TRY_CONVERT;
+               goto ERROR;
+            case 6:
+               if (v.StartsWith(@"0x", StringComparison.InvariantCultureIgnoreCase)) goto TRY_CONVERT;
+               if (v.StartsWith(@"\u", StringComparison.InvariantCultureIgnoreCase)) goto TRY_CONVERT;
+               goto ERROR;
+         }
          goto ERROR;
 
          TRY_CONVERT:
@@ -57,7 +67,7 @@ namespace Bitmanager.ImportPipeline
          using (FileStream strm = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
          {
             StreamReader rdr = new StreamReader(strm, true);
-            CsvReader csvRdr = new CsvReader(rdr, hasHeaders, delimChar, quoteChar, (char)0, (char)0, trim ? ValueTrimmingOptions.All : ValueTrimmingOptions.None);
+            CsvReader csvRdr = new CsvReader(rdr, hasHeaders, delimChar, quoteChar, (char)0, commentChar, trim ? ValueTrimmingOptions.All : ValueTrimmingOptions.None);
             while (csvRdr.ReadNextRecord())
             {
                sink.HandleValue(ctx, "file/record_start", null);

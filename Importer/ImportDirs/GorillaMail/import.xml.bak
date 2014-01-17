@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<root>
+   <tempdir dir="temp" clearonstart="true" />
+   <endpoints>
+      <endpoint name="es" url="http://localhost:9200/">
+         <indextypes>
+            <indextype name="default" config="index.config.js" />
+         </indextypes>
+
+         <indexes>
+            <index name="gorilla" type="default" />
+         </indexes>
+      </endpoint>
+   </endpoints>
+
+   <converters>
+      <converter name="double" decimalsep="," groupsep="."/>
+      <converter name="date"   utc="true" formats="yyyyMMdd"/>
+      <converter name="lower" />
+      <converter name="upper" />
+      <converter name="trim" />
+   </converters>
+
+   <pipelines>
+      <pipeline name="pipe" trace="false" converters="trim" endpoint="gorilla/doc">
+         <action key="html/record" add="*" />
+         <action key="html/record/name" field="name" converters="trim" />
+         <action key="html/record/code" field="code" />
+         <action key="html/record/date" field="date" />
+         <action key="html/record/pos3m" field="pos3m" />
+         <action key="html/record/pos6m" field="pos6m" />
+         <action key="html/record/pos12m" field="pos12m" />
+         <action key="html/record/po36m" field="pos36m" />
+         <action key="html/record/dev3m" field="dev3m" />
+         <action key="html/record/dev6m" field="dev6m" />
+         <action key="html/record/dev12m" field="dev12m" />
+         <action key="html/record/dev36m" field="dev36m" />
+         <action key="html/record/history" field="history" />
+         <action key="html/record/price" field="price" converters="double" />
+         <action key="html/record/priceOpened" field="priceOpened" converters="double" />
+      </pipeline>
+   </pipelines>
+
+   <datasources>
+      <datasource name="gorilla" type="HtmlDatasource#HtmlDatasource.BeursGorillaDS" trim="true" pipeline="pipe">
+         <provider type="UrlProvider" baseurl="http://www.beursgorilla.nl/" >
+            <url>aex.asp</url>
+         </provider>   
+            <url>amx.asp</url>
+            <url>koers.asp</url>
+            <aurl>lokaal.asp?b=a-d</aurl>
+      </datasource>
+   </datasources>
+   
+</root>

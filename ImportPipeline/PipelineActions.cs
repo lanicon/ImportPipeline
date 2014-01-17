@@ -26,6 +26,8 @@ namespace Bitmanager.ImportPipeline
       protected String endpointName, convertersName, scriptName;
       protected KeyCheckMode checkMode;
 
+      public IDataEndpoint EndPoint { get { return endPoint; } }
+
       public PipelineAction(Pipeline pipeline, XmlNode node)
          : base(node, "@key")
       {
@@ -58,7 +60,7 @@ namespace Bitmanager.ImportPipeline
       public virtual void Start(PipelineContext ctx)
       {
          converters = ctx.ImportEngine.Converters.ToConverters(convertersName);
-         endPoint = ctx.ImportEngine.EndPoints.GetDataEndPoint(ctx, endpointName);
+         endPoint = ctx.Pipeline.GetDataEndPoint(ctx, endpointName);
          logger.Log("Script=" + scriptName);
          if (scriptName != null)
          {
@@ -109,6 +111,7 @@ namespace Bitmanager.ImportPipeline
          if (scriptDelegate != null)
          {
             value = scriptDelegate(ctx, key, value);
+            if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) return value;
          }
 
          if (converters == null) return value;
@@ -164,6 +167,8 @@ namespace Bitmanager.ImportPipeline
       public override Object HandleValue(PipelineContext ctx, String key, Object value)
       {
          value = ConvertAndCallScript(ctx, key, value);
+         if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) return null;
+
          if (toField != null) endPoint.SetField (toField, value);
          if (varName != null) ctx.Pipeline.SetVariable(varName, value);
          return base.handleCheck(ctx);
@@ -194,6 +199,7 @@ namespace Bitmanager.ImportPipeline
       public override Object HandleValue(PipelineContext ctx, String key, Object value)
       {
          value = ConvertAndCallScript(ctx, key, value);
+         if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) return null;
          if (checkMode != 0)
          {
             Object res = base.handleCheck(ctx);

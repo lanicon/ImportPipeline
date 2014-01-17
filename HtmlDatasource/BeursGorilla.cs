@@ -351,7 +351,7 @@ namespace BeursGorilla
                   break;
             }
          }
-         return Pipeline.Handled;
+         return null;
       }
 
       public bool HandleException(PipelineContext ctx, string prefix, Exception err)

@@ -11,6 +11,17 @@ using System.Xml;
 
 namespace Bitmanager.ImportPipeline
 {
+   [Flags]
+   public enum _ActionFlags 
+   {
+      None=0,
+      Skip = 1<<0,
+      SkipRest = 1<<2,
+      SkipAll = Skip | SkipRest,
+      Handled = 1<<8,
+      Skipped = 1<<9,
+   };
+
    public class PipelineContext
    {
       public readonly ImportEngine ImportEngine;
@@ -20,8 +31,11 @@ namespace Bitmanager.ImportPipeline
       public readonly Logger DebugLog;
       public readonly Logger ErrorLog;
       public readonly Logger MissedLog;
+      public PipelineAction Action;
+      public String SkipUntilKey;
       public int Added, Deleted, Skipped;
       public _ImportFlags Flags;
+      public _ActionFlags ActionFlags;
 
       public PipelineContext(ImportEngine eng, DatasourceAdmin ds)
       {
@@ -42,6 +56,24 @@ namespace Bitmanager.ImportPipeline
          ErrorLog = eng.ErrorLog;
          MissedLog = eng.MissedLog;
          Flags = eng.ImportFlags;
+      }
+
+      internal PipelineAction SetAction(PipelineAction act)
+      {
+         ActionFlags |= _ActionFlags.Handled;
+         Action = act;
+         return act;
+      }
+      public void ClearEndpointAndSetFlags(_ActionFlags fl)
+      {
+         ActionFlags |= fl;
+         Action.EndPoint.Clear();
+      }
+      public void ClearEndpointAndSetFlags(_ActionFlags fl, String skipUntilKey)
+      {
+         ActionFlags |= fl;
+         Action.EndPoint.Clear();
+         SkipUntilKey = skipUntilKey;
       }
 
       public IDatasourceFeeder CreateFeeder(XmlNode node, String expr)

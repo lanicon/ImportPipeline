@@ -29,14 +29,16 @@ namespace Bitmanager.ImportPipeline
    public class Pipeline : NamedItem, IDatasourceSink
    {
       private Dictionary<String, Object> variables;
+      private StringDict<IDataEndpoint> endPointCache;
+
       public readonly String DefaultEndPoint;
       public readonly ImportEngine ImportEngine;
       public readonly String ScriptTypeName;
-      public static readonly Object Handled = new Object();
 
       public Object ScriptObject { get; private set; }
 
       internal bool trace;
+      private bool started;
       /// <summary>
       /// List of active Actions (only valid in a running pipeline)
       /// </summary>
@@ -61,7 +63,7 @@ namespace Bitmanager.ImportPipeline
 
          ScriptTypeName = node.OptReadStr("@script", null);
          DefaultEndPoint = node.OptReadStr("@endpoint", null);
-         if (DefaultEndPoint == null && engine.EndPoints.Count > 0)
+         if (DefaultEndPoint == null && engine.EndPoints.Count == 1)
             DefaultEndPoint = engine.EndPoints[0].Name;
 
          trace = node.OptReadBool ("@trace", false);
@@ -132,6 +134,12 @@ namespace Bitmanager.ImportPipeline
             act.Action.Start(ctx);
             actions.Add(act);
          }
+
+         if (endPointCache != null)
+            foreach (var kvp in this.endPointCache)
+               kvp.Value.Start(ctx);
+
+         started = true;
       }
 
       public void Stop(PipelineContext ctx)
@@ -143,17 +151,48 @@ namespace Bitmanager.ImportPipeline
          }
          missed = new StringDict();
          ScriptObject = null;
+
+         started = false;
+         if (endPointCache != null)
+            foreach (var kvp in this.endPointCache)
+               kvp.Value.Stop(ctx);
+         endPointCache = null;
       }
+
+      public IDataEndpoint GetDataEndPoint(PipelineContext ctx, String name)
+      {
+         IDataEndpoint ret;
+         if (name == null) name = String.Empty;
+         if (endPointCache == null) endPointCache = new StringDict<IDataEndpoint>();
+         if (endPointCache.TryGetValue(name, out ret)) return ret;
+
+         ret = this.ImportEngine.EndPoints.GetDataEndPoint(ctx, name);
+         endPointCache.Add(name, ret);
+         if (started) ret.Start(ctx); 
+         return ret;
+      }
+
 
       public Object HandleValue(PipelineContext ctx, String key, Object value)
       {
          Object ret = null;
          lastAction = null;
+         ctx.ActionFlags = 0;
+
          if ((ctx.Flags & _ImportFlags.TraceValues) != 0) logger.Log("HandleValue ({0}, {1} [{2}]", key, value, value==null ? "null": value.GetType().Name);
 
          if (key == null) goto UNHANDLED;
          String lcKey = key.ToLowerInvariant();
          int keyLen = lcKey.Length;
+
+         if (ctx.SkipUntilKey != null)
+         {
+            ctx.ActionFlags |= _ActionFlags.Skipped;
+            if (ctx.SkipUntilKey.Length == keyLen && lcKey.Equals(ctx.SkipUntilKey, StringComparison.InvariantCultureIgnoreCase))
+               ctx.SkipUntilKey = null;
+            goto UNHANDLED;
+         }
+
          int ixStart = findAction(lcKey);
          if (ixStart < 0)
          {
@@ -172,11 +211,12 @@ namespace Bitmanager.ImportPipeline
             if (a.KeyLen != keyLen) break;
             if (!lcKey.Equals(a.Key, StringComparison.InvariantCulture)) break;
 
-            lastAction = a.Action;
+            lastAction = ctx.SetAction (a.Action);
             Object tmp = a.Action.HandleValue(ctx, key, value);
             if (tmp != null) ret = tmp;
+            if ((ctx.ActionFlags & _ActionFlags.SkipRest) != 0)
+               break;
          }
-         return ret == null ? Handled : ret;
          
          UNHANDLED: return null;
       }

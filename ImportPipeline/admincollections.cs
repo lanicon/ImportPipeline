@@ -54,15 +54,44 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
+      /// <summary>
+      /// Returns an element if it exists under that name . Otherwise return null.
+      /// </summary>
       public T OptGetByName(String name)
       {
          return namedItems.OptGetItem(name);
       }
+
+      /// <summary>
+      /// Returns an element if it exists under that name, or raise an exception.
+      /// </summary>
       public T GetByName(String name)
       {
          T item = namedItems.OptGetItem(name);
          if (item != null) return item;
          throw new BMException("No element '{0}' found for type '{1}'.", name, typeof(T).FullName);
+      }
+
+      /// <summary>
+      /// <para>- If name!=null, the element associated with that name is returned or an exception is thrown</para>
+      /// <para>- If altName != null, a check is done for altName. If found, it is returned.</para>
+      /// <para>- Otherwise the 1st element is returned (if count==1), or an exception is thrown.</para>
+      /// </summary>
+      public T GetByNamesOrFirst(String name, String altName)
+      {
+         if (name != null) return GetByName(name);
+         T item = null;
+         if (altName != null)
+         {
+            if (namedItems.TryGetValue(altName, out item)) return item;
+         }
+
+         switch (namedItems.Count)
+         {
+            case 0: throw new BMException("'{0}' collection contains no elements. Cannot get the correct element.", typeof(T).FullName);
+            case 1: return this[0];
+            default: throw new BMException("'{0}' collection contains {1} elements. Cannot auto-configure the correct element, since it will be ambigious.", typeof(T).FullName, namedItems.Count);
+         }
       }
    }
 

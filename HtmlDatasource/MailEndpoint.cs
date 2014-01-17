@@ -120,7 +120,7 @@ namespace BeursGorilla
          b.AppendFormat("</tr>\r\n");
       }
 
-      protected override IDataEndpoint CreateDataEndPoint(string namePart2)
+      protected override IDataEndpoint CreateDataEndPoint(PipelineContext ctx, string dataName)
       {
          return new MailDataEndpoint(this);
       }

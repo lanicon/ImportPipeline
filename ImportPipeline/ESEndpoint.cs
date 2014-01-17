@@ -78,11 +78,11 @@ namespace Bitmanager.ImportPipeline
          return cmd.WaitForStatus(WaitFor, AltWaitFor, WaitForTimeout, WaitForMustExcept);
       }
 
-      protected override IDataEndpoint CreateDataEndPoint(string namePart2)
+      protected override IDataEndpoint CreateDataEndPoint(PipelineContext ctx, string dataName)
       {
-         if (String.IsNullOrEmpty(namePart2))
+         if (String.IsNullOrEmpty(dataName))
             return new ESDataEndpoint(this, IndexDocTypes[0]);
-         return new ESDataEndpoint(this, IndexDocTypes.GetDocType(namePart2, true));
+         return new ESDataEndpoint(this, IndexDocTypes.GetDocType(dataName, true));
       }
    }
 
@@ -99,12 +99,9 @@ namespace Bitmanager.ImportPipeline
          this.doctype = doctype;
       }
 
-      public override void Opened(PipelineContext ctx)
-      {
-      }
-
       public override void Add(PipelineContext ctx)
       {
+         if (accumulator.Count == 0) return;
          OptLogAdd();
          connection.Post(doctype.UrlPart, accumulator).ThrowIfError();
          Clear();

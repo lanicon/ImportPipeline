@@ -14,42 +14,35 @@ namespace Bitmanager.ImportPipeline
 {
    public class EndPoints : NamedAdminCollection<EndPoint>
    {
-      private StringDict<IDataEndpoint> endPointCache;
       public readonly ImportEngine engine;
       public EndPoints(ImportEngine engine, XmlNode collNode)
          : base(collNode, "endpoint", (n) => ImportEngine.CreateObject<EndPoint>(n, engine, n), true)
       {
-         endPointCache = new StringDict<IDataEndpoint>();
          this.engine = engine;
       }
 
       public IDataEndpoint GetDataEndPoint(PipelineContext ctx, String name)
       {
-         if (name == null) return null;
-         IDataEndpoint ret;
-         if (endPointCache == null) endPointCache = new StringDict<IDataEndpoint>();
-         if (endPointCache.TryGetValue(name, out ret)) return ret;
-
-         EndPoint endPoint = this[0];
-
+         EndPoint ep;
+         String dataName = null;
          if (String.IsNullOrEmpty(name))
-            ret = endPoint._CheckOpen (ctx)._CreateDataEndPoint(ctx, null);
-         else
          {
-            int ix = name.IndexOf('.');
-            if (ix < 0) 
-            {
-               endPoint = this.GetByName(name);
-               ret = endPoint._CheckOpen(ctx)._CreateDataEndPoint(ctx, null);
-            }
-            else
-            {
-               endPoint = this.GetByName(name.Substring(0, ix));
-               ret = endPoint._CheckOpen(ctx)._CreateDataEndPoint(ctx, name.Substring(ix + 1));
-            }
+            ep = base.GetByNamesOrFirst (null, null);
+            goto CREATE_DATA_ENDPOINT;
          }
-         endPointCache.Add(name, ret); //PW cache at this point is a MT issue!!!
-         return ret;
+
+         int ix = name.IndexOf('.');
+         if (ix < 0) 
+         {
+            ep = this.GetByName(name);
+            goto CREATE_DATA_ENDPOINT;
+         }
+
+         ep = this.GetByName(name.Substring(0, ix));
+         dataName = name.Substring(ix + 1);
+
+      CREATE_DATA_ENDPOINT:
+         return ep._CheckOpen(ctx)._CreateDataEndPoint(ctx, dataName); 
       }
 
       public void Open(PipelineContext ctx)
@@ -119,12 +112,9 @@ namespace Bitmanager.ImportPipeline
          Close(ctx, isError);
          return this;
       }
-
-      internal IDataEndpoint _CreateDataEndPoint(PipelineContext ctx, string namePart2)
+      internal IDataEndpoint _CreateDataEndPoint(PipelineContext ctx, string name)
       {
-         IDataEndpoint x = CreateDataEndPoint (namePart2);
-         x.Opened (ctx);
-         return x;
+         return CreateDataEndPoint(ctx, name);
       }
 
       protected virtual void Open(PipelineContext ctx)
@@ -135,7 +125,7 @@ namespace Bitmanager.ImportPipeline
       {
       }
 
-      protected virtual IDataEndpoint CreateDataEndPoint(string namePart2)
+      protected virtual IDataEndpoint CreateDataEndPoint(PipelineContext ctx, string name)
       {
          return new JsonEndpointBase<EndPoint>(this);
       }
@@ -143,7 +133,8 @@ namespace Bitmanager.ImportPipeline
 
    public interface IDataEndpoint
    {
-      void Opened(PipelineContext ctx);
+      void Start(PipelineContext ctx);
+      void Stop(PipelineContext ctx);
       void Clear();
       Object GetField(String fld);
       void SetField(String fld, Object value);
@@ -197,7 +188,10 @@ namespace Bitmanager.ImportPipeline
          Clear();
       }
 
-      public virtual void Opened(PipelineContext ctx)
+      public virtual void Start(PipelineContext ctx)
+      {
+      }
+      public virtual void Stop(PipelineContext ctx)
       {
       }
 

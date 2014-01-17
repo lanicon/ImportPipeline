@@ -1,0 +1,70 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<root>
+   <tempdir dir="temp" clearonstart="true" />
+   <endpoints>
+      <endpoint name="es" type="ESEndPoint" url="http://localhost:9200/">
+         <waitfor status="yellow"></waitfor>
+         <indexes>
+            <index name="bosgoed" config="index.config.js"  />
+         </indexes>
+         <types>
+            <type name="doc" index="bosgoed" keyfield="_id" datefield="lastmod" />  
+         </types>
+      </endpoint>
+   </endpoints>
+
+   <converters>
+      <converter name="urlEncode"/>
+      <converter name="int32"/>
+      <converter name="double" decimalsep="," groupsep="."/>
+      <converter name="date"   utc="true" formats="yyyyMMdd"/>
+      <converter name="lower" />
+      <converter name="upper" />
+      <converter name="trim" />
+      <converter name="doctype" type="ReplaceConverter" dumpmissed="100">
+         <replace value="application/pdf" repl="Pdf" />
+         <replace value="application/msword" repl="Word" />
+         <replace value="application/rtf" repl="Word" />
+         <replace value="application/vnd.openxmlformats-officedocument.wordprocessingml.document" repl="Word" />
+         <replace value="application/vnd.ms-excel" repl="Excel" />
+         <replace value="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" repl="Excel" />
+         <replace value="application/vnd.ms-powerpoint" repl="Powerpoint" />
+         <replace value="application/vnd.openxmlformats-officedocument.presentationml.presentation" repl="Powerpoint" />
+         <replace value="ConversionError" repl="Error" />
+         <replace expr=".*text.*" repl="Text" />
+         <replace expr=".*message.*" repl="Mail" />
+      </converter>
+
+   </converters>
+   <processes>
+      <process name='tika' maxrestarts="25" log="tika" errlog="" logfrom="tika" clearlogs="false">
+         <exe>%JAVA_HOME%\bin\java</exe>
+         <arguments>-jar "E:\Github\Simple-Tika-Server\target\jetty-runner-7.4.0.v20110414.jar"  "E:\Github\Simple-Tika-Server\target\simple-tika-server-0.1.war"</arguments>
+         <_shutdown method="POST" url="http://localhost:9200/_shutdown" />
+         <_shutdown method="POST" url="http://localhost:9200/_cluster/nodes/_local/_shutdown" />
+      </process>
+   </processes>
+
+   <pipelines>
+      <pipeline name="pipe" trace="false" converters="trim" endpoint="es.doc" >
+         <action key="record" add="*" />
+         <action key="record/_start" field="filename" />
+         <action key="record/lastmodutc" field="lastmod" convert="date" tovar="date"/>
+         <action key="record/virtualFilename" field="virtualFilename"  tovar="key"/>
+         <action key="record/page_count|record/xmptpg:npages" field="page_count" convert="int32"/>
+         <action key="record/_checkexist" check="key|date"/>
+
+         <template expr="^record/content.type$" field="doctype" convert="doctype"/>
+         <template expr="^record/content.type$" field="content_type"/>
+         <template expr="(^record/_)" nop='true' />
+         <template expr="^record/(.*)" field="$1" />
+      </pipeline>
+   </pipelines>
+
+   <datasources>
+      <datasource name="tika" type="TikaDS" trim="true" pipeline="pipe" history="false" tikaurl='http://localhost:8080/html/filesystem/' tikaprocess='tika'>
+         <provider type="FileNameFeeder" root="C:\Users\pweerd\Documents" filter="\.pdf$" virtualroot="docs" />
+      </datasource>
+   </datasources>
+   
+</root>

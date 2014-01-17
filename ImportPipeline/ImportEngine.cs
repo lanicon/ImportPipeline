@@ -132,7 +132,7 @@ namespace Bitmanager.ImportPipeline
                   continue;
                }
 
-               ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStart, "[{0}]: starting import", admin.Name);
+               ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStart, "[{0}]: starting import with pipeline {1}, default endpoint={2} ", admin.Name, admin.Pipeline.Name, admin.Pipeline.DefaultEndPoint);
                PipelineContext ctx = new PipelineContext(this, admin);
                try
                {

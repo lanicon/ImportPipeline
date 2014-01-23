@@ -20,6 +20,20 @@
                "type" : "mapping",
                "mappings" : [".=>\\u0020", "\\uFFFD=>\\u0020"]
             },
+            "umlaut": {
+               "type" : "mapping",
+               "mappings" : ["ae=>a", "oe=>o", "ue=>u"]
+            },
+            "apostrophe_to_blank": {
+              "type":  "pattern_replace",
+              "pattern": "[\\u02b9-\\u02df,\\u02e4-\\u02ff]", "replacement": " " 
+            },
+            "remove_soundmarks": {
+              "type":  "pattern_replace",
+              "pattern": "[\\u30fc,\\uff70,\\uff9e]", "replacement": "" 
+            },
+
+            
             "date_totext" : {
                "type" : "mapping",
                "mappings" : ["-01-=>-jan januari-",
@@ -39,9 +53,6 @@
             }
          },
           "filter" : {
-               diacrit: {
-                   type: "asciifolding"
-               },
              "date_removetime": {
                    type: "pattern_replace",
                    "pattern": "[tT].*[zZ]",
@@ -64,13 +75,13 @@
           "analyzer" : {
              "lc_keyword" : {
                 "tokenizer" : "keyword",
-                filter: ["diacrit", "lowercase"],
+                filter: ["lowercase", "asciifolding"],
                 alias: ["default_search", "default_index"]
              },
               "lc_text" : {
-                 "char_filter" : ["html_strip", "repl_dot"],
+                 "char_filter" : ["html_strip", "umlaut", "apostrophe_to_blank", "remove_soundmarks", "repl_dot"],
                  "tokenizer" : "standard",
-                 filter: ["diacrit", "lowercase"]
+                 filter: ["lowercase", "asciifolding"]
               },
              "lc_date_text" : {
                 "char_filter" : ["date_totext"],
@@ -105,7 +116,7 @@
                "featureClass": {"type": "string", "index" : "not_analyzed"},
                "featureCode": {"type": "string", "index" : "not_analyzed"},
                "altCountryCode": {"type": "string", "index" : "not_analyzed"},
-               "altNames": {"type": "string", "index" : "not_analyzed"},
+               "altNames": {"type": "string", "analyzer" : "lc_text"},
                "admin1": {"type": "string", "index" : "not_analyzed"},
                "admin2": {"type": "string", "index" : "not_analyzed"},
                "admin3": {"type": "string", "index" : "not_analyzed"},

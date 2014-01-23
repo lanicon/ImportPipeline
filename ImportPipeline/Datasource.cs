@@ -24,6 +24,9 @@ namespace Bitmanager.ImportPipeline
       public String Type { get; private set; }
       public Datasource Datasource {get; private set;}
       public Pipeline Pipeline { get; private set; }
+      public int LogAdds { get; private set; }
+      public int MaxAdds { get; private set; }
+      public PipelineContext LastContext { get; set; }
       public bool Active { get; private set; }
 
       public DatasourceAdmin(PipelineContext ctx, XmlNode node)
@@ -31,12 +34,22 @@ namespace Bitmanager.ImportPipeline
       {
          Type = node.ReadStr("@type");
          Active = node.OptReadBool("@active", true);
+         LogAdds = node.OptReadInt("@logadds", ctx.ImportEngine.LogAdds);
+         MaxAdds = node.OptReadInt("@maxadds", ctx.ImportEngine.MaxAdds);
          String pipelineName = node.OptReadStr("@pipeline", null);
          Pipeline = ctx.ImportEngine.Pipelines.GetByNamesOrFirst(pipelineName, Name);
 
          //if (!Active) return; Zie notes: ws moet een datasource definitief kunnen worden uitgeschakeld. iets als active=true/false/disabled
          Datasource = ImportEngine.CreateObject<Datasource> (Type);
          Datasource.Init(ctx, node);
+      }
+
+      public void Import(PipelineContext ctx)
+      {
+         LastContext = ctx;
+         Pipeline.Start(ctx);
+         Datasource.Import(ctx, Pipeline);
+         Pipeline.Stop(ctx);
       }
    }
 

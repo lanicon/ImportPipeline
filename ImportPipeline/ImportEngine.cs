@@ -33,7 +33,9 @@ namespace Bitmanager.ImportPipeline
       public readonly Logger DebugLog;
       public readonly Logger ErrorLog;
       public readonly Logger MissedLog;
-      public _ImportFlags ImportFlags;
+      public int LogAdds {get; private set;}
+      public int MaxAdds { get; private set; }
+      public _ImportFlags ImportFlags { get; set; }
 
 
       public ImportEngine(_ImportFlags flags = 0)
@@ -55,6 +57,8 @@ namespace Bitmanager.ImportPipeline
          Xml = xml;
          PipelineContext ctx = new PipelineContext(this);
          ImportFlags = xml.OptReadEnum("@importflags", ImportFlags);
+         LogAdds = xml.OptReadInt("@logadds", 50000);
+         MaxAdds = xml.OptReadInt("@maxadds", 50000);
 
          //Load the supplied script
          ImportLog.Log(_LogType.ltTimerStart, "loading: scripts"); 
@@ -117,7 +121,7 @@ namespace Bitmanager.ImportPipeline
       {
          ImportLog.Log();
          ImportLog.Log(_LogType.ltProgress, "Starting import. Flags={0}, ActiveDS's='{1}'.", ImportFlags, enabledDSses==null ? null : String.Join (", ", enabledDSses));
-         bool isError = true;
+         bool isError = false;
          PipelineContext mainCtx = new PipelineContext(this);
          EndPoints.Open(mainCtx);
 
@@ -136,19 +140,26 @@ namespace Bitmanager.ImportPipeline
                PipelineContext ctx = new PipelineContext(this, admin);
                try
                {
-                  admin.Pipeline.Start(ctx);
-                  admin.Datasource.Import(ctx, admin.Pipeline);
-                  admin.Pipeline.Stop(ctx);
+                  admin.Import(ctx);
                   ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStop, "[{0}]: import ended. {1}.", admin.Name, ctx.GetStats());
-                  isError = false;
                }
                catch (Exception err)
                {
-                  ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStop, "[{0}]: crashed err={1}", admin.Name, err.Message);
-                  ImportLog.Log("-- " + ctx.GetStats());
-                  Exception toThrow = new BMException(err, "{0}\r\nDatasource={1}\r\nLastAction={2}.", err.Message, admin.Name, admin.Pipeline.LastAction);
-                  ErrorLog.Log(toThrow);
-                  throw toThrow;
+                  isError = true;
+                  if (err is MaxAddsExceededException)
+                  {
+                     ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStop, "[{0}]: {1}", admin.Name, err.Message);
+                     ImportLog.Log("-- " + ctx.GetStats());
+                     ;//admin.
+                  }
+                  else
+                  {
+                     ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStop, "[{0}]: crashed err={1}", admin.Name, err.Message);
+                     ImportLog.Log("-- " + ctx.GetStats());
+                     Exception toThrow = new BMException(err, "{0}\r\nDatasource={1}\r\nLastAction={2}.", err.Message, admin.Name, admin.Pipeline.LastAction);
+                     ErrorLog.Log(toThrow);
+                     throw toThrow;
+                  }
                }
 
                foreach (var c in Converters) c.DumpMissed(ctx);

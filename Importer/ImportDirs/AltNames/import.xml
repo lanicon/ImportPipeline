@@ -24,7 +24,7 @@
    </converters>
 
    <pipelines>
-      <pipeline name="pipe_names" trace="false" converters="trim" endpoint="es.namedoc">
+      <pipeline name="names" trace="false" converters="trim" endpoint="es.namedoc">
          <action key="file/record_end" add="*" />
          <action key="file/record/f0" field="nameId"/>
          <action key="file/record/f1" field="name"/>
@@ -84,7 +84,7 @@
 
    <datasources>
       <datasource name="altnames" type="csv" trim="false" active="false" file="E:\geonames\alternateNames.txt" pipeline="pipe_altnames" headers="false" dlm="\u0009" quote="\u0001" />
-      <datasource name="names" active="false" type="csv" trim="true" file="E:\geonames\nl\nl.txt" pipeline="pipe_names" headers="false" dlm="\u0009" quote="\u0001" />
+      <datasource name="names" active="false" type="csv" trim="true" file="E:\geonames\allCountries.txt"  headers="false" dlm="\u0009" quote="\u0001" />
       <datasource name="countries" active="false" type="csv" trim="true" file="E:\geonames\countryInfo.txt" pipeline="countries" headers="false" dlm="\u0009" quote="\u0001" comment="#" />
    </datasources>
    

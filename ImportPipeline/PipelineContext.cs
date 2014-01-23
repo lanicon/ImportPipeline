@@ -31,9 +31,12 @@ namespace Bitmanager.ImportPipeline
       public readonly Logger DebugLog;
       public readonly Logger ErrorLog;
       public readonly Logger MissedLog;
+      public MaxAddsExceededException Exceeded { get; private set; }
       public PipelineAction Action;
       public String SkipUntilKey;
       public int Added, Deleted, Skipped;
+      public int LogAdds;
+      public int MaxAdds;
       public _ImportFlags Flags;
       public _ActionFlags ActionFlags;
 
@@ -47,6 +50,8 @@ namespace Bitmanager.ImportPipeline
          ErrorLog = eng.ErrorLog.Clone(ds.Name);
          MissedLog = eng.MissedLog.Clone(ds.Name);
          Flags = eng.ImportFlags;
+         LogAdds = ds.LogAdds <= 0 ? int.MaxValue : ds.LogAdds;
+         MaxAdds = ds.MaxAdds;
       }
       public PipelineContext(ImportEngine eng)
       {
@@ -76,6 +81,14 @@ namespace Bitmanager.ImportPipeline
          SkipUntilKey = skipUntilKey;
       }
 
+      public void CountAndLogAdd()
+      {
+         if ((++Added % LogAdds) == 0)
+            ImportLog.Log (_LogType.ltTimer, "Added {0} records", Added);
+         if (MaxAdds >= 0 && Added > MaxAdds)
+            throw Exceeded = new MaxAddsExceededException(Added);
+      }
+
       public IDatasourceFeeder CreateFeeder(XmlNode node, String expr)
       {
          String p = node.ReadStr(expr);
@@ -99,5 +112,10 @@ namespace Bitmanager.ImportPipeline
       {
          return String.Format("Added={0}, Deleted={1}, Skipped={2}", Added, Deleted, Skipped);
       }
+   }
+
+   public class MaxAddsExceededException : Exception
+   {
+      public MaxAddsExceededException(int limit) : base(String.Format("Max #adds exceeded: {0}.", limit)) { } 
    }
 }

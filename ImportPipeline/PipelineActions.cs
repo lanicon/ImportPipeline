@@ -215,8 +215,8 @@ namespace Bitmanager.ImportPipeline
          }
          endPoint.Add(ctx);
          endPoint.Clear();
-         ctx.Added++;
-         ctx.Pipeline.ClearVariables();
+         ctx.CountAndLogAdd();
+         pipeline.ClearVariables();
          return null;
       }
 

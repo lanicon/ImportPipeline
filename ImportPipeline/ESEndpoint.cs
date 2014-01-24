@@ -101,6 +101,10 @@ namespace Bitmanager.ImportPipeline
 
       public override void Add(PipelineContext ctx)
       {
+         if ((ctx.Flags & _ImportFlags.TraceValues) != 0)
+         {
+            ctx.DebugLog.Log("Add: accumulator.Count={0}", accumulator.Count);
+         }
          if (accumulator.Count == 0) return;
          OptLogAdd();
          connection.Post(doctype.UrlPart, accumulator).ThrowIfError();

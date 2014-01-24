@@ -83,21 +83,24 @@ namespace Bitmanager.ImportPipeline
 
       public void CountAndLogAdd()
       {
-         if ((++Added % LogAdds) == 0)
-            ImportLog.Log (_LogType.ltTimer, "Added {0} records", Added);
+         switch ((++Added % LogAdds))
+         {
+            case 0: ImportLog.Log(_LogType.ltTimer, "Added {0} records", Added); break;
+            case 1: ImportLog.Log(_LogType.ltTimerStart, "Added 1 record"); break;
+         }
          if (MaxAdds >= 0 && Added > MaxAdds)
             throw Exceeded = new MaxAddsExceededException(Added);
       }
 
-      public IDatasourceFeeder CreateFeeder(XmlNode node, String expr)
+      public IDatasourceFeeder CreateFeeder(XmlNode node, String expr, Type defaultFeederType=null)
       {
-         String p = node.ReadStr(expr);
-         IDatasourceFeeder feeder = ImportEngine.CreateObject<IDatasourceFeeder>(p);
+         String feederType = defaultFeederType == null ? node.ReadStr(expr) : node.OptReadStr (expr, defaultFeederType.FullName);
+         IDatasourceFeeder feeder = ImportEngine.CreateObject<IDatasourceFeeder>(feederType);
          feeder.Init(this, node);
          return feeder;
       }
 
-      public IDatasourceFeeder CreateFeeder(XmlNode node)
+      public IDatasourceFeeder CreateFeeder(XmlNode node, Type defaultFeederType = null)
       {
          String type = node.OptReadStr("@provider", null);
          if (type == null)
@@ -105,7 +108,7 @@ namespace Bitmanager.ImportPipeline
             XmlNode child = node.SelectSingleNode("provider");
             if (child != null) return CreateFeeder(child, "@type");
          }
-         return CreateFeeder(node, "@provider");
+         return CreateFeeder(node, "@provider", defaultFeederType);
       }
 
       public String GetStats()
@@ -116,6 +119,15 @@ namespace Bitmanager.ImportPipeline
 
    public class MaxAddsExceededException : Exception
    {
-      public MaxAddsExceededException(int limit) : base(String.Format("Max #adds exceeded: {0}.", limit)) { } 
+      public MaxAddsExceededException(int limit) : base(String.Format("Max #adds exceeded: {0}.", limit)) { }
+
+      public static bool ContainsMaxAddsExceededException(Exception e)
+      {
+         for (; e != null; e = e.InnerException)
+         {
+            if (e is MaxAddsExceededException) return true;
+         }
+         return false;
+      }
    }
 }

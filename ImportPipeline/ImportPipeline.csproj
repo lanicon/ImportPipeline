@@ -59,6 +59,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="admincollections.cs" />
+    <Compile Include="ESDatasource.cs" />
     <Compile Include="ProcessHost.cs" />
     <Compile Include="Converters.cs" />
     <Compile Include="CsvDatasource.cs" />

@@ -58,7 +58,7 @@ namespace Bitmanager.ImportPipeline
          PipelineContext ctx = new PipelineContext(this);
          ImportFlags = xml.OptReadEnum("@importflags", ImportFlags);
          LogAdds = xml.OptReadInt("@logadds", 50000);
-         MaxAdds = xml.OptReadInt("@maxadds", 50000);
+         MaxAdds = xml.OptReadInt("@maxadds", 0);
 
          //Load the supplied script
          ImportLog.Log(_LogType.ltTimerStart, "loading: scripts"); 
@@ -136,8 +136,8 @@ namespace Bitmanager.ImportPipeline
                   continue;
                }
 
-               ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStart, "[{0}]: starting import with pipeline {1}, default endpoint={2} ", admin.Name, admin.Pipeline.Name, admin.Pipeline.DefaultEndPoint);
                PipelineContext ctx = new PipelineContext(this, admin);
+               ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStart, "[{0}]: starting import with pipeline {1}, default endpoint={2}, maxadds={3} ", admin.Name, admin.Pipeline.Name, admin.Pipeline.DefaultEndPoint, ctx.MaxAdds);
                try
                {
                   admin.Import(ctx);
@@ -146,7 +146,7 @@ namespace Bitmanager.ImportPipeline
                catch (Exception err)
                {
                   isError = true;
-                  if (err is MaxAddsExceededException)
+                  if (MaxAddsExceededException.ContainsMaxAddsExceededException (err))
                   {
                      ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStop, "[{0}]: {1}", admin.Name, err.Message);
                      ImportLog.Log("-- " + ctx.GetStats());

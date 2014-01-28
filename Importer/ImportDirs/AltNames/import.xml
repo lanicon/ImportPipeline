@@ -1,16 +1,28 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <root importflags="fullimport">
    <endpoints>
-      <endpoint name="es" type="ESEndPoint" url="http://localhost:9200/">
+      <endpoint name="countries" type="ESEndPoint" url="http://localhost:9200/" cache="100" maxparallel="0">
          <indexes>
-            <index name="nl" config="names.config.js"/>
-            <index name="altnames" config="altnames.config.js"/>
             <index name="countries" config="countries.config.js"/>
          </indexes>
          <types>
-            <type name="namedoc" typename="doc" index="nl" _keyfield="_id" />  
-            <type name="altnamedoc" typename="doc" index="altnames" _keyfield="_id" />  
             <type name="countrydoc" typename="doc" index="countries" _keyfield="_id" />  
+         </types>
+      </endpoint>
+      <endpoint name="altnames" type="ESEndPoint" url="http://localhost:9200/" cache="100">
+         <indexes>
+            <index name="altnames" config="altnames.config.js" shards="5" async="true"/>
+         </indexes>
+         <types>
+            <type name="altnamedoc" typename="doc" index="altnames" _keyfield="_id" />  
+         </types>
+      </endpoint>
+      <endpoint name="names" type="ESEndPoint" url="http://localhost:9200/" cache="100" maxparallel="1">
+         <indexes>
+            <index name="names" config="names.config.js" shards="5"/>
+         </indexes>
+         <types>
+            <type name="namedoc" typename="doc" index="names" _keyfield="_id" />  
          </types>
       </endpoint>
    </endpoints>
@@ -24,7 +36,7 @@
    </converters>
 
    <pipelines>
-      <pipeline name="names" trace="false" converters="trim" endpoint="es.namedoc">
+      <pipeline name="names" trace="false" converters="trim" endpoint="names.namedoc">
          <action key="file/record_end" add="*" />
          <action key="file/record/f0" field="nameId"/>
          <action key="file/record/f1" field="name"/>
@@ -46,7 +58,7 @@
          <action key="file/record/f18" field="lastUpdate"/>
       </pipeline>
 
-      <pipeline name="pipe_altnames" trace="false" converters="trim" endpoint="es.altnamedoc">
+      <pipeline name="altnames" trace="false" converters="trim" endpoint="altnames.altnamedoc">
          <action key="file/record_end" add="*" />
          <action key="file/record/f0" field="altNameId"/>
          <action key="file/record/f1" field="nameId"/>
@@ -58,7 +70,7 @@
          <action key="file/record/f7" field="isHistoric"/>
       </pipeline>
 
-      <pipeline name="countries" trace="false" converters="trim" endpoint="es.countrydoc">
+      <pipeline name="countries" trace="false" converters="trim" endpoint="countries.countrydoc">
          <action key="file/record_end" add="*" />
          <action key="file/record/f0" field="iso2"/>
          <action key="file/record/f1" field="iso3"/>
@@ -83,9 +95,9 @@
    </pipelines>
 
    <datasources>
-      <datasource name="altnames" type="csv" trim="false" active="false" file="E:\geonames\alternateNames.txt" pipeline="pipe_altnames" headers="false" dlm="\u0009" quote="\u0001" />
+      <datasource name="altnames" type="csv" trim="false" active="false" file="E:\geonames\alternateNames.txt"  headers="false" dlm="\u0009" quote="\u0001" />
       <datasource name="names" active="false" type="csv" trim="true" file="E:\geonames\allCountries.txt"  headers="false" dlm="\u0009" quote="\u0001" />
-      <datasource name="countries" active="false" type="csv" trim="true" file="E:\geonames\countryInfo.txt" pipeline="countries" headers="false" dlm="\u0009" quote="\u0001" comment="#" />
+      <datasource name="countries" active="false" type="csv" trim="true" file="E:\geonames\countryInfo.txt"  headers="false" dlm="\u0009" quote="\u0001" comment="#" />
    </datasources>
    
 </root>

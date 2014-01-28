@@ -119,7 +119,7 @@ namespace Bitmanager.ImportPipeline
 
       public void Start(PipelineContext ctx)
       {
-         if (trace) ctx.Flags |= _ImportFlags.TraceValues;
+         if (trace) ctx.ImportFlags |= _ImportFlags.TraceValues;
          logger.Log("Starting datasource {0}", ctx.DatasourceAdmin.Name);
          missed = new StringDict();
          if (ScriptTypeName != null)
@@ -156,7 +156,11 @@ namespace Bitmanager.ImportPipeline
          if (endPointCache != null)
             foreach (var kvp in this.endPointCache)
                kvp.Value.Stop(ctx);
+         ctx.LogLastAdd();
+         Dump("after import");
+
          endPointCache = null;
+         actions = null;
       }
 
       public IDataEndpoint GetDataEndPoint(PipelineContext ctx, String name)
@@ -179,7 +183,7 @@ namespace Bitmanager.ImportPipeline
          lastAction = null;
          ctx.ActionFlags = 0;
 
-         if ((ctx.Flags & _ImportFlags.TraceValues) != 0) logger.Log("HandleValue ({0}, {1} [{2}]", key, value, value==null ? "null": value.GetType().Name);
+         if ((ctx.ImportFlags & _ImportFlags.TraceValues) != 0) logger.Log("HandleValue ({0}, {1} [{2}]", key, value, value==null ? "null": value.GetType().Name);
 
          if (key == null) goto UNHANDLED;
          String lcKey = key.ToLowerInvariant();
@@ -286,10 +290,12 @@ namespace Bitmanager.ImportPipeline
       public void Dump (String why)
       {
          logger.Log("Dumping pipeline {0} {1}", Name, why);
-         logger.Log("{0} actions", definedActions.Count);
-         for (int i = 0; i < definedActions.Count; i++)
+         var list = actions == null ? definedActions : actions; 
+
+         logger.Log("{0} actions", list.Count);
+         for (int i = 0; i < list.Count; i++)
          {
-            var action = definedActions[i];
+            var action = list[i];
             logger.Log ("-- action order={0} {1}", action.Order, action.Action);
          }
 

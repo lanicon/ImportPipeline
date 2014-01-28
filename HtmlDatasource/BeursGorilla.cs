@@ -337,7 +337,7 @@ namespace BeursGorilla
       {
          if (history != null)
          {
-            if ((ctx.Flags & _ImportFlags.TraceValues) != 0) ctx.DebugLog.Log("HIST HandleValue ({0}, {1} [{2}]", key, value, value == null ? "null" : value.GetType().Name);
+            if ((ctx.ImportFlags & _ImportFlags.TraceValues) != 0) ctx.DebugLog.Log("HIST HandleValue ({0}, {1} [{2}]", key, value, value == null ? "null" : value.GetType().Name);
             switch (key.ToLowerInvariant())
             {
                case "history/date": histDate = (DateTime)value; break;

@@ -58,7 +58,7 @@ namespace Bitmanager.ImportPipeline
          PipelineContext ctx = new PipelineContext(this);
          ImportFlags = xml.OptReadEnum("@importflags", ImportFlags);
          LogAdds = xml.OptReadInt("@logadds", 50000);
-         MaxAdds = xml.OptReadInt("@maxadds", 0);
+         MaxAdds = xml.OptReadInt("@maxadds", -1);
 
          //Load the supplied script
          ImportLog.Log(_LogType.ltTimerStart, "loading: scripts"); 
@@ -177,10 +177,6 @@ namespace Bitmanager.ImportPipeline
             catch (Exception e2)
             {
                ErrorLog.Log(e2);
-            }
-            foreach (var p in Pipelines)
-            {
-               p.Dump("after import");
             }
          }
       }

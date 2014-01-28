@@ -82,7 +82,7 @@ namespace Bitmanager.ImportPipeline
          sink.HandleValue(ctx, "record/virtualFilename", fullElt.VirtualFileName);
 
          ExistState existState = ExistState.NotExist;
-         if ((ctx.Flags & _ImportFlags.ImportFull) == 0) //Not a full import
+         if ((ctx.ImportFlags & _ImportFlags.ImportFull) == 0) //Not a full import
          {
              existState = toExistState (sink.HandleValue(ctx, "record/_checkexist", null));
          }

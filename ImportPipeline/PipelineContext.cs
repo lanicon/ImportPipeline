@@ -37,7 +37,7 @@ namespace Bitmanager.ImportPipeline
       public int Added, Deleted, Skipped;
       public int LogAdds;
       public int MaxAdds;
-      public _ImportFlags Flags;
+      public _ImportFlags ImportFlags;
       public _ActionFlags ActionFlags;
 
       public PipelineContext(ImportEngine eng, DatasourceAdmin ds)
@@ -49,7 +49,7 @@ namespace Bitmanager.ImportPipeline
          DebugLog = eng.DebugLog.Clone(ds.Name);
          ErrorLog = eng.ErrorLog.Clone(ds.Name);
          MissedLog = eng.MissedLog.Clone(ds.Name);
-         Flags = eng.ImportFlags;
+         ImportFlags = eng.ImportFlags;
          LogAdds = ds.LogAdds <= 0 ? int.MaxValue : ds.LogAdds;
          MaxAdds = ds.MaxAdds;
       }
@@ -60,7 +60,7 @@ namespace Bitmanager.ImportPipeline
          DebugLog = eng.DebugLog;
          ErrorLog = eng.ErrorLog;
          MissedLog = eng.MissedLog;
-         Flags = eng.ImportFlags;
+         ImportFlags = eng.ImportFlags;
       }
 
       internal PipelineAction SetAction(PipelineAction act)
@@ -86,10 +86,14 @@ namespace Bitmanager.ImportPipeline
          switch ((++Added % LogAdds))
          {
             case 0: ImportLog.Log(_LogType.ltTimer, "Added {0} records", Added); break;
-            case 1: ImportLog.Log(_LogType.ltTimerStart, "Added 1 record"); break;
+            case 1: if (Added != 1) break; ImportLog.Log(_LogType.ltTimerStart, "Added 1 record"); break;
          }
          if (MaxAdds >= 0 && Added > MaxAdds)
             throw Exceeded = new MaxAddsExceededException(Added);
+      }
+      public void LogLastAdd()
+      {
+         ImportLog.Log(_LogType.ltTimerStop, "Added {0} records", Added); 
       }
 
       public IDatasourceFeeder CreateFeeder(XmlNode node, String expr, Type defaultFeederType=null)

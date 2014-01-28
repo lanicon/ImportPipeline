@@ -15,10 +15,14 @@ namespace Bitmanager.ImportPipeline
    public class ESDatasource : Datasource
    {
       private IDatasourceFeeder feeder;
+      private String timeout;
+      private int numRecords;
 
       public void Init(PipelineContext ctx, XmlNode node)
       {
          feeder = ctx.CreateFeeder(node, typeof (UrlFeeder));
+         numRecords = node.OptReadInt("@buffersize", ESRecordEnum.DEF_BUFFER_SIZE);
+         timeout = node.OptReadStr("@timeout", ESRecordEnum.DEF_TIMEOUT);
       }
 
       public void Import(PipelineContext ctx, IDatasourceSink sink)
@@ -62,7 +66,7 @@ namespace Bitmanager.ImportPipeline
          {
             Uri uri = new Uri (url);
             ESConnection conn = new ESConnection (url);
-            ESRecordEnum e = new ESRecordEnum(conn, index);
+            ESRecordEnum e = new ESRecordEnum(conn, index, null, numRecords, timeout);
             foreach (var doc in e)
             {
                String[] fields = doc.GetLoadedFields();

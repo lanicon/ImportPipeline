@@ -12,12 +12,15 @@ using System.Xml;
 
 namespace Bitmanager.ImportPipeline
 {
-   public class ESEndPoint: EndPoint
+   public class ESEndPoint : EndPoint
    {
       public readonly ESConnection Connection;
       public readonly IndexDefinitionTypes IndexTypes;
       public readonly IndexDefinitions Indexes;
       public readonly IndexDocTypes IndexDocTypes;
+      public readonly int CacheSize;
+      public readonly int MaxParallel;
+
       protected readonly ClusterStatus WaitFor, AltWaitFor;
       protected readonly bool WaitForMustExcept;
       protected readonly int WaitForTimeout;
@@ -27,20 +30,22 @@ namespace Bitmanager.ImportPipeline
          : base(node)
       {
          Connection = new ESConnection(node.ReadStr("@url"));
+         CacheSize = node.OptReadInt("@cache", -1);
+         MaxParallel = node.OptReadInt("@maxparallel", 0);
          XmlNode typesNode = node.SelectSingleNode("indextypes");
          if (typesNode != null)
             IndexTypes = new IndexDefinitionTypes(engine.Xml, typesNode);
          Indexes = new IndexDefinitions(IndexTypes, engine.Xml, node.SelectMandatoryNode("indexes"), false);
          IndexDocTypes = new IndexDocTypes(Indexes, node.SelectMandatoryNode("types"));
 
-         String[] arr = node.OptReadStr ("waitfor/@status", "green|yellow").SplitStandard();
+         String[] arr = node.OptReadStr("waitfor/@status", "green|yellow").SplitStandard();
          WaitForTimeout = node.OptReadInt("waitfor/@timeout", 30);
          WaitForMustExcept = node.OptReadBool("waitfor/@except", false);
          try
          {
             if (arr.Length == 1)
             {
-               WaitFor = Invariant.ToEnum<ClusterStatus> (arr[0]);
+               WaitFor = Invariant.ToEnum<ClusterStatus>(arr[0]);
                AltWaitFor = WaitFor;
             }
             else
@@ -58,14 +63,14 @@ namespace Bitmanager.ImportPipeline
       protected override void Open(PipelineContext ctx)
       {
          ESIndexCmd._CheckIndexFlags flags = ESIndexCmd._CheckIndexFlags.AppendDate;
-         if ((ctx.Flags & _ImportFlags.ImportFull) != 0) flags |= ESIndexCmd._CheckIndexFlags.ForceCreate;
+         if ((ctx.ImportFlags & _ImportFlags.ImportFull) != 0) flags |= ESIndexCmd._CheckIndexFlags.ForceCreate;
          Indexes.CreateIndexes(Connection, flags);
          WaitForStatus();
       }
       protected override void Close(PipelineContext ctx, bool isError)
       {
-         ctx.ImportLog.Log ("Closing endpoint '{0}', error={1}, flags={2}", Name, isError, ctx.Flags);
-         if (isError || (ctx.Flags & _ImportFlags.DoNotRename) != 0) return;
+         ctx.ImportLog.Log("Closing endpoint '{0}', error={1}, flags={2}", Name, isError, ctx.ImportFlags);
+         if (isError || (ctx.ImportFlags & _ImportFlags.DoNotRename) != 0) return;
          ctx.ImportLog.Log("-- Rename indexes");
          Indexes.OptionalRename(Connection);
       }
@@ -73,7 +78,7 @@ namespace Bitmanager.ImportPipeline
       public bool WaitForStatus()
       {
          var cmd = Connection.CreateHealthRequest();
-         if (WaitFor==AltWaitFor)
+         if (WaitFor == AltWaitFor)
             return cmd.WaitForStatus(WaitFor, WaitForTimeout, WaitForMustExcept);
          return cmd.WaitForStatus(WaitFor, AltWaitFor, WaitForTimeout, WaitForMustExcept);
       }
@@ -91,24 +96,87 @@ namespace Bitmanager.ImportPipeline
    {
       private readonly ESConnection connection;
       private readonly IndexDocType doctype;
-
+      private readonly int cacheSize;
+      private List<ESBulkEntry> cache;
+      private AsyncEndpointRequestQueue asyncQ;
       public ESDataEndpoint(ESEndPoint endpoint, IndexDocType doctype)
          : base(endpoint)
       {
          this.connection = endpoint.Connection;
          this.doctype = doctype;
+         this.cacheSize = endpoint.CacheSize;
+         if (endpoint.MaxParallel > 0)
+            asyncQ = AsyncEndpointRequestQueue.Create (endpoint.MaxParallel);
       }
 
       public override void Add(PipelineContext ctx)
       {
-         if ((ctx.Flags & _ImportFlags.TraceValues) != 0)
+         if ((ctx.ImportFlags & _ImportFlags.TraceValues) != 0)
          {
             ctx.DebugLog.Log("Add: accumulator.Count={0}", accumulator.Count);
          }
          if (accumulator.Count == 0) return;
          OptLogAdd();
-         connection.Post(doctype.UrlPart, accumulator).ThrowIfError();
+         if (cache == null)
+         {
+            if (asyncQ == null)
+               connection.Post(doctype.UrlPart, accumulator).ThrowIfError();
+            else
+               asyncQ.Add(new AsyncEndpointRequest(accumulator, asyncAdd), true);
+         }
+         else
+         {
+            cache.Add(new ESBulkEntry(accumulator));
+            if (cache.Count >= cacheSize) flushCache();
+         }
          Clear();
+      }
+
+      private void asyncAdd(AsyncEndpointRequest ctx)
+      {
+         JObject accu = ctx.WhatToAdd as JObject;
+         if (accu != null)
+         {
+            connection.Post(doctype.UrlPart, accu).ThrowIfError();
+            return;
+         }
+         flushCache((List<ESBulkEntry>)ctx.WhatToAdd);
+      }
+
+      private void flushCache()
+      {
+         if (cache.Count == 0) return;
+         if (asyncQ == null)
+            flushCache(cache);
+         else
+            asyncQ.Add(new AsyncEndpointRequest(cache, asyncAdd), true);
+
+         cache = new List<ESBulkEntry>();
+      }
+      private void flushCache(List<ESBulkEntry> cache)
+      {
+         //Logs.CreateLogger("import", "esdatendp").Log("Flush {0}", cache.Count);
+         if (cache.Count == 0) return;
+         connection.Post(doctype.UrlPart + "/_bulk", cache).ThrowIfError();
+      }
+      public override void Start(PipelineContext ctx)
+      {
+         if (cacheSize > 1)
+            cache = new List<ESBulkEntry>(cacheSize);
+         else
+            cache = null;
+         ctx.ImportLog.Log("start cache=" + cache);
+      }
+
+      public override void Stop(PipelineContext ctx)
+      {
+         ctx.ImportLog.Log("stop cache=" + cache);
+         if (cache != null)
+         {
+            flushCache();
+            cache = null;
+         }
+         if (asyncQ != null) asyncQ.EndInvokeAll();
       }
 
       public override ExistState Exists(PipelineContext ctx, string key, DateTime? timeStamp)
@@ -125,10 +193,147 @@ namespace Bitmanager.ImportPipeline
       public override void EmitRecord(PipelineContext ctx, String recordKey, String recordField, IDatasourceSink sink, String eventKey, int maxLevel)
       {
          JObject obj = doctype.LoadByKey(connection, recordKey);
-         if (obj==null) return;
-         JToken token = (recordField == null) ? obj : obj.GetValue (recordField, StringComparison.InvariantCultureIgnoreCase);
+         if (obj == null) return;
+         JToken token = (recordField == null) ? obj : obj.GetValue(recordField, StringComparison.InvariantCultureIgnoreCase);
          if (token != null)
             Pipeline.EmitToken(ctx, sink, token, eventKey, maxLevel);
+      }
+
+
+   }
+
+   public class AsyncEndpointRequest
+   {
+      public readonly Object WhatToAdd;
+      private IAsyncResult asyncResult;
+      private Action<AsyncEndpointRequest> action;
+
+      public AsyncEndpointRequest(Object whatToAdd, Action<AsyncEndpointRequest> action)
+      {
+         this.action = action;
+         WhatToAdd = whatToAdd;
+      }
+
+      public bool IsCompleted
+      {
+         get
+         {
+            {
+               return asyncResult.IsCompleted;
+            }
+         }
+      }
+
+      public void EndInvoke()
+      {
+         action.EndInvoke(asyncResult);
+      }
+
+      public void Start()
+      {
+         asyncResult = action.BeginInvoke(this, null, null);
+      }
+   }
+
+
+   public abstract class AsyncEndpointRequestQueue
+   {
+      protected AsyncEndpointRequestQueue() { }
+      public abstract AsyncEndpointRequest Add(AsyncEndpointRequest req, bool start);
+      public abstract void EndInvokeAll();
+
+      public static AsyncEndpointRequestQueue Create(int size)
+      {
+         return size > 1 ? (AsyncEndpointRequestQueue)new AsyncEndpointRequestQueueMulti(size) : new AsyncEndpointRequestQueueSingle();
+      }
+   }
+   
+   public class AsyncEndpointRequestQueueMulti : AsyncEndpointRequestQueue
+   {
+      private AsyncEndpointRequest[] q;
+      private int killidx;
+
+      public AsyncEndpointRequestQueueMulti(int size)
+      {
+         q = new AsyncEndpointRequest[size];
+      }
+
+      public override AsyncEndpointRequest Add(AsyncEndpointRequest req, bool start)
+      {
+         AsyncEndpointRequest elt;
+         for (int i = 0; i < q.Length; i++)
+         {
+            elt = q[i];
+            if (elt == null)
+            {
+               q[i] = req;
+               goto OPTIONAL_START;
+            }
+            if (elt.IsCompleted)
+            {
+               elt.EndInvoke();
+               q[i] = req;
+               goto OPTIONAL_START;
+            }
+         }
+
+         elt = q[killidx];
+         q[killidx] = req;
+         killidx = (killidx + 1) % q.Length;
+         elt.EndInvoke();
+
+      OPTIONAL_START:
+         if (start) req.Start();
+         return req;
+      }
+
+      public override void EndInvokeAll()
+      {
+         for (int i = 0; i < q.Length; i++)
+         {
+            var elt = q[i];
+            q[i] = null;
+            if (elt != null) elt.EndInvoke();
+         }
+      }
+   }
+
+   public class AsyncEndpointRequestQueueSingle : AsyncEndpointRequestQueue
+   {
+      private AsyncEndpointRequest q;
+
+      public AsyncEndpointRequestQueueSingle()
+      {
+      }
+
+      public override AsyncEndpointRequest Add(AsyncEndpointRequest req, bool start)
+      {
+         if (q == null)
+         {
+            q = req;
+            goto OPTIONAL_START;
+         }
+         if (q.IsCompleted)
+         {
+            q.EndInvoke();
+            q = req;
+            goto OPTIONAL_START;
+         }
+
+         var elt = q;
+         q = req;
+         elt.EndInvoke();
+
+      OPTIONAL_START:
+         if (start) req.Start();
+         return req;
+      }
+
+      public override void EndInvokeAll()
+      {
+         var elt = q;
+         q = null;
+         if (elt != null) elt.EndInvoke();
       }
    }
 }

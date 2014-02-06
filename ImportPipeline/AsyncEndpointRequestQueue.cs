@@ -6,16 +6,16 @@ using System.Text;
 namespace Bitmanager.ImportPipeline
 {
    /// <summary>
-   /// Queue that determines how many requests are executed in parallel
-   /// If more than this max requests are to be queued, a wait willbe done on one of the previous requests
+   /// Queue element that will be queued and executed async.
    /// </summary>
-   public class AsyncEndpointRequest
+   public class AsyncRequestElement
    {
       public readonly Object WhatToAdd;
       private IAsyncResult asyncResult;
-      private Action<AsyncEndpointRequest> action;
+      private Action<AsyncRequestElement> action;
+      internal uint queuedOrder;  //Used by the Q
 
-      public AsyncEndpointRequest(Object whatToAdd, Action<AsyncEndpointRequest> action)
+      public AsyncRequestElement(Object whatToAdd, Action<AsyncRequestElement> action)
       {
          this.action = action;
          WhatToAdd = whatToAdd;
@@ -36,38 +36,56 @@ namespace Bitmanager.ImportPipeline
          action.EndInvoke(asyncResult);
       }
 
-      public void Start()
+      internal void Start()
       {
          asyncResult = action.BeginInvoke(this, null, null);
       }
    }
 
 
-   public abstract class AsyncEndpointRequestQueue
+   /// <summary>
+   /// Queue that determines how many requests are executed in parallel
+   /// If more than this max requests are to be queued, a wait willbe done on one of the previous requests
+   /// </summary>
+   public abstract class AsyncRequestQueue
    {
-      protected AsyncEndpointRequestQueue() { }
-      public abstract AsyncEndpointRequest Add(AsyncEndpointRequest req, bool start);
+      protected AsyncRequestQueue() { }
+      /// <summary>
+      /// If a request is added, it takes the place of an empty or ready request.
+      /// If not found, the request takes the place of the oldest request in the Q, but before that, a wait is issued on the request to be removed.
+      /// Adding an element to the Q implies calling BeginInvoke on the element that is added
+      /// </summary>
+      public abstract AsyncRequestElement Add(AsyncRequestElement req);
+
+      /// <summary>
+      /// Waits for all pending requests to complete
+      /// </summary>
       public abstract void EndInvokeAll();
 
-      public static AsyncEndpointRequestQueue Create(int size)
+      /// <summary>
+      /// Creates an optimized Q, depending on the size
+      /// </summary>
+      public static AsyncRequestQueue Create(int size)
       {
-         return size > 1 ? (AsyncEndpointRequestQueue)new AsyncEndpointRequestQueueMulti(size) : new AsyncEndpointRequestQueueSingle();
+         return size > 1 ? (AsyncRequestQueue)new AsyncRequestQueueMulti(size) : new AsyncRequestQueueSingle();
       }
    }
 
-   public class AsyncEndpointRequestQueueMulti : AsyncEndpointRequestQueue
+   public class AsyncRequestQueueMulti : AsyncRequestQueue
    {
-      private AsyncEndpointRequest[] q;
-      private int killidx;
+      private AsyncRequestElement[] q;
+      private uint order;
 
-      public AsyncEndpointRequestQueueMulti(int size)
+      public AsyncRequestQueueMulti(int size)
       {
-         q = new AsyncEndpointRequest[size];
+         q = new AsyncRequestElement[size];
       }
 
-      public override AsyncEndpointRequest Add(AsyncEndpointRequest req, bool start)
+      public override AsyncRequestElement Add(AsyncRequestElement req)
       {
-         AsyncEndpointRequest elt;
+         AsyncRequestElement elt;
+         uint lowestOrder =uint.MaxValue;
+            int lowestIdx=0;
          for (int i = 0; i < q.Length; i++)
          {
             elt = q[i];
@@ -82,15 +100,20 @@ namespace Bitmanager.ImportPipeline
                q[i] = req;
                goto OPTIONAL_START;
             }
+            if (elt.queuedOrder < lowestOrder)
+            {
+               lowestOrder = elt.queuedOrder;
+               lowestIdx = i;
+            }
          }
 
-         elt = q[killidx];
-         q[killidx] = req;
-         killidx = (killidx + 1) % q.Length;
+         elt = q[lowestIdx];
+         q[lowestIdx] = req;
          elt.EndInvoke();
 
       OPTIONAL_START:
-         if (start) req.Start();
+         req.queuedOrder = order++;
+         req.Start();
          return req;
       }
 
@@ -105,15 +128,15 @@ namespace Bitmanager.ImportPipeline
       }
    }
 
-   public class AsyncEndpointRequestQueueSingle : AsyncEndpointRequestQueue
+   public class AsyncRequestQueueSingle : AsyncRequestQueue
    {
-      private AsyncEndpointRequest q;
+      private AsyncRequestElement q;
 
-      public AsyncEndpointRequestQueueSingle()
+      public AsyncRequestQueueSingle()
       {
       }
 
-      public override AsyncEndpointRequest Add(AsyncEndpointRequest req, bool start)
+      public override AsyncRequestElement Add(AsyncRequestElement req)
       {
          if (q == null)
          {
@@ -132,7 +155,7 @@ namespace Bitmanager.ImportPipeline
          elt.EndInvoke();
 
       OPTIONAL_START:
-         if (start) req.Start();
+         req.Start();
          return req;
       }
 

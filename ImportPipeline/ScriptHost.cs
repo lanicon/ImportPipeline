@@ -25,7 +25,7 @@ namespace Bitmanager.ImportPipeline
 
    public class ScriptHost
    {
-      protected readonly Logger logger;
+      protected internal static readonly Logger logger;
       protected StringDict<ScriptFileAdmin> scripts;
       protected Assembly _compiledAssembly;
       protected CompilerParameters _cp;
@@ -37,11 +37,14 @@ namespace Bitmanager.ImportPipeline
       public CompilerResults CompilerResults { get { return _cr; } }
       public CompilerParameters CompilerParameters { get { return _cp; } }
 
+      static ScriptHost()
+      {
+         logger = Logs.CreateLogger("C# Scripts", "Scripthost");
+      }
 
       public ScriptHost() : this(ScriptHostFlags.Default) { }
       public ScriptHost(ScriptHostFlags flags)
       {
-         logger = Logs.CreateLogger("C# Scripts", "Scripthost");
          Flags = flags;
          Clear();
          ClearCompilerParms();
@@ -59,6 +62,53 @@ namespace Bitmanager.ImportPipeline
          _refs = new StringDict();
          AddReference("system.dll");
          AddReference("system.xml.dll");
+      }
+
+
+      private void resolveAssemblies()
+      {
+         StringDict pathes = new StringDict();
+         var domain = AppDomain.CurrentDomain;
+         pathes[IOUtils.DelSlash(domain.BaseDirectory)] = null;
+         String relPath = domain.RelativeSearchPath;
+         if (relPath != null)
+         {
+            relPath = Path.Combine(domain.BaseDirectory, relPath);
+            pathes[IOUtils.DelSlash(relPath)] = null;
+         }
+ 
+         var list = _cp.ReferencedAssemblies;
+         for (int i = 0; i < list.Count; i++)
+         {
+            String dir = Path.GetDirectoryName(list[i]);
+            if (String.IsNullOrEmpty(dir)) continue;
+            pathes[dir] = null;
+         }
+
+         foreach (var kvp in pathes)
+            resolveAssemblies(kvp.Key);
+      }
+      private void resolveAssemblies(String path)
+      {
+         var list = _cp.ReferencedAssemblies;
+         for (int i = 0; i < list.Count; i++)
+         {
+            String fn = list[i];
+            if (Path.GetFileName(fn) != fn) continue;
+
+            String full = Path.Combine(path, fn);
+            if (File.Exists(full))
+            {
+               list[i] = full;
+               continue;
+            }
+            full += ".dll";
+            if (File.Exists(full))
+            {
+               list[i] = full;
+               continue;
+            }
+         }
       }
 
       public void AddReference(String loc)
@@ -129,6 +179,7 @@ namespace Bitmanager.ImportPipeline
 
          if (n == 0) throw new BMException("No scripts to compile");
 
+         resolveAssemblies();
          if ((Flags & ScriptHostFlags.AddLoadedAsReference) != 0)
          {
             foreach (Assembly a in AppDomain.CurrentDomain.GetAssemblies()) AddReference (a);
@@ -310,13 +361,15 @@ namespace Bitmanager.ImportPipeline
             if (refExpr.IsMatch (line))
             {
                val1 = refExpr.Replace (line, "$1");
-               if (String.IsNullOrEmpty(val1)) References.Add(val1);
+               ScriptHost.logger.Log("handling REF: '{0}'", val1);
+               if (!String.IsNullOrEmpty(val1)) References.Add(val1);
                continue;
             }
             if (inclExpr.IsMatch (line))
             {
                val1 = inclExpr.Replace (line, "$1");
-               if (String.IsNullOrEmpty (val1))
+               ScriptHost.logger.Log("handling INCL: '{0}'", val1);
+               if (!String.IsNullOrEmpty(val1))
                {
                   Includes.Add(IOUtils.FindFileToRoot(dir, val1, FindToTootFlags.Except));
                }

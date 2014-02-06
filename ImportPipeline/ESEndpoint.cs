@@ -98,7 +98,7 @@ namespace Bitmanager.ImportPipeline
       private readonly IndexDocType doctype;
       private readonly int cacheSize;
       private List<ESBulkEntry> cache;
-      private AsyncEndpointRequestQueue asyncQ;
+      private AsyncRequestQueue asyncQ;
       public ESDataEndpoint(ESEndPoint endpoint, IndexDocType doctype)
          : base(endpoint)
       {
@@ -106,7 +106,7 @@ namespace Bitmanager.ImportPipeline
          this.doctype = doctype;
          this.cacheSize = endpoint.CacheSize;
          if (endpoint.MaxParallel > 0)
-            asyncQ = AsyncEndpointRequestQueue.Create (endpoint.MaxParallel);
+            asyncQ = AsyncRequestQueue.Create (endpoint.MaxParallel);
       }
 
       public override void Add(PipelineContext ctx)
@@ -122,7 +122,7 @@ namespace Bitmanager.ImportPipeline
             if (asyncQ == null)
                connection.Post(doctype.UrlPart, accumulator).ThrowIfError();
             else
-               asyncQ.Add(new AsyncEndpointRequest(accumulator, asyncAdd), true);
+               asyncQ.Add(new AsyncRequestElement(accumulator, asyncAdd));
          }
          else
          {
@@ -132,7 +132,7 @@ namespace Bitmanager.ImportPipeline
          Clear();
       }
 
-      private void asyncAdd(AsyncEndpointRequest ctx)
+      private void asyncAdd(AsyncRequestElement ctx)
       {
          JObject accu = ctx.WhatToAdd as JObject;
          if (accu != null)
@@ -149,7 +149,7 @@ namespace Bitmanager.ImportPipeline
          if (asyncQ == null)
             flushCache(cache);
          else
-            asyncQ.Add(new AsyncEndpointRequest(cache, asyncAdd), true);
+            asyncQ.Add(new AsyncRequestElement(cache, asyncAdd));
 
          cache = new List<ESBulkEntry>();
       }

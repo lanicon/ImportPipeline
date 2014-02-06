@@ -1,1 +1,7 @@
 ws moet een datasource definitief kunnen worden uitgeschakeld. iets als active=true/false/disabled
+
+bij fouten moet de cache weggeschreven worden
+probleem bij scan operaties op grote datasets (stopt niet goed)
+scans moeten async kunnen
+
+<pre>Field altCountryCode==null</pre>uit esdataendpoint

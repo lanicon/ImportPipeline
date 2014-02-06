@@ -48,8 +48,14 @@ namespace Bitmanager.ImportPipeline
       {
          LastContext = ctx;
          Pipeline.Start(ctx);
-         Datasource.Import(ctx, Pipeline);
-         Pipeline.Stop(ctx);
+         try
+         {
+            Datasource.Import(ctx, Pipeline);
+         }
+         finally
+         {
+            Pipeline.Stop(ctx);
+         }
       }
    }
 

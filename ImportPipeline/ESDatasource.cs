@@ -17,12 +17,14 @@ namespace Bitmanager.ImportPipeline
       private IDatasourceFeeder feeder;
       private String timeout;
       private int numRecords;
+      private int maxParallel;
 
       public void Init(PipelineContext ctx, XmlNode node)
       {
          feeder = ctx.CreateFeeder(node, typeof (UrlFeeder));
          numRecords = node.OptReadInt("@buffersize", ESRecordEnum.DEF_BUFFER_SIZE);
          timeout = node.OptReadStr("@timeout", ESRecordEnum.DEF_TIMEOUT);
+         maxParallel = node.OptReadInt("@maxparallel", 1);
       }
 
       public void Import(PipelineContext ctx, IDatasourceSink sink)
@@ -42,6 +44,8 @@ namespace Bitmanager.ImportPipeline
 
       private void importUrl(PipelineContext ctx, IDatasourceSink sink, IDatasourceFeederElement elt)
       {
+         int maxParallel = elt.Context.OptReadInt ("@maxparallel", this.maxParallel);
+
          //StringDict attribs = getAttributes(elt.Context);
          //var fullElt = (FileNameFeederElement)elt;
          String url = elt.ToString();
@@ -67,6 +71,8 @@ namespace Bitmanager.ImportPipeline
             Uri uri = new Uri (url);
             ESConnection conn = new ESConnection (url);
             ESRecordEnum e = new ESRecordEnum(conn, index, null, numRecords, timeout);
+            if (maxParallel > 0) e.Async = true;
+            ctx.ImportLog.Log("Starting scan of {0} records. Index={1}, connection={2}, async={3}.", e.Count, index, url, e.Async);
             foreach (var doc in e)
             {
                String[] fields = doc.GetLoadedFields();
@@ -77,6 +83,7 @@ namespace Bitmanager.ImportPipeline
                }
                sink.HandleValue(ctx, "record", null);
             }
+            ctx.ImportLog.Log("Scanned {0} records", e.ScrolledCount);
          }
          catch (Exception e)
          {

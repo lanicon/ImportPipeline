@@ -37,60 +37,60 @@
 
    <pipelines>
       <pipeline name="names" trace="false" converters="trim" endpoint="names.namedoc">
-         <action key="file/record_end" add="*" />
-         <action key="file/record/f0" field="nameId"/>
-         <action key="file/record/f1" field="name"/>
-         <action key="file/record/f3" field="altNames"/>
-         <action key="file/record/f4" field="lat"/>
-         <action key="file/record/f5" field="lon"/>
-         <action key="file/record/f6" field="featureClass" />
-         <action key="file/record/f7" field="featureCode"/>
-         <action key="file/record/f8" field="countryCode"/>
-         <action key="file/record/f9" field="altCountryCode"/>
-         <action key="file/record/f10" field="admin1"/>
-         <action key="file/record/f11" field="admin2"/>
-         <action key="file/record/f12" field="admin3"/>
-         <action key="file/record/f13" field="admin4"/>
-         <action key="file/record/f14" field="population"/>
-         <action key="file/record/f15" field="elevation"/>
-         <action key="file/record/f16" field="dem"/>
-         <action key="file/record/f17" field="timezone"/>
-         <action key="file/record/f18" field="lastUpdate"/>
+         <action key="record" add="*" />
+         <action key="record/f0" field="nameId"/>
+         <action key="record/f1" field="name"/>
+         <action key="record/f3" field="altNames"/>
+         <action key="record/f4" field="lat"/>
+         <action key="record/f5" field="lon"/>
+         <action key="record/f6" field="featureClass" />
+         <action key="record/f7" field="featureCode"/>
+         <action key="record/f8" field="countryCode"/>
+         <action key="record/f9" field="altCountryCode"/>
+         <action key="record/f10" field="admin1"/>
+         <action key="record/f11" field="admin2"/>
+         <action key="record/f12" field="admin3"/>
+         <action key="record/f13" field="admin4"/>
+         <action key="record/f14" field="population"/>
+         <action key="record/f15" field="elevation"/>
+         <action key="record/f16" field="dem"/>
+         <action key="record/f17" field="timezone"/>
+         <action key="record/f18" field="lastUpdate"/>
       </pipeline>
 
       <pipeline name="altnames" trace="false" converters="trim" endpoint="altnames.altnamedoc">
-         <action key="file/record_end" add="*" />
-         <action key="file/record/f0" field="altNameId"/>
-         <action key="file/record/f1" field="nameId"/>
-         <action key="file/record/f2" field="lang"/>
-         <action key="file/record/f3" field="name"/>
-         <action key="file/record/f4" field="isPreferred"/>
-         <action key="file/record/f5" field="isShort"/>
-         <action key="file/record/f6" field="isColloquial" />
-         <action key="file/record/f7" field="isHistoric"/>
+         <action key="record" add="*" />
+         <action key="record/f0" field="altNameId"/>
+         <action key="record/f1" field="nameId"/>
+         <action key="record/f2" field="lang"/>
+         <action key="record/f3" field="name"/>
+         <action key="record/f4" field="isPreferred"/>
+         <action key="record/f5" field="isShort"/>
+         <action key="record/f6" field="isColloquial" />
+         <action key="record/f7" field="isHistoric"/>
       </pipeline>
 
       <pipeline name="countries" trace="false" converters="trim" endpoint="countries.countrydoc">
-         <action key="file/record_end" add="*" />
-         <action key="file/record/f0" field="iso2"/>
-         <action key="file/record/f1" field="iso3"/>
-         <action key="file/record/f2" field="iso2Num"/>
-         <action key="file/record/f3" field="fips"/>
-         <action key="file/record/f4" field="name"/>
-         <action key="file/record/f5" field="capital"/>
-         <action key="file/record/f6" field="area" />
-         <action key="file/record/f7" field="population"/>
-         <action key="file/record/f8" field="continent"/>
-         <action key="file/record/f9" field="tld"/>
-         <action key="file/record/f10" field="curCode"/>
-         <action key="file/record/f11" field="curName"/>
-         <action key="file/record/f12" field="phone"/>
-         <action key="file/record/f13" field="postalCode"/>
-         <action key="file/record/f14" field="postalRegex"/>
-         <action key="file/record/f15" field="lang"/>
-         <action key="file/record/f16" field="id"/>
-         <action key="file/record/f17" field="neighbors"/>
-         <action key="file/record/f18" field="altFips"/>
+         <action key="record" add="*" />
+         <action key="record/f0" field="iso2"/>
+         <action key="record/f1" field="iso3"/>
+         <action key="record/f2" field="iso2Num"/>
+         <action key="record/f3" field="fips"/>
+         <action key="record/f4" field="name"/>
+         <action key="record/f5" field="capital"/>
+         <action key="record/f6" field="area" />
+         <action key="record/f7" field="population"/>
+         <action key="record/f8" field="continent"/>
+         <action key="record/f9" field="tld"/>
+         <action key="record/f10" field="curCode"/>
+         <action key="record/f11" field="curName"/>
+         <action key="record/f12" field="phone"/>
+         <action key="record/f13" field="postalCode"/>
+         <action key="record/f14" field="postalRegex"/>
+         <action key="record/f15" field="lang"/>
+         <action key="record/f16" field="id"/>
+         <action key="record/f17" field="neighbors"/>
+         <action key="record/f18" field="altFips"/>
       </pipeline>
    </pipelines>
 

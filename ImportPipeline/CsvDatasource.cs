@@ -10,6 +10,7 @@ using Newtonsoft.Json.Linq;
 using Bitmanager.Json;
 using System.IO;
 using System.Globalization;
+using Bitmanager.Elastic;
 
 namespace Bitmanager.ImportPipeline
 {
@@ -21,7 +22,7 @@ namespace Bitmanager.ImportPipeline
 
       public void Init(PipelineContext ctx, XmlNode node)
       {
-         file = node.ReadStr("@file");
+         file = ctx.ImportEngine.Xml.CombinePath (node.ReadStr("@file"));
          hasHeaders = node.OptReadBool("@headers", false);
          trim = node.OptReadBool("@trim", true);
          delimChar = readChar(node, "@dlm", ',');
@@ -29,7 +30,7 @@ namespace Bitmanager.ImportPipeline
          commentChar = readChar(node, "@comment", '#');
       }
 
-      private char readChar(XmlNode node, String attr, char def)
+      internal static char readChar(XmlNode node, String attr, char def)
       {
          String v = node.OptReadStr (attr, null);
          if (v==null) return def;
@@ -63,23 +64,170 @@ namespace Bitmanager.ImportPipeline
 
       protected void processFile(PipelineContext ctx, String fileName, IDatasourceSink sink)
       {
-         sink.HandleValue(ctx, "file_start", fileName);
+         List<String> keys = new List<string>();
+         sink.HandleValue(ctx, "_file/_start", fileName);
          using (FileStream strm = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
          {
             StreamReader rdr = new StreamReader(strm, true);
             CsvReader csvRdr = new CsvReader(rdr, hasHeaders, delimChar, quoteChar, (char)0, commentChar, trim ? ValueTrimmingOptions.All : ValueTrimmingOptions.None);
             while (csvRdr.ReadNextRecord())
             {
-               sink.HandleValue(ctx, "file/record_start", null);
+               sink.HandleValue(ctx, "record/_start", null);
                int fieldCount = csvRdr.FieldCount;
+               for (int i = keys.Count; i <= fieldCount; i++)
+                  keys.Add(String.Format("record/f{0}", i));
                for (int i=0; i<fieldCount; i++)
                {
-                  sink.HandleValue(ctx, String.Format ("file/record/f{0}", i), csvRdr[i]);
+                  if (i>=keys.Count) 
+                  sink.HandleValue(ctx, keys[i], csvRdr[i]);
                }
-               sink.HandleValue(ctx, "file/record_end", null);
+               sink.HandleValue(ctx, "record", null);
             }
          }
-         sink.HandleValue(ctx, "file_end", fileName);
+         sink.HandleValue(ctx, "_file/_end", fileName);
       }
    }
+
+
+   //public class CsvEndpoint: EndPoint
+   public class CsvEndpoint : EndPoint
+   {
+      public readonly int CacheSize;
+      public readonly int MaxParallel;
+      public readonly String FileName;
+
+      private FileStream fs;
+      private StreamWriter wtr;
+
+      char delimChar, quoteChar, commentChar;
+      bool trim;
+
+
+
+
+      public CsvEndpoint(ImportEngine engine, XmlNode node)
+         : base(node)
+      {
+         FileName = engine.Xml.CombinePath (node.ReadStr("@file"));
+         trim = node.OptReadBool("@trim", true);
+         delimChar = CsvDatasource.readChar(node, "@dlm", ',');
+         quoteChar = CsvDatasource.readChar(node, "@quote", '"');
+         commentChar = CsvDatasource.readChar(node, "@comment", '#');
+      }
+
+      protected override void Open(PipelineContext ctx)
+      {
+         fs = new FileStream(FileName, FileMode.Create, FileAccess.Write, FileShare.Read);
+         wtr = new StreamWriter (fs, Encoding.UTF8);
+      }
+      protected override void Close(PipelineContext ctx, bool isError)
+      {
+         ctx.ImportLog.Log("Closing endpoint '{0}', error={1}, flags={2}", Name, isError, ctx.ImportFlags);
+         if (wtr != null)
+         {
+            wtr.Flush();
+            wtr = null;
+         }
+         if (fs != null)
+         {
+            fs.Close();
+            fs = null;
+         }
+      }
+
+      protected override IDataEndpoint CreateDataEndPoint(PipelineContext ctx, string dataName)
+      {
+         return new CsvDataEndpoint(this);
+      }
+
+      private static int keyToIndex(string key)
+      {
+         String key2 = key;
+         switch (key[0])
+         {
+            case 'f':
+            case 'F':
+               key2 = key.Substring(1); break;
+         }
+
+         int ret;
+         if (int.TryParse(key2, NumberStyles.Integer, Invariant.Culture, out ret)) return ret;
+         throw new BMException ("Fieldname '{0}' should be a number or an 'F' with a number, to make sure that the field is written on the correct place in the CSV file.", key); 
+      }
+
+      private void writeQuotedString(String txt)
+      {
+         if (trim) txt = txt.Trim();
+         if (quoteChar == 0) wtr.Write (txt);
+
+         wtr.Write (quoteChar);
+         for (int i=0; i<txt.Length; i++)
+         {
+            if (txt[i]==quoteChar) wtr.Write (quoteChar);
+            wtr.Write (txt[i]);
+         }
+         wtr.Write (quoteChar);
+      }
+
+      internal void WriteAccumulator(JObject accu)
+      {
+         int maxDataElts = 0;
+         JToken[] data = new JToken[2*accu.Count];
+
+         foreach (var kvp in accu)
+         {
+            int ix = keyToIndex (kvp.Key);
+            if (ix >= data.Length)
+            {
+               JToken[] newArr = new JToken[2*ix+4];
+               Array.Copy (data, newArr, newArr.Length);
+               data = newArr;
+            }
+            if (ix >= maxDataElts) maxDataElts = ix+1;
+            data[ix] = kvp.Value;
+         }
+
+         for (int i=0; i<maxDataElts; i++)
+         {
+            if (i>0) wtr.Write (this.delimChar);
+            if (data[i] == null) continue;
+            switch (data[i].Type)
+            {
+               case JTokenType.Boolean: wtr.Write ((bool)data[i]); break;
+               case JTokenType.Date: wtr.Write (Invariant.ToString ((DateTime)data[i])); break;
+               case JTokenType.Float: wtr.Write (Invariant.ToString ((double)data[i])); break;
+               case JTokenType.Integer: wtr.Write (Invariant.ToString ((long)data[i])); break;
+               case JTokenType.None:
+               case JTokenType.Null:
+               case JTokenType.Undefined: continue;
+               default:
+                  writeQuotedString((String)data[i]);
+                  break;
+            }
+         }
+         wtr.WriteLine();
+      }
+   }
+
+
+   public class CsvDataEndpoint : JsonEndpointBase<CsvEndpoint>
+   {
+      public CsvDataEndpoint(CsvEndpoint endpoint)
+         : base(endpoint)
+      {
+      }
+
+      public override void Add(PipelineContext ctx)
+      {
+         if ((ctx.ImportFlags & _ImportFlags.TraceValues) != 0)
+         {
+            ctx.DebugLog.Log("Add: accumulator.Count={0}", accumulator.Count);
+         }
+         if (accumulator.Count == 0) return;
+         OptLogAdd();
+         EndPoint.WriteAccumulator(accumulator);
+         Clear();
+      }
+   }
+
 }

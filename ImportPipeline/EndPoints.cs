@@ -173,8 +173,8 @@ namespace Bitmanager.ImportPipeline
       public virtual void SetField(String fld, Object value)
       {
          if ((flags & Bitmanager.ImportPipeline.EndPoint.DebugFlags._LogField) != 0) addLogger.Log("-- setfield {0}: '{1}'", fld, value);
-         if (value == null) addLogger.Log("Field {0}==null", fld);
-           accumulator.WriteToken(fld, value);
+         //if (value == null) addLogger.Log("Field {0}==null", fld);
+         accumulator.WriteToken(fld, value);
       }
 
       protected void OptLogAdd()

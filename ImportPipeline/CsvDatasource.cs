@@ -74,11 +74,9 @@ namespace Bitmanager.ImportPipeline
             {
                sink.HandleValue(ctx, "record/_start", null);
                int fieldCount = csvRdr.FieldCount;
-               for (int i = keys.Count; i <= fieldCount; i++)
-                  keys.Add(String.Format("record/f{0}", i));
+               for (int i = keys.Count; i <= fieldCount; i++)   keys.Add(String.Format("record/f{0}", i));
                for (int i=0; i<fieldCount; i++)
                {
-                  if (i>=keys.Count) 
                   sink.HandleValue(ctx, keys[i], csvRdr[i]);
                }
                sink.HandleValue(ctx, "record", null);

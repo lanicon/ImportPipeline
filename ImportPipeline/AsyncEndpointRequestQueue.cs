@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Bitmanager.Core;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,6 +15,7 @@ namespace Bitmanager.ImportPipeline
       private IAsyncResult asyncResult;
       private Action<AsyncRequestElement> action;
       internal uint queuedOrder;  //Used by the Q
+      private volatile bool endInvokeCalled;
 
       public AsyncRequestElement(Object whatToAdd, Action<AsyncRequestElement> action)
       {
@@ -26,19 +28,28 @@ namespace Bitmanager.ImportPipeline
          get
          {
             {
-               return asyncResult.IsCompleted;
+               return asyncResult != null && asyncResult.IsCompleted;
             }
          }
       }
 
       public void EndInvoke()
       {
+         if (endInvokeCalled) return;
+         endInvokeCalled = true; //Next statement might result in an exception!
          action.EndInvoke(asyncResult);
       }
 
       internal void Start()
       {
+         Logs.DebugLog.Log("async start()");
          asyncResult = action.BeginInvoke(this, null, null);
+         Logs.DebugLog.Log("async start()==>{0}", asyncResult);
+      }
+
+      public override string ToString()
+      {
+         return String.Format("{0} (asyncR={1}, order={2}, endinvoked={3}, completed={4})", this.GetType().Name, asyncResult, queuedOrder, endInvokeCalled, IsCompleted);
       }
    }
 
@@ -107,10 +118,9 @@ namespace Bitmanager.ImportPipeline
             }
          }
 
-         elt = q[lowestIdx];
+         q[lowestIdx].EndInvoke();
          q[lowestIdx] = req;
-         elt.EndInvoke();
-
+         
       OPTIONAL_START:
          req.queuedOrder = order++;
          req.Start();
@@ -138,6 +148,7 @@ namespace Bitmanager.ImportPipeline
 
       public override AsyncRequestElement Add(AsyncRequestElement req)
       {
+         //dumpQ("before");
          if (q == null)
          {
             q = req;
@@ -150,12 +161,12 @@ namespace Bitmanager.ImportPipeline
             goto OPTIONAL_START;
          }
 
-         var elt = q;
+         q.EndInvoke();
          q = req;
-         elt.EndInvoke();
 
       OPTIONAL_START:
          req.Start();
+         //dumpQ("after");
          return req;
       }
 
@@ -164,6 +175,15 @@ namespace Bitmanager.ImportPipeline
          var elt = q;
          q = null;
          if (elt != null) elt.EndInvoke();
+      }
+
+      private void dumpQ(String when)
+      {
+         Logs.DebugLog.Log ("Dumping SINGLE-Q {0}", when);
+         if (q == null)
+            Logs.DebugLog.Log("-- empty");
+         else
+            Logs.DebugLog.Log("-- {0}", q);
       }
    }
 }

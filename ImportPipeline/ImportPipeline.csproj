@@ -80,6 +80,7 @@
     <Compile Include="PipelineTemplates.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ReplaceConverter.cs" />
+    <Compile Include="ScriptBase.cs" />
     <Compile Include="ScriptHost.cs" />
     <Compile Include="TikaDataSource.cs" />
     <Compile Include="UrlProvider.cs" />

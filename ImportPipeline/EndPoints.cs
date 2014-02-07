@@ -131,13 +131,21 @@ namespace Bitmanager.ImportPipeline
       }
    }
 
+
+   public enum FieldFlags
+   {
+      OverWrite = 1<<0,
+      Append = 1<<1,
+      ToArray = 1<<2,
+      SkipEmpty = 1<<3,
+   }
    public interface IDataEndpoint
    {
       void Start(PipelineContext ctx);
       void Stop(PipelineContext ctx);
       void Clear();
       Object GetField(String fld);
-      void SetField(String fld, Object value);
+      void SetField(String fld, Object value, FieldFlags flags, String sep);
       void Add(PipelineContext ctx);
       ExistState Exists(PipelineContext ctx, String key, DateTime? timeStamp);
       Object LoadRecord(PipelineContext ctx, String key);
@@ -167,15 +175,54 @@ namespace Bitmanager.ImportPipeline
 
       public virtual Object GetField(String fld)
       {
-         throw new Exception("notimpl");
+         return accumulator.SelectToken (fld, false);
       }
 
-      public virtual void SetField(String fld, Object value)
+      public virtual void SetField(String fld, Object value, FieldFlags fieldFlags, String sep)
       {
          if ((flags & Bitmanager.ImportPipeline.EndPoint.DebugFlags._LogField) != 0) addLogger.Log("-- setfield {0}: '{1}'", fld, value);
          //if (value == null) addLogger.Log("Field {0}==null", fld);
-         accumulator.WriteToken(fld, value);
+
+         //Test for empty fields
+         if ((fieldFlags & FieldFlags.SkipEmpty) != 0)
+         {
+            if (value==null) return;
+            String tmp = value as String;
+            if (tmp != null && tmp.Length==0) return;
+         }
+
+         switch (fieldFlags & (FieldFlags.Append | FieldFlags.OverWrite | FieldFlags.ToArray))
+         {
+            case 0:
+            case FieldFlags.OverWrite:
+               accumulator.WriteToken(fld, value);
+               return;
+
+            case FieldFlags.Append:
+               String existing = accumulator.ReadStr (fld, null);
+               if (existing == null)
+               {
+                  accumulator.WriteToken(fld, value);
+                  return;
+               }
+               accumulator.WriteToken(fld, existing + sep + value);
+               return;
+
+            default:
+               JToken token = accumulator.SelectToken(fld, false);
+               JArray arr = token as JArray;
+               if (arr != null)
+               {
+                  arr.Add (value);
+                  return;
+               }
+               arr = accumulator.AddArray (fld);
+               if (token != null) arr.Add(token);
+               arr.Add(value);
+               return;
+         }
       }
+      
 
       protected void OptLogAdd()
       {

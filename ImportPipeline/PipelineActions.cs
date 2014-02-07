@@ -146,12 +146,16 @@ namespace Bitmanager.ImportPipeline
    {
       protected String toField;
       protected String varName;
+      protected FieldFlags fieldFlags;
+      protected String sep;
 
       public PipelineFieldAction(Pipeline pipeline, XmlNode node)
          : base(pipeline, node)
       {
          varName = node.OptReadStr("@tovar", null);
          toField = node.OptReadStr("@field", null);
+         sep = node.OptReadStr("@sep", null);
+         fieldFlags = node.OptReadEnum("@flags", sep==null ? FieldFlags.OverWrite : FieldFlags.Append);
 
          if (checkMode == 0 && toField == null && varName == null)
             throw new BMNodeException(node, "At least one of 'field', 'tovar', 'check'-attributes is mandatory.");
@@ -162,6 +166,8 @@ namespace Bitmanager.ImportPipeline
       {
          this.toField = optReplace(regex, name, template.toField);
          this.varName = optReplace(regex, name, template.varName);
+         this.sep = template.sep;
+         this.fieldFlags = template.fieldFlags;
       }
 
       public override Object HandleValue(PipelineContext ctx, String key, Object value)
@@ -169,7 +175,7 @@ namespace Bitmanager.ImportPipeline
          value = ConvertAndCallScript(ctx, key, value);
          if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) return null;
 
-         if (toField != null) endPoint.SetField (toField, value);
+         if (toField != null) endPoint.SetField (toField, value, fieldFlags, sep);
          if (varName != null) ctx.Pipeline.SetVariable(varName, value);
          return base.handleCheck(ctx);
       }

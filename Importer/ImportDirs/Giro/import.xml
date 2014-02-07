@@ -40,7 +40,7 @@
    </pipelines>
 
    <datasources>
-      <datasource name="giro"  type="csv" trim="false" active="true" file="\\bm\BITMANAGER\SharedData\Bitmanager\2013\KW4\3477492_01-01-2012_22-01-2014.csv"  headers="true" dlm="," quote='"'/>
+      <datasource name="giro"  type="csv" trim="false" active="true" file="3477492_01-01-2012_22-01-2014.csv"  headers="true" dlm="," quote='"'/>
    </datasources>
    
 </root>

@@ -130,9 +130,9 @@ using Newtonsoft.Json.Linq;
                   var iban = new IBAN(x.GetVal(desc));
                   ctx.Pipeline.HandleValue (ctx, "record/ibanfromdesc", iban.FormattedIban);
                   ctx.Pipeline.HandleValue (ctx, "record/ibanfromdesc", iban.ToString());
-                  ctx.Pipeline.HandleValue (ctx, "record/ibanfromdesc", iban.Account);
+                  //ctx.Pipeline.HandleValue (ctx, "record/ibanfromdesc", iban.Account); //Zit al in formatted...
                   ctx.Pipeline.HandleValue (ctx, "record/ibanfromdesc", iban.TrimmedAccount);
-                  break;
+                  continue;
             }
             sb.AppendIfNotNullOrEmpty (x.GetAll (desc), ", ");
          } 

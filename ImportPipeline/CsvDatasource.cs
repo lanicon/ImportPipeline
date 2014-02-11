@@ -18,13 +18,14 @@ namespace Bitmanager.ImportPipeline
    {
       String file;
       char delimChar, quoteChar, commentChar;
-      bool hasHeaders, trim;
+      bool hasHeaders;
+      ValueTrimmingOptions trim;
 
       public void Init(PipelineContext ctx, XmlNode node)
       {
          file = ctx.ImportEngine.Xml.CombinePath (node.ReadStr("@file"));
          hasHeaders = node.OptReadBool("@headers", false);
-         trim = node.OptReadBool("@trim", true);
+         trim = node.OptReadEnum ("@trim", ValueTrimmingOptions.UnquotedOnly);
          delimChar = readChar(node, "@dlm", ',');
          quoteChar = readChar(node, "@quote", '"');
          commentChar = readChar(node, "@comment", '#');
@@ -65,11 +66,14 @@ namespace Bitmanager.ImportPipeline
       protected void processFile(PipelineContext ctx, String fileName, IDatasourceSink sink)
       {
          List<String> keys = new List<string>();
-         sink.HandleValue(ctx, "_file/_start", fileName);
+         sink.HandleValue(ctx, Pipeline.ItemStart, fileName);
          using (FileStream strm = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
          {
             StreamReader rdr = new StreamReader(strm, true);
-            CsvReader csvRdr = new CsvReader(rdr, hasHeaders, delimChar, quoteChar, (char)0, commentChar, trim ? ValueTrimmingOptions.All : ValueTrimmingOptions.None);
+            //CsvReader csvRdr = new CsvReader(rdr, hasHeaders, delimChar, quoteChar, (char)0, commentChar, trim ? ValueTrimmingOptions.UnquotedOnly : ValueTrimmingOptions.None);
+            //CsvReader csvRdr = new CsvReader(rdr, hasHeaders, delimChar, quoteChar, quoteChar, commentChar, trim ? ValueTrimmingOptions.UnquotedOnly : ValueTrimmingOptions.None); //, trim, 4096);
+            CsvReader csvRdr = new CsvReader(rdr, hasHeaders, delimChar, quoteChar, quoteChar, commentChar, trim);
+            Logs.ErrorLog.Log("Multiline={0}, quote={1} ({2}), esc={3} ({4})", csvRdr.SupportsMultiline, csvRdr.Quote, (int)csvRdr.Quote, csvRdr.Escape, (int)csvRdr.Escape);
             while (csvRdr.ReadNextRecord())
             {
                sink.HandleValue(ctx, "record/_start", null);
@@ -82,7 +86,7 @@ namespace Bitmanager.ImportPipeline
                sink.HandleValue(ctx, "record", null);
             }
          }
-         sink.HandleValue(ctx, "_file/_end", fileName);
+         sink.HandleValue(ctx, Pipeline.ItemStop, fileName);
       }
    }
 

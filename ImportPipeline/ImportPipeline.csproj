@@ -43,8 +43,9 @@
     <Reference Include="HtmlAgilityPack">
       <HintPath>..\..\_References\HtmlAgilityPack.dll</HintPath>
     </Reference>
-    <Reference Include="LumenWorks.Framework.IO">
-      <HintPath>packages\LumenWorks.Framework.IO.3.8.0\lib\net20\LumenWorks.Framework.IO.dll</HintPath>
+    <Reference Include="LumenWorks.Framework.IO, Version=3.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\codeproject\LumenWorks.Framework.IO\bin\Debug\LumenWorks.Framework.IO.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\_References\Newtonsoft.Json.dll</HintPath>

@@ -50,7 +50,9 @@ namespace Bitmanager.ImportPipeline
          Pipeline.Start(ctx);
          try
          {
+            Pipeline.HandleValue(ctx, "_datasource/_start", Name);
             Datasource.Import(ctx, Pipeline);
+            Pipeline.HandleValue(ctx, "_datasource/_stop", Name);
          }
          finally
          {

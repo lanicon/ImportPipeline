@@ -49,22 +49,8 @@ namespace Bitmanager.ImportPipeline
          //StringDict attribs = getAttributes(elt.Context);
          //var fullElt = (FileNameFeederElement)elt;
          String url = elt.ToString();
-         sink.HandleValue(ctx, "record/_start", url);
+         sink.HandleValue(ctx, Pipeline.ItemStart, elt);
          String index = elt.Context.ReadStr ("@index");
-
-         //ExistState existState = ExistState.NotExist;
-         //if ((ctx.Flags & _ImportFlags.ImportFull) == 0) //Not a full import
-         //{
-         //   existState = toExistState(sink.HandleValue(ctx, "record/_checkexist", null));
-         //}
-
-         ////Check if we need to convert this file
-         //if ((existState & (ExistState.ExistSame | ExistState.ExistNewer | ExistState.Exist)) != 0)
-         //{
-         //   ctx.Skipped++;
-         //   ctx.ImportLog.Log("Skipped: {0}. Date={1}", fullElt.VirtualFileName, dtFile);
-         //   return;
-         //}
 
          try
          {
@@ -72,7 +58,7 @@ namespace Bitmanager.ImportPipeline
             ESConnection conn = new ESConnection (url);
             ESRecordEnum e = new ESRecordEnum(conn, index, null, numRecords, timeout);
             if (maxParallel > 0) e.Async = true;
-            ctx.ImportLog.Log("Starting scan of {0} records. Index={1}, connection={2}, async={3}.", e.Count, index, url, e.Async);
+            ctx.ImportLog.Log("Starting scan of {0} records. Index={1}, connection={2}, async={3}, buffersize={4}.", e.Count, index, url, e.Async, numRecords);
             foreach (var doc in e)
             {
                String[] fields = doc.GetLoadedFields();
@@ -83,6 +69,7 @@ namespace Bitmanager.ImportPipeline
                }
                sink.HandleValue(ctx, "record", null);
             }
+            sink.HandleValue(ctx, Pipeline.ItemStop, elt);
             ctx.ImportLog.Log("Scanned {0} records", e.ScrolledCount);
          }
          catch (Exception e)

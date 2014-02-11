@@ -28,6 +28,8 @@ namespace Bitmanager.ImportPipeline
 
    public class Pipeline : NamedItem, IDatasourceSink
    {
+      public const String ItemStart = "_item/_start";
+      public const String ItemStop = "_item/_stop";
       private Dictionary<String, Object> variables;
       private StringDict<IDataEndpoint> endPointCache;
 

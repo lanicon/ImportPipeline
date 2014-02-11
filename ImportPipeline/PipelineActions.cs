@@ -157,8 +157,8 @@ namespace Bitmanager.ImportPipeline
          sep = node.OptReadStr("@sep", null);
          fieldFlags = node.OptReadEnum("@flags", sep==null ? FieldFlags.OverWrite : FieldFlags.Append);
 
-         if (checkMode == 0 && toField == null && varName == null)
-            throw new BMNodeException(node, "At least one of 'field', 'tovar', 'check'-attributes is mandatory.");
+         if (checkMode == 0 && toField == null && varName == null && base.scriptName==null)
+            throw new BMNodeException(node, "At least one of 'field', 'tovar', 'script', 'check'-attributes is mandatory.");
       }
 
       internal PipelineFieldAction(PipelineFieldAction template, String name, Regex regex)

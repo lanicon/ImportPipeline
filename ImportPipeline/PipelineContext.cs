@@ -12,14 +12,21 @@ using System.Xml;
 namespace Bitmanager.ImportPipeline
 {
    [Flags]
-   public enum _ActionFlags 
+   public enum _ActionFlags
    {
-      None=0,
-      Skip = 1<<0,
-      SkipRest = 1<<2,
+      None = 0,
+      Skip = 1 << 0,
+      SkipRest = 1 << 2,
       SkipAll = Skip | SkipRest,
-      Handled = 1<<8,
-      Skipped = 1<<9,
+      Handled = 1 << 8,
+      Skipped = 1 << 9,
+   };
+   [Flags]
+   public enum _ErrorState
+   {
+      OK = 0,
+      Error = 1 << 0,
+      Limited = 1 << 2,
    };
 
    public class PipelineContext
@@ -39,6 +46,7 @@ namespace Bitmanager.ImportPipeline
       public int MaxAdds;
       public _ImportFlags ImportFlags;
       public _ActionFlags ActionFlags;
+      public _ErrorState ErrorState;
 
       public PipelineContext(ImportEngine eng, DatasourceAdmin ds)
       {

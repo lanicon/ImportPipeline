@@ -122,9 +122,9 @@ namespace Bitmanager.ImportPipeline
          fs = new FileStream(FileName, FileMode.Create, FileAccess.Write, FileShare.Read);
          wtr = new StreamWriter (fs, Encoding.UTF8);
       }
-      protected override void Close(PipelineContext ctx, bool isError)
+      protected override void Close(PipelineContext ctx)
       {
-         ctx.ImportLog.Log("Closing endpoint '{0}', error={1}, flags={2}", Name, isError, ctx.ImportFlags);
+         logCloseAndCheckForNormalClose(ctx);
          if (wtr != null)
          {
             wtr.Flush();

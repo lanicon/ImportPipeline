@@ -121,7 +121,6 @@ namespace Bitmanager.ImportPipeline
       {
          ImportLog.Log();
          ImportLog.Log(_LogType.ltProgress, "Starting import. Flags={0}, ActiveDS's='{1}'.", ImportFlags, enabledDSses==null ? null : String.Join (", ", enabledDSses));
-         bool isError = false;
          PipelineContext mainCtx = new PipelineContext(this);
          EndPoints.Open(mainCtx);
 
@@ -145,15 +144,17 @@ namespace Bitmanager.ImportPipeline
                }
                catch (Exception err)
                {
-                  isError = true;
                   if (MaxAddsExceededException.ContainsMaxAddsExceededException (err))
                   {
+                     ctx.ErrorState |= _ErrorState.Limited;
+                     mainCtx.ErrorState |= _ErrorState.Limited;
                      ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStop, "[{0}]: {1}", admin.Name, err.Message);
                      ImportLog.Log("-- " + ctx.GetStats());
-                     ;//admin.
                   }
                   else
                   {
+                     ctx.ErrorState |= _ErrorState.Error;
+                     mainCtx.ErrorState |= _ErrorState.Error;
                      ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStop, "[{0}]: crashed err={1}", admin.Name, err.Message);
                      ImportLog.Log("-- " + ctx.GetStats());
                      Exception toThrow = new BMException(err, "{0}\r\nDatasource={1}\r\nLastAction={2}.", err.Message, admin.Name, admin.Pipeline.LastAction);
@@ -171,7 +172,7 @@ namespace Bitmanager.ImportPipeline
          {
             try
             {
-               EndPoints.Close(mainCtx, isError);
+               EndPoints.Close(mainCtx);
                JavaHostCollection.StopAll();
             }
             catch (Exception e2)

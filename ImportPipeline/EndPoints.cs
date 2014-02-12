@@ -63,20 +63,28 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
-      public void Close(PipelineContext ctx, bool isError)
+      public void Close(PipelineContext ctx)
       {
          foreach (var x in this) 
-            x._Close (ctx, isError);
+            x._Close (ctx);
       }
    }
 
    public enum ActiveMode {True, False, Lazy};
+   public enum CloseMode
+   {
+      Normal = 0,
+      NormalCloseOnError = 1,
+      NormalCloseOnLimit = 2,
+   }
+
    public class EndPoint : NamedItem
    {
       public enum DebugFlags {_None=0, _LogField=1, _LogAdd=2};
       internal bool opened;
       public readonly ActiveMode ActiveMode;
       public readonly DebugFlags Flags;
+      public readonly CloseMode CloseMode;
 
       public EndPoint(ImportEngine engine, XmlNode node) : this(node) { }
       public EndPoint(XmlNode node)
@@ -84,7 +92,35 @@ namespace Bitmanager.ImportPipeline
       {
          Flags = node.OptReadEnum<DebugFlags>("@flags", 0);
          ActiveMode = node.OptReadEnum("@active", ActiveMode.Lazy);
+         CloseMode = node.OptReadEnum("@closemode", CloseMode.Normal);
       }
+
+      protected bool isNormalCloseAllowed(PipelineContext ctx)
+      {
+         if ((ctx.ImportFlags & _ImportFlags.DoNotRename) != 0) return false;
+         if (ctx.ErrorState == _ErrorState.OK) return true;
+         if ((ctx.ErrorState & _ErrorState.Error) != 0 && (CloseMode & ImportPipeline.CloseMode.NormalCloseOnError) == 0) return false;
+         if ((ctx.ErrorState & _ErrorState.Limited) != 0 && (CloseMode & ImportPipeline.CloseMode.NormalCloseOnLimit) == 0) return false;
+         return true;
+      }
+
+      protected bool logCloseAndCheckForNormalClose(PipelineContext ctx)
+      {
+         ctx.ImportLog.Log("Closing endpoint '{0}', error={1}, flags={2}, closemode={3}", Name, ctx.ErrorState, ctx.ImportFlags, CloseMode);
+         if (!isNormalCloseAllowed(ctx))
+         {
+            ctx.ImportLog.Log("-- Normal closing prevented by flags or state");
+            return false;
+         }
+         return true;
+      }
+
+      protected void logCloseDone(PipelineContext ctx)
+      {
+         ctx.ImportLog.Log("-- Closed");
+      }
+
+
 
       internal EndPoint _OptionalOpen(PipelineContext ctx)
       {
@@ -105,11 +141,11 @@ namespace Bitmanager.ImportPipeline
          opened = true;
          return this;
       }
-      internal EndPoint _Close(PipelineContext ctx, bool isError)
+      internal EndPoint _Close(PipelineContext ctx)
       {
          if (!opened) return this;
          ctx.ImportEngine.ImportLog.Log("Closing endpoint '{0}'...", Name);
-         Close(ctx, isError);
+         Close(ctx);
          return this;
       }
       internal IDataEndpoint _CreateDataEndPoint(PipelineContext ctx, string name)
@@ -121,7 +157,7 @@ namespace Bitmanager.ImportPipeline
       {
       }
 
-      protected virtual void Close(PipelineContext ctx, bool isError)
+      protected virtual void Close(PipelineContext ctx)
       {
       }
 
@@ -139,16 +175,48 @@ namespace Bitmanager.ImportPipeline
       ToArray = 1<<2,
       SkipEmpty = 1<<3,
    }
+
+   /// <summary>
+   /// Interface that is called from the pipeline to save fields and add records
+   /// </summary>
    public interface IDataEndpoint
    {
+      /// <summary>
+      /// Start notification (called when the pipeline is started)
+      /// </summary>
       void Start(PipelineContext ctx);
+      /// <summary>
+      /// Stop notification (called when the pipeline is started)
+      /// </summary>
       void Stop(PipelineContext ctx);
+      /// <summary>
+      /// Clears all saved content
+      /// </summary>
       void Clear();
+      /// <summary>
+      /// Gets the content of a field. If fld==null, the whole cached content is returned (if supported)
+      /// </summary>
       Object GetField(String fld);
-      void SetField(String fld, Object value, FieldFlags flags, String sep);
+
+      /// <summary>
+      /// Sets the content of a field. If fld==null, the whole cached content is replaced (if supported)
+      /// </summary>
+      void SetField(String fld, Object value, FieldFlags flags=FieldFlags.OverWrite, String sep=null);
+      /// <summary>
+      /// Adds the content as a record
+      /// </summary>
       void Add(PipelineContext ctx);
+      /// <summary>
+      /// Checks whether a record exists or not, or with a different date
+      /// </summary>
       ExistState Exists(PipelineContext ctx, String key, DateTime? timeStamp);
+      /// <summary>
+      /// Loads a record by the supplied key
+      /// </summary>
       Object LoadRecord(PipelineContext ctx, String key);
+      /// <summary>
+      /// Breaks a record into pieces and emits the pieces to the pipeline
+      /// </summary>
       void EmitRecord(PipelineContext ctx, String recordKey, String recordField, IDatasourceSink sink, String eventKey, int maxLevel);
 
    }
@@ -175,11 +243,16 @@ namespace Bitmanager.ImportPipeline
 
       public virtual Object GetField(String fld)
       {
-         return accumulator.SelectToken (fld, false);
+         return (String.IsNullOrEmpty(fld)) ? accumulator : accumulator.SelectToken (fld, false);
       }
 
       public virtual void SetField(String fld, Object value, FieldFlags fieldFlags, String sep)
       {
+         if (String.IsNullOrEmpty(fld))
+         {
+            if (value == null) return;
+            accumulator = (JObject)value;
+         }
          if ((flags & Bitmanager.ImportPipeline.EndPoint.DebugFlags._LogField) != 0) addLogger.Log("-- setfield {0}: '{1}'", fld, value);
          //if (value == null) addLogger.Log("Field {0}==null", fld);
 

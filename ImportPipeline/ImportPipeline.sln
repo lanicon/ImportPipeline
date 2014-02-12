@@ -18,6 +18,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Scripts", "..\Importer\Scri
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "scriptsTester", "..\Importer\scriptsTester\scriptsTester.csproj", "{1D3EC477-2E4B-4815-9833-650FAAA8024B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "importDirs", "..\Importer\importDirs.csproj", "{A8763DBE-7B61-40F5-938D-1CA0E8C2FBE4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -44,6 +46,9 @@ Global
 		{1D3EC477-2E4B-4815-9833-650FAAA8024B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1D3EC477-2E4B-4815-9833-650FAAA8024B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1D3EC477-2E4B-4815-9833-650FAAA8024B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A8763DBE-7B61-40F5-938D-1CA0E8C2FBE4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A8763DBE-7B61-40F5-938D-1CA0E8C2FBE4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A8763DBE-7B61-40F5-938D-1CA0E8C2FBE4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -49,9 +49,10 @@ namespace BeursGorilla
       protected override void Open(PipelineContext ctx)
       {
       }
-      protected override void Close(PipelineContext ctx, bool isError)
+      protected override void Close(PipelineContext ctx)
       {
-         if (isError) return;
+         if (!logCloseAndCheckForNormalClose(ctx)) return;
+
          if (toMail.Count==0)
          {
             logger.Log ("No percentages found.");
@@ -72,7 +73,7 @@ namespace BeursGorilla
          bldr.Append("</table>\r\n");
          logger.Log(bldr.ToString());
 
-         if (MailAddr==null) return;
+         if (MailAddr == null) goto EXIT_RTN;
 
          MailAddress toMailAddr = new MailAddress(MailAddr);
          MailAddress fromMailAddr = new MailAddress("pweerd@Bitmanager.nl");
@@ -96,6 +97,9 @@ namespace BeursGorilla
                smtp.Send(m);
             }
          }
+      EXIT_RTN:
+         logCloseDone(ctx);
+
       }
       private static double absolutePercentage(JObject obj)
       {

@@ -24,6 +24,7 @@ namespace Bitmanager.ImportPipeline
       protected readonly ClusterStatus WaitFor, AltWaitFor;
       protected readonly bool WaitForMustExcept;
       protected readonly int WaitForTimeout;
+      public readonly bool NormalCloseOnError;
 
 
       public ESEndPoint(ImportEngine engine, XmlNode node)
@@ -67,12 +68,15 @@ namespace Bitmanager.ImportPipeline
          Indexes.CreateIndexes(Connection, flags);
          WaitForStatus();
       }
-      protected override void Close(PipelineContext ctx, bool isError)
+
+      protected override void Close(PipelineContext ctx)
       {
-         ctx.ImportLog.Log("Closing endpoint '{0}', error={1}, flags={2}", Name, isError, ctx.ImportFlags);
-         if (isError || (ctx.ImportFlags & _ImportFlags.DoNotRename) != 0) return;
-         ctx.ImportLog.Log("-- Rename indexes");
+         if (!base.logCloseAndCheckForNormalClose(ctx)) return;
+         ctx.ImportLog.Log("-- Optional optimize indexes");
          Indexes.OptionalRename(Connection);
+         ctx.ImportLog.Log("-- Optional rename indexes");
+         Indexes.OptionalRename(Connection);
+         logCloseDone(ctx);
       }
 
       public bool WaitForStatus()

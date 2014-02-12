@@ -26,7 +26,7 @@ namespace Bitmanager.ImportPipeline
       protected String endpointName, convertersName, scriptName;
       protected KeyCheckMode checkMode;
 
-      public IDataEndpoint EndPoint { get { return endPoint; } }
+      public IDataEndpoint Endpoint { get { return endPoint; } }
 
       public PipelineAction(Pipeline pipeline, XmlNode node)
          : base(node, "@key")
@@ -34,7 +34,7 @@ namespace Bitmanager.ImportPipeline
          this.pipeline = pipeline;
          this.node = node;
          if (logger == null) logger = pipeline.ImportEngine.DebugLog.Clone("action");
-         endpointName = node.OptReadStr("@endpoint", pipeline.DefaultEndPoint);
+         endpointName = node.OptReadStr("@endpoint", pipeline.DefaultEndpoint);
          if (endpointName == null) node.ReadStr("@endpoint");
 
          scriptName = node.OptReadStr("@script", null);
@@ -60,7 +60,7 @@ namespace Bitmanager.ImportPipeline
       public virtual void Start(PipelineContext ctx)
       {
          converters = ctx.ImportEngine.Converters.ToConverters(convertersName);
-         endPoint = ctx.Pipeline.GetDataEndPoint(ctx, endpointName);
+         endPoint = ctx.Pipeline.GetDataEndpoint(ctx, endpointName);
          logger.Log("Script=" + scriptName);
          if (scriptName != null)
          {

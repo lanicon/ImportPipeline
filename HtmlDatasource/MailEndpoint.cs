@@ -14,7 +14,7 @@ using System.Text.RegularExpressions;
 
 namespace BeursGorilla
 {
-   public class MailEndpoint: EndPoint
+   public class MailEndpoint: Endpoint
    {
       public const String F_price = "price";
       public const String F_priceOpened = "priceOpened";
@@ -26,7 +26,7 @@ namespace BeursGorilla
 
 
       private List<JObject> toMail;
-      private Logger logger = Logs.CreateLogger("Gorilla", "MailEndPoint");
+      private Logger logger = Logs.CreateLogger("Gorilla", "MailEndpoint");
       public readonly double Limit;
       public readonly String MailAddr;
       public readonly String MailServer;
@@ -124,7 +124,7 @@ namespace BeursGorilla
          b.AppendFormat("</tr>\r\n");
       }
 
-      protected override IDataEndpoint CreateDataEndPoint(PipelineContext ctx, string dataName)
+      protected override IDataEndpoint CreateDataEndpoint(PipelineContext ctx, string dataName)
       {
          return new MailDataEndpoint(this);
       }
@@ -165,7 +165,7 @@ namespace BeursGorilla
             if (Math.Abs(perc) >= limitPerc || isForced(base.accumulator))
             {
                accumulator.WriteToken(MailEndpoint.F_perc, perc);
-               EndPoint.AddForMail(accumulator);
+               Endpoint.AddForMail(accumulator);
             }
          }
          finally

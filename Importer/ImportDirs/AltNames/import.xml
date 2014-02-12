@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <root importflags="fullimport">
    <endpoints>
-      <endpoint name="countries" type="ESEndPoint" url="http://localhost:9200/" cache="100" maxparallel="0">
+      <endpoint name="countries" type="ESEndpoint" url="http://localhost:9200/" cache="100" maxparallel="0">
          <indexes>
             <index name="countries" config="countries.config.js"/>
          </indexes>
@@ -9,7 +9,7 @@
             <type name="countrydoc" typename="doc" index="countries" _keyfield="_id" />  
          </types>
       </endpoint>
-      <endpoint name="altnames" type="ESEndPoint" url="http://localhost:9200/" cache="100">
+      <endpoint name="altnames" type="ESEndpoint" url="http://localhost:9200/" cache="100">
          <indexes>
             <index name="altnames" config="altnames.config.js" shards="5" async="true"/>
          </indexes>
@@ -17,7 +17,7 @@
             <type name="altnamedoc" typename="doc" index="altnames" _keyfield="_id" />  
          </types>
       </endpoint>
-      <endpoint name="names" type="ESEndPoint" url="http://localhost:9200/" cache="100" maxparallel="1">
+      <endpoint name="names" type="ESEndpoint" url="http://localhost:9200/" cache="100" maxparallel="1">
          <indexes>
             <index name="names" config="names.config.js" shards="5"/>
          </indexes>

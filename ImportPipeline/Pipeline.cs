@@ -33,7 +33,7 @@ namespace Bitmanager.ImportPipeline
       private Dictionary<String, Object> variables;
       private StringDict<IDataEndpoint> endPointCache;
 
-      public readonly String DefaultEndPoint;
+      public readonly String DefaultEndpoint;
       public readonly ImportEngine ImportEngine;
       public readonly String ScriptTypeName;
 
@@ -64,9 +64,9 @@ namespace Bitmanager.ImportPipeline
          logger = engine.DebugLog.Clone ("pipeline");
 
          ScriptTypeName = node.OptReadStr("@script", null);
-         DefaultEndPoint = node.OptReadStr("@endpoint", null);
-         if (DefaultEndPoint == null && engine.EndPoints.Count == 1)
-            DefaultEndPoint = engine.EndPoints[0].Name;
+         DefaultEndpoint = node.OptReadStr("@endpoint", null);
+         if (DefaultEndpoint == null && engine.Endpoints.Count == 1)
+            DefaultEndpoint = engine.Endpoints[0].Name;
 
          trace = node.OptReadBool ("@trace", false);
 
@@ -106,7 +106,7 @@ namespace Bitmanager.ImportPipeline
          variables = null;
       }
 
-      private static String[] splitEndPoint(String s)
+      private static String[] splitEndpoint(String s)
       {
          if (String.IsNullOrEmpty(s)) return null;
          String[] parts = s.Split('.');
@@ -165,14 +165,14 @@ namespace Bitmanager.ImportPipeline
          actions = null;
       }
 
-      public IDataEndpoint GetDataEndPoint(PipelineContext ctx, String name)
+      public IDataEndpoint GetDataEndpoint(PipelineContext ctx, String name)
       {
          IDataEndpoint ret;
          if (name == null) name = String.Empty;
          if (endPointCache == null) endPointCache = new StringDict<IDataEndpoint>();
          if (endPointCache.TryGetValue(name, out ret)) return ret;
 
-         ret = this.ImportEngine.EndPoints.GetDataEndPoint(ctx, name);
+         ret = this.ImportEngine.Endpoints.GetDataEndpoint(ctx, name);
          endPointCache.Add(name, ret);
          if (started) ret.Start(ctx); 
          return ret;

@@ -12,18 +12,18 @@ using Bitmanager.Core;
 
 namespace Bitmanager.ImportPipeline
 {
-   public class EndPoints : NamedAdminCollection<EndPoint>
+   public class Endpoints : NamedAdminCollection<Endpoint>
    {
       public readonly ImportEngine engine;
-      public EndPoints(ImportEngine engine, XmlNode collNode)
-         : base(collNode, "endpoint", (n) => ImportEngine.CreateObject<EndPoint>(n, engine, n), true)
+      public Endpoints(ImportEngine engine, XmlNode collNode)
+         : base(collNode, "endpoint", (n) => ImportEngine.CreateObject<Endpoint>(n, engine, n), true)
       {
          this.engine = engine;
       }
 
-      public IDataEndpoint GetDataEndPoint(PipelineContext ctx, String name)
+      public IDataEndpoint GetDataEndpoint(PipelineContext ctx, String name)
       {
-         EndPoint ep;
+         Endpoint ep;
          String dataName = null;
          if (String.IsNullOrEmpty(name))
          {
@@ -42,7 +42,7 @@ namespace Bitmanager.ImportPipeline
          dataName = name.Substring(ix + 1);
 
       CREATE_DATA_ENDPOINT:
-         return ep._CheckOpen(ctx)._CreateDataEndPoint(ctx, dataName); 
+         return ep._CheckOpen(ctx)._CreateDataEndpoint(ctx, dataName); 
       }
 
       public void Open(PipelineContext ctx)
@@ -78,7 +78,7 @@ namespace Bitmanager.ImportPipeline
       NormalCloseOnLimit = 2,
    }
 
-   public class EndPoint : NamedItem
+   public class Endpoint : NamedItem
    {
       public enum DebugFlags {_None=0, _LogField=1, _LogAdd=2};
       internal bool opened;
@@ -86,8 +86,8 @@ namespace Bitmanager.ImportPipeline
       public readonly DebugFlags Flags;
       public readonly CloseMode CloseMode;
 
-      public EndPoint(ImportEngine engine, XmlNode node) : this(node) { }
-      public EndPoint(XmlNode node)
+      public Endpoint(ImportEngine engine, XmlNode node) : this(node) { }
+      public Endpoint(XmlNode node)
          : base(node)
       {
          Flags = node.OptReadEnum<DebugFlags>("@flags", 0);
@@ -122,11 +122,11 @@ namespace Bitmanager.ImportPipeline
 
 
 
-      internal EndPoint _OptionalOpen(PipelineContext ctx)
+      internal Endpoint _OptionalOpen(PipelineContext ctx)
       {
          return (ActiveMode == ImportPipeline.ActiveMode.True) ? _Open (ctx): this;
       }
-      internal EndPoint _CheckOpen(PipelineContext ctx)
+      internal Endpoint _CheckOpen(PipelineContext ctx)
       {
          if (opened) return this;
          if (ActiveMode == ImportPipeline.ActiveMode.False)
@@ -134,23 +134,23 @@ namespace Bitmanager.ImportPipeline
          return _Open(ctx);
       }
 
-      private EndPoint _Open(PipelineContext ctx)
+      private Endpoint _Open(PipelineContext ctx)
       {
          ctx.ImportEngine.ImportLog.Log ("Opening endpoint '{0}'...", Name);
          Open(ctx);
          opened = true;
          return this;
       }
-      internal EndPoint _Close(PipelineContext ctx)
+      internal Endpoint _Close(PipelineContext ctx)
       {
          if (!opened) return this;
          ctx.ImportEngine.ImportLog.Log("Closing endpoint '{0}'...", Name);
          Close(ctx);
          return this;
       }
-      internal IDataEndpoint _CreateDataEndPoint(PipelineContext ctx, string name)
+      internal IDataEndpoint _CreateDataEndpoint(PipelineContext ctx, string name)
       {
-         return CreateDataEndPoint(ctx, name);
+         return CreateDataEndpoint(ctx, name);
       }
 
       protected virtual void Open(PipelineContext ctx)
@@ -161,9 +161,9 @@ namespace Bitmanager.ImportPipeline
       {
       }
 
-      protected virtual IDataEndpoint CreateDataEndPoint(PipelineContext ctx, string name)
+      protected virtual IDataEndpoint CreateDataEndpoint(PipelineContext ctx, string name)
       {
-         return new JsonEndpointBase<EndPoint>(this);
+         return new JsonEndpointBase<Endpoint>(this);
       }
    }
 
@@ -221,16 +221,16 @@ namespace Bitmanager.ImportPipeline
 
    }
 
-   public class JsonEndpointBase<T> : IDataEndpoint where T: EndPoint
+   public class JsonEndpointBase<T> : IDataEndpoint where T: Endpoint
    {
-      public readonly T EndPoint;
+      public readonly T Endpoint;
       protected Logger addLogger;
       protected JObject accumulator;
-      protected EndPoint.DebugFlags flags;
+      protected Endpoint.DebugFlags flags;
 
       public JsonEndpointBase(T endpoint)
       {
-         EndPoint = endpoint;
+         Endpoint = endpoint;
          flags = endpoint.Flags;
          addLogger = Logs.CreateLogger("pipelineAdder", GetType().Name);
          Clear();
@@ -253,7 +253,7 @@ namespace Bitmanager.ImportPipeline
             if (value == null) return;
             accumulator = (JObject)value;
          }
-         if ((flags & Bitmanager.ImportPipeline.EndPoint.DebugFlags._LogField) != 0) addLogger.Log("-- setfield {0}: '{1}'", fld, value);
+         if ((flags & Bitmanager.ImportPipeline.Endpoint.DebugFlags._LogField) != 0) addLogger.Log("-- setfield {0}: '{1}'", fld, value);
          //if (value == null) addLogger.Log("Field {0}==null", fld);
 
          //Test for empty fields
@@ -299,7 +299,7 @@ namespace Bitmanager.ImportPipeline
 
       protected void OptLogAdd()
       {
-         if ((flags & Bitmanager.ImportPipeline.EndPoint.DebugFlags._LogAdd) != 0)
+         if ((flags & Bitmanager.ImportPipeline.Endpoint.DebugFlags._LogAdd) != 0)
             addLogger.Log("Add: " + accumulator.ToString(Newtonsoft.Json.Formatting.Indented));
       }
       public virtual void Add(PipelineContext ctx)

@@ -18,7 +18,7 @@ using Newtonsoft.Json.Linq;
       String name = null;
       public Object OnAdd (PipelineContext ctx, String key, Object value)
       {
-         SortAndUndupField (ctx.Action.EndPoint, "account_other", compare);
+         SortAndUndupField (ctx.Action.Endpoint, "account_other", compare);
          return value;
       }
       

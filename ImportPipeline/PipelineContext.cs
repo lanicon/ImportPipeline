@@ -80,12 +80,12 @@ namespace Bitmanager.ImportPipeline
       public void ClearEndpointAndSetFlags(_ActionFlags fl)
       {
          ActionFlags |= fl;
-         Action.EndPoint.Clear();
+         Action.Endpoint.Clear();
       }
       public void ClearEndpointAndSetFlags(_ActionFlags fl, String skipUntilKey)
       {
          ActionFlags |= fl;
-         Action.EndPoint.Clear();
+         Action.Endpoint.Clear();
          SkipUntilKey = skipUntilKey;
       }
 

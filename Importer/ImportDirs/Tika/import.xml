@@ -2,7 +2,7 @@
 <root>
    <tempdir dir="temp" clearonstart="true" />
    <endpoints>
-      <endpoint name="es" type="ESEndPoint" url="http://localhost:9200/">
+      <endpoint name="es" type="ESEndpoint" url="http://localhost:9200/">
          <waitfor status="yellow"></waitfor>
          <indexes>
             <index name="bosgoed" config="index.config.js"  />

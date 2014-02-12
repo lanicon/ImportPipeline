@@ -23,7 +23,7 @@ namespace Bitmanager.ImportPipeline
    public class ImportEngine
    {
       public XmlHelper Xml { get; private set; }
-      public EndPoints EndPoints;
+      public Endpoints Endpoints;
       public Converters Converters;
       public NamedAdminCollection<DatasourceAdmin> Datasources;
       public NamedAdminCollection<Pipeline> Pipelines;
@@ -76,7 +76,7 @@ namespace Bitmanager.ImportPipeline
          JavaHostCollection = new ProcessHostCollection(this, xml.SelectSingleNode("processes"));
 
          ImportLog.Log(_LogType.ltTimer, "loading: endpoints");
-         EndPoints = new EndPoints(this, xml.SelectMandatoryNode("endpoints"));
+         Endpoints = new Endpoints(this, xml.SelectMandatoryNode("endpoints"));
 
          ImportLog.Log(_LogType.ltTimer, "loading: converters");
          Converters = new Converters(
@@ -122,7 +122,7 @@ namespace Bitmanager.ImportPipeline
          ImportLog.Log();
          ImportLog.Log(_LogType.ltProgress, "Starting import. Flags={0}, ActiveDS's='{1}'.", ImportFlags, enabledDSses==null ? null : String.Join (", ", enabledDSses));
          PipelineContext mainCtx = new PipelineContext(this);
-         EndPoints.Open(mainCtx);
+         Endpoints.Open(mainCtx);
 
          try
          {
@@ -136,7 +136,7 @@ namespace Bitmanager.ImportPipeline
                }
 
                PipelineContext ctx = new PipelineContext(this, admin);
-               ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStart, "[{0}]: starting import with pipeline {1}, default endpoint={2}, maxadds={3} ", admin.Name, admin.Pipeline.Name, admin.Pipeline.DefaultEndPoint, ctx.MaxAdds);
+               ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStart, "[{0}]: starting import with pipeline {1}, default endpoint={2}, maxadds={3} ", admin.Name, admin.Pipeline.Name, admin.Pipeline.DefaultEndpoint, ctx.MaxAdds);
                try
                {
                   admin.Import(ctx);
@@ -172,7 +172,7 @@ namespace Bitmanager.ImportPipeline
          {
             try
             {
-               EndPoints.Close(mainCtx);
+               Endpoints.Close(mainCtx);
                JavaHostCollection.StopAll();
             }
             catch (Exception e2)
@@ -188,8 +188,8 @@ namespace Bitmanager.ImportPipeline
          {
             switch (typeName.ToLowerInvariant())
             {
-               case "endpoint": return typeof(EndPoint).FullName;
-               case "esendpoint": return typeof(ESEndPoint).FullName;
+               case "endpoint": return typeof(Endpoint).FullName;
+               case "esendpoint": return typeof(ESEndpoint).FullName;
                case "csv": return typeof(CsvDatasource).FullName;
             }
          }

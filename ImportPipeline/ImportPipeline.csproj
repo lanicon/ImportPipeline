@@ -61,7 +61,9 @@
   <ItemGroup>
     <Compile Include="admincollections.cs" />
     <Compile Include="AsyncEndpointRequestQueue.cs" />
+    <Compile Include="CsvEndpoint.cs" />
     <Compile Include="ESDatasource.cs" />
+    <Compile Include="JsonEndPoint.cs" />
     <Compile Include="ProcessHost.cs" />
     <Compile Include="Converters.cs" />
     <Compile Include="CsvDatasource.cs" />

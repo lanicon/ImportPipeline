@@ -12,7 +12,7 @@ using System.Xml;
 
 namespace Bitmanager.ImportPipeline
 {
-   public class ESEndPoint : EndPoint
+   public class ESEndpoint : Endpoint
    {
       public readonly ESConnection Connection;
       public readonly IndexDefinitionTypes IndexTypes;
@@ -27,7 +27,7 @@ namespace Bitmanager.ImportPipeline
       public readonly bool NormalCloseOnError;
 
 
-      public ESEndPoint(ImportEngine engine, XmlNode node)
+      public ESEndpoint(ImportEngine engine, XmlNode node)
          : base(node)
       {
          Connection = new ESConnection(node.ReadStr("@url"));
@@ -87,7 +87,7 @@ namespace Bitmanager.ImportPipeline
          return cmd.WaitForStatus(WaitFor, AltWaitFor, WaitForTimeout, WaitForMustExcept);
       }
 
-      protected override IDataEndpoint CreateDataEndPoint(PipelineContext ctx, string dataName)
+      protected override IDataEndpoint CreateDataEndpoint(PipelineContext ctx, string dataName)
       {
          if (String.IsNullOrEmpty(dataName))
             return new ESDataEndpoint(this, IndexDocTypes[0]);
@@ -96,14 +96,14 @@ namespace Bitmanager.ImportPipeline
    }
 
 
-   public class ESDataEndpoint : JsonEndpointBase<ESEndPoint>
+   public class ESDataEndpoint : JsonEndpointBase<ESEndpoint>
    {
       private readonly ESConnection connection;
       private readonly IndexDocType doctype;
       private readonly int cacheSize;
       private List<ESBulkEntry> cache;
       private AsyncRequestQueue asyncQ;
-      public ESDataEndpoint(ESEndPoint endpoint, IndexDocType doctype)
+      public ESDataEndpoint(ESEndpoint endpoint, IndexDocType doctype)
          : base(endpoint)
       {
          this.connection = endpoint.Connection;

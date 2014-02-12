@@ -178,6 +178,7 @@ namespace Bitmanager.ImportPipeline
             catch (Exception e2)
             {
                ErrorLog.Log(e2);
+               ImportLog.Log(e2);
             }
          }
       }

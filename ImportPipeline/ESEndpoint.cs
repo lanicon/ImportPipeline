@@ -73,7 +73,7 @@ namespace Bitmanager.ImportPipeline
       {
          if (!base.logCloseAndCheckForNormalClose(ctx)) return;
          ctx.ImportLog.Log("-- Optional optimize indexes");
-         Indexes.OptionalRename(Connection);
+         Indexes.OptionalOptimize(Connection);
          ctx.ImportLog.Log("-- Optional rename indexes");
          Indexes.OptionalRename(Connection);
          logCloseDone(ctx);

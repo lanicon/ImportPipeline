@@ -30,16 +30,18 @@
       {
          this.comboBox1 = new System.Windows.Forms.ComboBox();
          this.button1 = new System.Windows.Forms.Button();
-         this.button2 = new System.Windows.Forms.Button();
          this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
          this.dsList = new System.Windows.Forms.CheckedListBox();
          this.label1 = new System.Windows.Forms.Label();
          this.label2 = new System.Windows.Forms.Label();
          this.grpFlags = new System.Windows.Forms.GroupBox();
-         this.button3 = new System.Windows.Forms.Button();
-         this.CbFullImport = new System.Windows.Forms.CheckBox();
-         this.cbDoNotRename = new System.Windows.Forms.CheckBox();
          this.cbTraceValues = new System.Windows.Forms.CheckBox();
+         this.cbDoNotRename = new System.Windows.Forms.CheckBox();
+         this.CbFullImport = new System.Windows.Forms.CheckBox();
+         this.button3 = new System.Windows.Forms.Button();
+         this.button4 = new System.Windows.Forms.Button();
+         this.button5 = new System.Windows.Forms.Button();
+         this.button6 = new System.Windows.Forms.Button();
          this.grpFlags.SuspendLayout();
          this.SuspendLayout();
          // 
@@ -49,7 +51,7 @@
          this.comboBox1.Location = new System.Drawing.Point(30, 51);
          this.comboBox1.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
          this.comboBox1.Name = "comboBox1";
-         this.comboBox1.Size = new System.Drawing.Size(625, 23);
+         this.comboBox1.Size = new System.Drawing.Size(587, 23);
          this.comboBox1.TabIndex = 0;
          this.comboBox1.SelectedIndexChanged += new System.EventHandler(this.comboBox1_SelectedIndexChanged);
          // 
@@ -63,17 +65,6 @@
          this.button1.Text = "Import";
          this.button1.UseVisualStyleBackColor = true;
          this.button1.Click += new System.EventHandler(this.button1_Click);
-         // 
-         // button2
-         // 
-         this.button2.Location = new System.Drawing.Point(133, 99);
-         this.button2.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-         this.button2.Name = "button2";
-         this.button2.Size = new System.Drawing.Size(132, 26);
-         this.button2.TabIndex = 2;
-         this.button2.Text = "Import other";
-         this.button2.UseVisualStyleBackColor = true;
-         this.button2.Click += new System.EventHandler(this.button2_Click);
          // 
          // openFileDialog1
          // 
@@ -120,25 +111,15 @@
          this.grpFlags.TabStop = false;
          this.grpFlags.Text = "Flags";
          // 
-         // button3
+         // cbTraceValues
          // 
-         this.button3.Location = new System.Drawing.Point(605, 81);
-         this.button3.Name = "button3";
-         this.button3.Size = new System.Drawing.Size(50, 23);
-         this.button3.TabIndex = 8;
-         this.button3.Text = "redo";
-         this.button3.UseVisualStyleBackColor = true;
-         this.button3.Click += new System.EventHandler(this.button3_Click);
-         // 
-         // CbFullImport
-         // 
-         this.CbFullImport.AutoSize = true;
-         this.CbFullImport.Location = new System.Drawing.Point(17, 22);
-         this.CbFullImport.Name = "CbFullImport";
-         this.CbFullImport.Size = new System.Drawing.Size(81, 19);
-         this.CbFullImport.TabIndex = 10;
-         this.CbFullImport.Text = "FullImport";
-         this.CbFullImport.UseVisualStyleBackColor = true;
+         this.cbTraceValues.AutoSize = true;
+         this.cbTraceValues.Location = new System.Drawing.Point(17, 72);
+         this.cbTraceValues.Name = "cbTraceValues";
+         this.cbTraceValues.Size = new System.Drawing.Size(89, 19);
+         this.cbTraceValues.TabIndex = 12;
+         this.cbTraceValues.Text = "TraceValues";
+         this.cbTraceValues.UseVisualStyleBackColor = true;
          // 
          // cbDoNotRename
          // 
@@ -150,27 +131,69 @@
          this.cbDoNotRename.Text = "DoNotRename";
          this.cbDoNotRename.UseVisualStyleBackColor = true;
          // 
-         // cbTraceValues
+         // CbFullImport
          // 
-         this.cbTraceValues.AutoSize = true;
-         this.cbTraceValues.Location = new System.Drawing.Point(17, 72);
-         this.cbTraceValues.Name = "cbTraceValues";
-         this.cbTraceValues.Size = new System.Drawing.Size(89, 19);
-         this.cbTraceValues.TabIndex = 12;
-         this.cbTraceValues.Text = "TraceValues";
-         this.cbTraceValues.UseVisualStyleBackColor = true;
+         this.CbFullImport.AutoSize = true;
+         this.CbFullImport.Location = new System.Drawing.Point(17, 22);
+         this.CbFullImport.Name = "CbFullImport";
+         this.CbFullImport.Size = new System.Drawing.Size(81, 19);
+         this.CbFullImport.TabIndex = 10;
+         this.CbFullImport.Text = "FullImport";
+         this.CbFullImport.UseVisualStyleBackColor = true;
+         // 
+         // button3
+         // 
+         this.button3.Location = new System.Drawing.Point(602, 81);
+         this.button3.Name = "button3";
+         this.button3.Size = new System.Drawing.Size(50, 23);
+         this.button3.TabIndex = 8;
+         this.button3.Text = "redo";
+         this.button3.UseVisualStyleBackColor = true;
+         this.button3.Click += new System.EventHandler(this.button3_Click);
+         // 
+         // button4
+         // 
+         this.button4.Location = new System.Drawing.Point(577, 110);
+         this.button4.Name = "button4";
+         this.button4.Size = new System.Drawing.Size(75, 23);
+         this.button4.TabIndex = 9;
+         this.button4.Text = "Open dir";
+         this.button4.UseVisualStyleBackColor = true;
+         this.button4.Click += new System.EventHandler(this.button4_Click);
+         // 
+         // button5
+         // 
+         this.button5.Location = new System.Drawing.Point(577, 139);
+         this.button5.Name = "button5";
+         this.button5.Size = new System.Drawing.Size(75, 23);
+         this.button5.TabIndex = 10;
+         this.button5.Text = "Edit XML";
+         this.button5.UseVisualStyleBackColor = true;
+         this.button5.Click += new System.EventHandler(this.button5_Click);
+         // 
+         // button6
+         // 
+         this.button6.Location = new System.Drawing.Point(623, 52);
+         this.button6.Name = "button6";
+         this.button6.Size = new System.Drawing.Size(29, 23);
+         this.button6.TabIndex = 11;
+         this.button6.Text = "...";
+         this.button6.UseVisualStyleBackColor = true;
+         this.button6.Click += new System.EventHandler(this.button6_Click);
          // 
          // Form1
          // 
          this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
          this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
          this.ClientSize = new System.Drawing.Size(1143, 401);
+         this.Controls.Add(this.button6);
+         this.Controls.Add(this.button5);
+         this.Controls.Add(this.button4);
          this.Controls.Add(this.button3);
          this.Controls.Add(this.grpFlags);
          this.Controls.Add(this.label2);
          this.Controls.Add(this.label1);
          this.Controls.Add(this.dsList);
-         this.Controls.Add(this.button2);
          this.Controls.Add(this.button1);
          this.Controls.Add(this.comboBox1);
          this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -189,7 +212,6 @@
 
       private System.Windows.Forms.ComboBox comboBox1;
       private System.Windows.Forms.Button button1;
-      private System.Windows.Forms.Button button2;
       private System.Windows.Forms.OpenFileDialog openFileDialog1;
       private System.Windows.Forms.CheckedListBox dsList;
       private System.Windows.Forms.Label label1;
@@ -199,6 +221,9 @@
       private System.Windows.Forms.CheckBox cbTraceValues;
       private System.Windows.Forms.CheckBox cbDoNotRename;
       private System.Windows.Forms.CheckBox CbFullImport;
+      private System.Windows.Forms.Button button4;
+      private System.Windows.Forms.Button button5;
+      private System.Windows.Forms.Button button6;
    }
 }
 

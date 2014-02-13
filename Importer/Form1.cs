@@ -85,12 +85,6 @@ namespace Bitmanager.Importer
 
       private void button2_Click(object sender, EventArgs e)
       {
-         if (openFileDialog1.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
-
-         int idx = comboBox1.Items.Count;
-         comboBox1.Items.Add(openFileDialog1.FileName);
-         comboBox1.SelectedIndex = idx;
-         import();
       }
 
       private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
@@ -132,6 +126,40 @@ namespace Bitmanager.Importer
       private void button3_Click(object sender, EventArgs e)
       {
          comboBox1_SelectedIndexChanged(comboBox1, e);
+      }
+
+      private void button4_Click(object sender, EventArgs e)
+      {
+         String dir = Path.GetDirectoryName(comboBox1.Text);
+         if (String.IsNullOrEmpty(dir)) return;
+         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo()
+         {
+            FileName = dir,
+            UseShellExecute = true,
+            Verb = "open"
+         });
+      }
+
+      private void button5_Click(object sender, EventArgs e)
+      {
+         String dir = Path.GetDirectoryName(comboBox1.Text);
+         if (String.IsNullOrEmpty(dir)) return;
+         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo()
+         {
+            FileName = comboBox1.Text,
+            UseShellExecute = true,
+            Verb = "open"
+         });
+
+      }
+
+      private void button6_Click(object sender, EventArgs e)
+      {
+         if (openFileDialog1.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+
+         int idx = comboBox1.Items.Count;
+         comboBox1.Items.Add(openFileDialog1.FileName);
+         comboBox1.SelectedIndex = idx;
       }
    }
 

@@ -5,7 +5,7 @@
    <endpoints>
       <endpoint name="es" type="ESEndpoint" url="http://localhost:9200/">
          <indexes>
-            <index name="gorilla" config="index.config.js" />
+            <index name="gorilla" config="index.config.js" optimize="1"  />
             <index name="gorilla_prev" indexname="gorilla" config=""/>
          </indexes>
          <types>

@@ -13,8 +13,20 @@ using System.Reflection;
 
 namespace Bitmanager.ImportPipeline
 {
-   //public enum ScriptReturnFlagsV
-   public delegate Object ScriptDelegate (PipelineContext ctx, String key, Object value); 
+   public enum _ActionType
+   {
+      Nop = 1,
+      Field = 2,
+      Add = 3,
+   }
+   public enum _InternalActionType
+   {
+      Nop = 1,
+      Field = 2,
+      Add = 3,
+      Emit = 4,
+   }
+   public delegate Object ScriptDelegate(PipelineContext ctx, String key, Object value); 
    public abstract class PipelineAction : NamedItem
    {
       protected readonly Pipeline pipeline;
@@ -133,12 +145,31 @@ namespace Bitmanager.ImportPipeline
 
       public abstract Object HandleValue(PipelineContext ctx, String key, Object value);
 
+      public static _InternalActionType GetActionType(XmlNode node)
+      {
+         _ActionType type = node.OptReadEnum("@type", (_ActionType)0);
+         switch (type)
+         {
+            case _ActionType.Field: return (node.SelectSingleNode("@emitexisting") != null) ? _InternalActionType.Emit : _InternalActionType.Field;
+            case _ActionType.Add: return _InternalActionType.Add;
+            case _ActionType.Nop: return _InternalActionType.Nop;
+         }
+         if (node.SelectSingleNode("@add") != null) return _InternalActionType.Add;
+         if (node.SelectSingleNode("@nop") != null) return _InternalActionType.Nop;
+         return _InternalActionType.Field;
+      }
+
       public static PipelineAction Create(Pipeline pipeline, XmlNode node)
       {
-         if (node.SelectSingleNode("@add") != null) return new PipelineAddAction(pipeline, node);
-         if (node.SelectSingleNode("@nop") != null) return new PipelineNopAction(pipeline, node);
-         if (node.SelectSingleNode("@emitexisting") != null) return new PipelineEmitAction(pipeline, node);
-         return new PipelineFieldAction(pipeline, node);
+         _InternalActionType act = GetActionType (node); 
+         switch (act)
+         {
+            case _InternalActionType.Add: return new PipelineAddAction(pipeline, node);
+            case _InternalActionType.Nop: return new PipelineNopAction(pipeline, node);
+            case _InternalActionType.Field: return new PipelineFieldAction(pipeline, node);
+            case _InternalActionType.Emit: return new PipelineEmitAction(pipeline, node);
+         }
+         throw new Exception ("Unexpected _InternalActionType: " + act);
       }
    }
 

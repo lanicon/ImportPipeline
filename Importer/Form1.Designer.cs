@@ -28,8 +28,9 @@
       /// </summary>
       private void InitializeComponent()
       {
+         this.components = new System.ComponentModel.Container();
          this.comboBox1 = new System.Windows.Forms.ComboBox();
-         this.button1 = new System.Windows.Forms.Button();
+         this.btnImport = new System.Windows.Forms.Button();
          this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
          this.dsList = new System.Windows.Forms.CheckedListBox();
          this.label1 = new System.Windows.Forms.Label();
@@ -42,6 +43,8 @@
          this.button4 = new System.Windows.Forms.Button();
          this.button5 = new System.Windows.Forms.Button();
          this.button6 = new System.Windows.Forms.Button();
+         this.timer1 = new System.Windows.Forms.Timer(this.components);
+         this.btnCancel = new System.Windows.Forms.Button();
          this.grpFlags.SuspendLayout();
          this.SuspendLayout();
          // 
@@ -55,16 +58,16 @@
          this.comboBox1.TabIndex = 0;
          this.comboBox1.SelectedIndexChanged += new System.EventHandler(this.comboBox1_SelectedIndexChanged);
          // 
-         // button1
+         // btnImport
          // 
-         this.button1.Location = new System.Drawing.Point(30, 99);
-         this.button1.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-         this.button1.Name = "button1";
-         this.button1.Size = new System.Drawing.Size(87, 26);
-         this.button1.TabIndex = 1;
-         this.button1.Text = "Import";
-         this.button1.UseVisualStyleBackColor = true;
-         this.button1.Click += new System.EventHandler(this.button1_Click);
+         this.btnImport.Location = new System.Drawing.Point(30, 99);
+         this.btnImport.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+         this.btnImport.Name = "btnImport";
+         this.btnImport.Size = new System.Drawing.Size(87, 26);
+         this.btnImport.TabIndex = 1;
+         this.btnImport.Text = "Import";
+         this.btnImport.UseVisualStyleBackColor = true;
+         this.btnImport.Click += new System.EventHandler(this.button1_Click);
          // 
          // openFileDialog1
          // 
@@ -181,11 +184,31 @@
          this.button6.UseVisualStyleBackColor = true;
          this.button6.Click += new System.EventHandler(this.button6_Click);
          // 
+         // timer1
+         // 
+         this.timer1.Interval = 500;
+         this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
+         // 
+         // btnCancel
+         // 
+         this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
+         this.btnCancel.Enabled = false;
+         this.btnCancel.Location = new System.Drawing.Point(123, 99);
+         this.btnCancel.Name = "btnCancel";
+         this.btnCancel.Size = new System.Drawing.Size(75, 26);
+         this.btnCancel.TabIndex = 12;
+         this.btnCancel.Text = "Cancel";
+         this.btnCancel.UseVisualStyleBackColor = true;
+         this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
+         // 
          // Form1
          // 
+         this.AcceptButton = this.btnImport;
          this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
          this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+         this.CancelButton = this.btnCancel;
          this.ClientSize = new System.Drawing.Size(1143, 401);
+         this.Controls.Add(this.btnCancel);
          this.Controls.Add(this.button6);
          this.Controls.Add(this.button5);
          this.Controls.Add(this.button4);
@@ -194,7 +217,7 @@
          this.Controls.Add(this.label2);
          this.Controls.Add(this.label1);
          this.Controls.Add(this.dsList);
-         this.Controls.Add(this.button1);
+         this.Controls.Add(this.btnImport);
          this.Controls.Add(this.comboBox1);
          this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
          this.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
@@ -211,7 +234,7 @@
       #endregion
 
       private System.Windows.Forms.ComboBox comboBox1;
-      private System.Windows.Forms.Button button1;
+      private System.Windows.Forms.Button btnImport;
       private System.Windows.Forms.OpenFileDialog openFileDialog1;
       private System.Windows.Forms.CheckedListBox dsList;
       private System.Windows.Forms.Label label1;
@@ -224,6 +247,8 @@
       private System.Windows.Forms.Button button4;
       private System.Windows.Forms.Button button5;
       private System.Windows.Forms.Button button6;
+      private System.Windows.Forms.Timer timer1;
+      private System.Windows.Forms.Button btnCancel;
    }
 }
 

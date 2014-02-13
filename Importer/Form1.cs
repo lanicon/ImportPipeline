@@ -78,9 +78,93 @@ namespace Bitmanager.Importer
             UseWaitCursor = false;
          }
       }
+
+      private AsyncAdmin asyncAdmin;
+      private void btnCancel_Click(object sender, EventArgs e)
+      {
+         timer1.Enabled = false;
+         if (asyncAdmin != null)
+         {
+            asyncAdmin.Cancel();
+            Utils.FreeAndNil(ref asyncAdmin);
+         }
+         UseWaitCursor = false;
+         enableAllButCancel();
+      }
+      private void timer1_Tick(object sender, EventArgs e)
+      {
+         if (asyncAdmin == null || !asyncAdmin.CheckStopped()) return;
+         try
+         {
+            timer1.Enabled = false;
+            UseWaitCursor = false;
+            enableAllButCancel();
+            asyncAdmin.Stop();
+            Utils.FreeAndNil (ref asyncAdmin);
+         }
+         catch
+         {
+            Utils.FreeAndNil(ref asyncAdmin);
+            throw;
+         }
+      }
+
+      private void import2()
+      {
+         if (comboBox1.SelectedIndex < 0) return;
+
+         History.SaveHistory(comboBox1, HISTORY_KEY);
+         String[] activeDSses = null;
+         var items = dsList.Items;
+         if (items.Count > 0)
+         {
+            var list = new List<String>();
+            for (int i = 0; i < items.Count; i++)
+            {
+               if (!dsList.GetItemChecked(i)) continue;
+               list.Add((String)items[i]);
+            }
+            activeDSses = list.ToArray();
+         }
+
+
+         AsyncAdmin asyncAdmin = new AsyncAdmin();
+         asyncAdmin.Start(uiToFlags(), comboBox1.Text, activeDSses);
+         this.asyncAdmin = asyncAdmin;
+
+         timer1.Enabled = true;
+         Cursor.Current = Cursors.WaitCursor;
+         UseWaitCursor = true;
+         disableAllButCancel();
+      }
+
+      private void enableAllButCancel()
+      {
+         foreach (var c in Controls)
+         {
+            Control control = c as Control;
+            if (control == null) continue;
+            if (control == btnCancel) continue;
+            control.Enabled = true;
+         }
+         btnCancel.Enabled = false;
+      }
+      private void disableAllButCancel()
+      {
+         foreach (var c in this.Controls)
+         {
+            Control control = c as Control;
+            if (control == null) continue;
+            Logs.DebugLog.Log("ctrl={0}", control.Name);
+            if (control == btnCancel) continue;
+            Logs.DebugLog.Log("-- disbled");
+            control.Enabled = false;
+         }
+         btnCancel.Enabled = true;
+      }
       private void button1_Click(object sender, EventArgs e)
       {
-         import();
+         import2();
       }
 
       private void button2_Click(object sender, EventArgs e)
@@ -110,16 +194,21 @@ namespace Bitmanager.Importer
             cb.Checked = (eng.ImportFlags & flag) != 0;
          }
       }
-      private void uiToFlags(ImportEngine eng)
+      private _ImportFlags uiToFlags()
       {
-         eng.ImportFlags = 0;
+         _ImportFlags flags = 0;
          foreach (var c in grpFlags.Controls)
          {
             CheckBox cb = c as CheckBox;
-            if (cb == null) continue;
-            _ImportFlags flag = Invariant.ToEnum<_ImportFlags>(cb.Text);
-            if (cb.Checked) eng.ImportFlags |= flag;
+            if (cb == null || !cb.Checked) continue;
+            flags |= Invariant.ToEnum<_ImportFlags>(cb.Text);
          }
+         return flags;
+      }
+
+      private void uiToFlags(ImportEngine eng)
+      {
+         eng.ImportFlags = uiToFlags();
       }
 
 
@@ -162,17 +251,4 @@ namespace Bitmanager.Importer
          comboBox1.SelectedIndex = idx;
       }
    }
-
-   //public class Cursor : IDisposable
-   //{
-   //   public Cursor()
-   //   {
-   //   }
-
-
-   //   public void Dispose()
-   //   {
-   //      throw new NotImplementedException();
-   //   }
-   //}
 }

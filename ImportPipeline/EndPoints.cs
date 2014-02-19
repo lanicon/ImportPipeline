@@ -248,10 +248,12 @@ namespace Bitmanager.ImportPipeline
 
       public virtual void SetField(String fld, Object value, FieldFlags fieldFlags, String sep)
       {
+         //Logs.DebugLog.Log("SetField ({0}, {1})", fld, value);
          if (String.IsNullOrEmpty(fld))
          {
             if (value == null) return;
             accumulator = (JObject)value;
+            return;
          }
          if ((flags & Bitmanager.ImportPipeline.Endpoint.DebugFlags._LogField) != 0) addLogger.Log("-- setfield {0}: '{1}'", fld, value);
          //if (value == null) addLogger.Log("Field {0}==null", fld);

@@ -25,6 +25,7 @@ namespace Bitmanager.ImportPipeline
       protected readonly bool WaitForMustExcept;
       protected readonly int WaitForTimeout;
       public readonly bool NormalCloseOnError;
+      public readonly bool ReadOnly;
 
 
       public ESEndpoint(ImportEngine engine, XmlNode node)
@@ -33,6 +34,7 @@ namespace Bitmanager.ImportPipeline
          Connection = new ESConnection(node.ReadStr("@url"));
          CacheSize = node.OptReadInt("@cache", -1);
          MaxParallel = node.OptReadInt("@maxparallel", 0);
+         ReadOnly = node.OptReadBool("@readonly", false);
          XmlNode typesNode = node.SelectSingleNode("indextypes");
          if (typesNode != null)
             IndexTypes = new IndexDefinitionTypes(engine.Xml, typesNode);
@@ -63,6 +65,7 @@ namespace Bitmanager.ImportPipeline
 
       protected override void Open(PipelineContext ctx)
       {
+         if (ReadOnly) return;
          ESIndexCmd._CheckIndexFlags flags = ESIndexCmd._CheckIndexFlags.AppendDate;
          if ((ctx.ImportFlags & _ImportFlags.ImportFull) != 0) flags |= ESIndexCmd._CheckIndexFlags.ForceCreate;
          Indexes.CreateIndexes(Connection, flags);
@@ -71,6 +74,7 @@ namespace Bitmanager.ImportPipeline
 
       protected override void Close(PipelineContext ctx)
       {
+         if (ReadOnly) return;
          if (!base.logCloseAndCheckForNormalClose(ctx)) return;
          ctx.ImportLog.Log("-- Optional optimize indexes");
          Indexes.OptionalOptimize(Connection);

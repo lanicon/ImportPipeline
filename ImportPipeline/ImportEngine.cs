@@ -18,7 +18,10 @@ namespace Bitmanager.ImportPipeline
       FullImport = 1 << 0,
       DoNotRename = 1 << 1,
       TraceValues = 1<<2,
-
+      IgnoreErrors = 1<<3,
+      IgnoreLimited = 1<<4,
+      IgnoreAll = IgnoreErrors | IgnoreLimited,
+      UseFlagsFromXml = 1 << 5,
    }
    public class ImportEngine
    {
@@ -38,14 +41,13 @@ namespace Bitmanager.ImportPipeline
       public _ImportFlags ImportFlags { get; set; }
 
 
-      public ImportEngine(_ImportFlags flags = 0)
+      public ImportEngine()
       {
          ImportLog = Logs.CreateLogger("import", "ImportEngine");
          DebugLog = Logs.CreateLogger("import-debug", "ImportEngine");
          MissedLog = Logs.CreateLogger("import-missed", "ImportEngine");
          ErrorLog = Logs.ErrorLog.Clone("ImportEngine");
          Logs.DebugLog.Log(((InternalLogger)ImportLog)._Logger.Name);
-         ImportFlags = flags;
       }
       public void Load(String fileName)
       {
@@ -147,19 +149,27 @@ namespace Bitmanager.ImportPipeline
                   if (MaxAddsExceededException.ContainsMaxAddsExceededException (err))
                   {
                      ctx.ErrorState |= _ErrorState.Limited;
-                     mainCtx.ErrorState |= _ErrorState.Limited;
-                     ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStop, "[{0}]: {1}", admin.Name, err.Message);
+                     ImportLog.Log(_LogType.ltWarning | _LogType.ltTimerStop, "[{0}]: {1}", admin.Name, err.Message);
                      ImportLog.Log("-- " + ctx.GetStats());
+                     if ((ImportFlags & _ImportFlags.IgnoreLimited) != 0)
+                        ImportLog.Log(_LogType.ltWarning, "Limited ignored due to importFlags [{0}].", ImportFlags);
+                     else
+                        mainCtx.ErrorState |= _ErrorState.Limited;
                   }
                   else
                   {
                      ctx.ErrorState |= _ErrorState.Error;
-                     mainCtx.ErrorState |= _ErrorState.Error;
-                     ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStop, "[{0}]: crashed err={1}", admin.Name, err.Message);
+                     ImportLog.Log(_LogType.ltError | _LogType.ltTimerStop, "[{0}]: crashed err={1}", admin.Name, err.Message);
                      ImportLog.Log("-- " + ctx.GetStats());
                      Exception toThrow = new BMException(err, "{0}\r\nDatasource={1}\r\nLastAction={2}.", err.Message, admin.Name, admin.Pipeline.LastAction);
                      ErrorLog.Log(toThrow);
-                     throw toThrow;
+                     if ((ImportFlags & _ImportFlags.IgnoreErrors) != 0)
+                        ImportLog.Log(_LogType.ltWarning, "Error ignored due to importFlags [{0}].", ImportFlags);
+                     else
+                     {
+                        mainCtx.ErrorState |= _ErrorState.Error;
+                        throw toThrow;
+                     }
                   }
                }
 

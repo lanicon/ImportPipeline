@@ -13,9 +13,18 @@ namespace Bitmanager.Importer
    {
       public void Run(_ImportFlags flags, String xml, String[] activeDS)
       {
-         ImportEngine engine = new ImportEngine(flags);
-         engine.Load(xml);
-         engine.Import(activeDS);
+         try
+         {
+            ImportEngine engine = new ImportEngine();
+            engine.Load(xml);
+            engine.ImportFlags = flags;
+            engine.Import(activeDS);
+         }
+         catch (Exception e)
+         {
+            Logs.ErrorLog.Log(e);
+            throw new Exception(e.Message);
+         }
       }
    }
 

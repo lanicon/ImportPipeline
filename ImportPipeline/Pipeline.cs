@@ -65,9 +65,13 @@ namespace Bitmanager.ImportPipeline
 
          ScriptTypeName = node.OptReadStr("@script", null);
          DefaultEndpoint = node.OptReadStr("@endpoint", null);
-         if (DefaultEndpoint == null && engine.Endpoints.Count == 1)
-            DefaultEndpoint = engine.Endpoints[0].Name;
-
+         if (DefaultEndpoint == null)
+         {
+            if (engine.Endpoints.Count == 1)
+               DefaultEndpoint = engine.Endpoints[0].Name;
+            else if (engine.Endpoints.OptGetByName(Name) != null)
+               DefaultEndpoint = Name;
+         }
          trace = node.OptReadBool ("@trace", false);
 
          AdminCollection<PipelineAction> rawActions = new AdminCollection<PipelineAction>(node, "action", (x) => PipelineAction.Create(this, x), true);

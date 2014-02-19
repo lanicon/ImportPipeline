@@ -42,19 +42,21 @@ namespace Bitmanager.Importer
          try
          {
             var cmd = new CommandLineParms(args);
-            _ImportFlags flags = Invariant.ToEnum<_ImportFlags>(cmd.NamedArgs["flags"], 0);
+            _ImportFlags flags = Invariant.ToEnum<_ImportFlags>(cmd.NamedArgs["flags"], _ImportFlags.UseFlagsFromXml);
             if (cmd.Args.Count == 0)
             {
                logError("Invalid commandline: {0}", Environment.CommandLine);
                logError("Syntax: <importxml file> [list of datasources] [/flags:<importflags>]");
                return 12;
             }
-            ImportEngine eng = new ImportEngine(flags);
+            ImportEngine eng = new ImportEngine();
             String[] dsList = new String[cmd.Args.Count - 1];
             for (int i=1; i<cmd.Args.Count; i++)
                dsList[i-1] = cmd.Args[i]; 
 
             eng.Load(cmd.Args[0]);
+            if (flags != _ImportFlags.UseFlagsFromXml)
+               eng.ImportFlags = flags;
             eng.Import(dsList);
             return 0;
          }

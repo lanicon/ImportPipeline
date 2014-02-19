@@ -45,6 +45,8 @@
          this.button6 = new System.Windows.Forms.Button();
          this.timer1 = new System.Windows.Forms.Timer(this.components);
          this.btnCancel = new System.Windows.Forms.Button();
+         this.cbIgnoreLimited = new System.Windows.Forms.CheckBox();
+         this.cbIgnoreErrors = new System.Windows.Forms.CheckBox();
          this.grpFlags.SuspendLayout();
          this.SuspendLayout();
          // 
@@ -104,12 +106,14 @@
          // 
          // grpFlags
          // 
+         this.grpFlags.Controls.Add(this.cbIgnoreErrors);
+         this.grpFlags.Controls.Add(this.cbIgnoreLimited);
          this.grpFlags.Controls.Add(this.cbTraceValues);
          this.grpFlags.Controls.Add(this.cbDoNotRename);
          this.grpFlags.Controls.Add(this.CbFullImport);
          this.grpFlags.Location = new System.Drawing.Point(30, 155);
          this.grpFlags.Name = "grpFlags";
-         this.grpFlags.Size = new System.Drawing.Size(165, 159);
+         this.grpFlags.Size = new System.Drawing.Size(165, 188);
          this.grpFlags.TabIndex = 7;
          this.grpFlags.TabStop = false;
          this.grpFlags.Text = "Flags";
@@ -201,6 +205,26 @@
          this.btnCancel.UseVisualStyleBackColor = true;
          this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
          // 
+         // cbIgnoreLimited
+         // 
+         this.cbIgnoreLimited.AutoSize = true;
+         this.cbIgnoreLimited.Location = new System.Drawing.Point(17, 97);
+         this.cbIgnoreLimited.Name = "cbIgnoreLimited";
+         this.cbIgnoreLimited.Size = new System.Drawing.Size(100, 19);
+         this.cbIgnoreLimited.TabIndex = 13;
+         this.cbIgnoreLimited.Text = "IgnoreLimited";
+         this.cbIgnoreLimited.UseVisualStyleBackColor = true;
+         // 
+         // cbIgnoreErrors
+         // 
+         this.cbIgnoreErrors.AutoSize = true;
+         this.cbIgnoreErrors.Location = new System.Drawing.Point(17, 122);
+         this.cbIgnoreErrors.Name = "cbIgnoreErrors";
+         this.cbIgnoreErrors.Size = new System.Drawing.Size(90, 19);
+         this.cbIgnoreErrors.TabIndex = 14;
+         this.cbIgnoreErrors.Text = "IgnoreErrors";
+         this.cbIgnoreErrors.UseVisualStyleBackColor = true;
+         // 
          // Form1
          // 
          this.AcceptButton = this.btnImport;
@@ -249,6 +273,8 @@
       private System.Windows.Forms.Button button6;
       private System.Windows.Forms.Timer timer1;
       private System.Windows.Forms.Button btnCancel;
+      private System.Windows.Forms.CheckBox cbIgnoreErrors;
+      private System.Windows.Forms.CheckBox cbIgnoreLimited;
    }
 }
 

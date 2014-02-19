@@ -16,6 +16,7 @@ namespace Bitmanager.ImportPipeline
    {
       private IDatasourceFeeder feeder;
       private String timeout;
+      private String requestBody;
       private int numRecords;
       private int maxParallel;
 
@@ -25,6 +26,7 @@ namespace Bitmanager.ImportPipeline
          numRecords = node.OptReadInt("@buffersize", ESRecordEnum.DEF_BUFFER_SIZE);
          timeout = node.OptReadStr("@timeout", ESRecordEnum.DEF_TIMEOUT);
          maxParallel = node.OptReadInt("@maxparallel", 1);
+         requestBody = node.OptReadStr("request", null);
       }
 
       public void Import(PipelineContext ctx, IDatasourceSink sink)
@@ -51,12 +53,16 @@ namespace Bitmanager.ImportPipeline
          String url = elt.ToString();
          sink.HandleValue(ctx, Pipeline.ItemStart, elt);
          String index = elt.Context.ReadStr ("@index");
+         String reqBody = elt.Context.OptReadStr("request", this.requestBody);
+         JObject req = null;
+         if (reqBody != null)
+            req = JObject.Parse(reqBody);
 
          try
          {
             Uri uri = new Uri (url);
             ESConnection conn = new ESConnection (url);
-            ESRecordEnum e = new ESRecordEnum(conn, index, null, numRecords, timeout);
+            ESRecordEnum e = new ESRecordEnum(conn, index, req, numRecords, timeout);
             if (maxParallel > 0) e.Async = true;
             ctx.ImportLog.Log("Starting scan of {0} records. Index={1}, connection={2}, async={3}, buffersize={4}.", e.Count, index, url, e.Async, numRecords);
             foreach (var doc in e)

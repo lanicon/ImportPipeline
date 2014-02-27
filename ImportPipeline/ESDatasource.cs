@@ -57,14 +57,14 @@ namespace Bitmanager.ImportPipeline
          JObject req = null;
          if (reqBody != null)
             req = JObject.Parse(reqBody);
-
+         ctx.DebugLog.Log("Request body={0}", reqBody);
          try
          {
             Uri uri = new Uri (url);
             ESConnection conn = new ESConnection (url);
             ESRecordEnum e = new ESRecordEnum(conn, index, req, numRecords, timeout);
             if (maxParallel > 0) e.Async = true;
-            ctx.ImportLog.Log("Starting scan of {0} records. Index={1}, connection={2}, async={3}, buffersize={4}.", e.Count, index, url, e.Async, numRecords);
+            ctx.ImportLog.Log("Starting scan of {0} records. Index={1}, connection={2}, async={3}, buffersize={4} requestbody={5}.", e.Count, index, url, e.Async, numRecords, req != null);
             foreach (var doc in e)
             {
                String[] fields = doc.GetLoadedFields();

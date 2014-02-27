@@ -18,6 +18,7 @@ namespace Bitmanager.ImportPipeline
       Nop = 1,
       Field = 2,
       Add = 3,
+      Emit = 4,
    }
    public enum _InternalActionType
    {
@@ -150,12 +151,14 @@ namespace Bitmanager.ImportPipeline
          _ActionType type = node.OptReadEnum("@type", (_ActionType)0);
          switch (type)
          {
-            case _ActionType.Field: return (node.SelectSingleNode("@emitexisting") != null) ? _InternalActionType.Emit : _InternalActionType.Field;
+            case _ActionType.Emit: return _InternalActionType.Emit;
+            case _ActionType.Field: return _InternalActionType.Field;
             case _ActionType.Add: return _InternalActionType.Add;
             case _ActionType.Nop: return _InternalActionType.Nop;
          }
          if (node.SelectSingleNode("@add") != null) return _InternalActionType.Add;
          if (node.SelectSingleNode("@nop") != null) return _InternalActionType.Nop;
+         if (node.SelectSingleNode("@emitexisting") != null) return _InternalActionType.Emit;
          return _InternalActionType.Field;
       }
 

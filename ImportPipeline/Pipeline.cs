@@ -104,6 +104,12 @@ namespace Bitmanager.ImportPipeline
       {
          return (variables == null) ? null : variables[varName.ToLowerInvariant()];
       }
+      public String GetVariableStr(String varName)
+      {
+         if (variables == null) return null;
+         Object obj = variables[varName.ToLowerInvariant()];
+         return obj == null ? null : obj.ToString();
+      }
 
       public void ClearVariables()
       {

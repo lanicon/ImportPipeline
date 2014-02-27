@@ -8,3 +8,6 @@ bij fouten moet de cache weggeschreven worden
 Bij es moet het mogelijk zijn record/ te vervangen door <type>/
 
 add/del/clr moet met een vlag
+
+sluiten van een endpoint moet eerder
+schoonmaken log tijden starten

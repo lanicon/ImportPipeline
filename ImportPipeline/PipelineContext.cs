@@ -77,16 +77,27 @@ namespace Bitmanager.ImportPipeline
          Action = act;
          return act;
       }
-      public void ClearEndpointAndSetFlags(_ActionFlags fl)
+      public Object ClearAllAndSetFlags()
       {
-         ActionFlags |= fl;
+         ActionFlags |= _ActionFlags.SkipAll;
+         Pipeline.ClearVariables();
          Action.Endpoint.Clear();
+         return null;
       }
-      public void ClearEndpointAndSetFlags(_ActionFlags fl, String skipUntilKey)
+      public Object ClearAllAndSetFlags(_ActionFlags fl)
+      {
+         ActionFlags |= fl;
+         Pipeline.ClearVariables();
+         Action.Endpoint.Clear();
+         return null;
+      }
+      public Object ClearAllAndSetFlags(_ActionFlags fl, String skipUntilKey)
       {
          ActionFlags |= fl;
          Action.Endpoint.Clear();
+         Pipeline.ClearVariables();
          SkipUntilKey = skipUntilKey;
+         return null;
       }
 
       public void CountAndLogAdd()

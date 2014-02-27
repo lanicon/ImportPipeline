@@ -46,8 +46,54 @@ namespace Bitmanager.ImportPipeline
    public abstract class Converter : NamedItem
    {
       public Converter(XmlNode node) : base(node) { }
- 
-      public abstract Object Convert (Object obj);
+
+      protected bool TryConvertArray(Object value, out Object convertedArray)
+      {
+         convertedArray = value;
+         if (value == null) return true;
+         Array arr = value as Array;
+         if (arr != null) 
+         {
+            convertedArray = convertArray (arr);
+            return true;
+         }
+         JArray jarr = value as JArray;
+         if (jarr != null) 
+         {
+            convertedArray = convertArray (jarr);
+            return true;
+         }
+         return false;
+      }
+      protected Object[] convertArray(JArray src)
+      {
+         Object[] ret = new Object[src.Count];
+         for (int i = 0; i < src.Count; i++)
+         {
+            ret[i] = ConvertScalar(src[i].ToNative());
+         }
+         return ret;
+      }
+      protected Object[] convertArray(Array src)
+      {
+         Object[] ret = new Object[src.Length];
+         for (int i = 0; i < src.Length; i++)
+         {
+            ret[i] = ConvertScalar(src.GetValue(i));
+         }
+         return ret;
+      }
+
+      public virtual Object Convert(Object value)
+      {
+         if (value == null) return value;
+         Array arr = value as Array;
+         if (arr != null)  return convertArray(arr);
+         JArray jarr = value as JArray;
+         if (jarr != null) return convertArray(jarr);
+         return ConvertScalar(value);
+      }
+      public abstract Object ConvertScalar(Object obj);
       public virtual void DumpMissed(PipelineContext ctx)
       {
       }
@@ -72,6 +118,7 @@ namespace Bitmanager.ImportPipeline
             case "double": return new ToDoubleConverter(node);
             case "int32": return new ToInt32Converter(node);
             case "int64": return new ToInt32Converter(node);
+            case "split": return new SplitConverter(node);
          }
          return Objects.CreateObject<Converter>(type, node);
       }
@@ -89,10 +136,8 @@ namespace Bitmanager.ImportPipeline
          if (type == "date") utc = false;
       }
 
-      public override Object Convert(Object value)
+      public override Object ConvertScalar(Object value)
       {
-         if (value == null) return null;
-
          DateTime ret;
          String str = value as String;
          if (str != null)
@@ -133,7 +178,7 @@ namespace Bitmanager.ImportPipeline
    {
       public ToDoubleConverter(XmlNode node) : base(node)  {}
 
-      public override Object Convert(Object value)
+      public override Object ConvertScalar(Object value)
       {
          if (value == null) return null;
 
@@ -156,7 +201,7 @@ namespace Bitmanager.ImportPipeline
    {
       public ToInt64Converter(XmlNode node) : base(node) {}
 
-      public override Object Convert(Object value)
+      public override Object ConvertScalar(Object value)
       {
          if (value == null) return null;
 
@@ -180,7 +225,7 @@ namespace Bitmanager.ImportPipeline
    {
       public ToInt32Converter(XmlNode node) : base(node) {}
 
-      public override Object Convert(Object value)
+      public override Object ConvertScalar(Object value)
       {
          if (value == null) return null;
 
@@ -204,7 +249,7 @@ namespace Bitmanager.ImportPipeline
    {
       public ToLowerConverter(XmlNode node) : base(node) { }
 
-      public override Object Convert(Object value)
+      public override Object ConvertScalar(Object value)
       {
          if (value == null) return null;
          return value.ToString().ToLowerInvariant();
@@ -215,7 +260,7 @@ namespace Bitmanager.ImportPipeline
    {
       public ToUpperConverter(XmlNode node) : base(node) { }
 
-      public override Object Convert(Object value)
+      public override Object ConvertScalar(Object value)
       {
          if (value == null) return null;
          return value.ToString().ToUpperInvariant();
@@ -226,7 +271,7 @@ namespace Bitmanager.ImportPipeline
    {
       public TrimConverter(XmlNode node) : base(node) { }
 
-      public override Object Convert(Object value)
+      public override Object ConvertScalar(Object value)
       {
          if (value == null) return null;
          return value.ToString().Trim();
@@ -236,7 +281,7 @@ namespace Bitmanager.ImportPipeline
    {
       public TrimWhiteConverter(XmlNode node) : base(node) { }
 
-      public override Object Convert(Object value)
+      public override Object ConvertScalar(Object value)
       {
          if (value == null) return null;
          return value.ToString().TrimWhiteSpace();
@@ -247,7 +292,7 @@ namespace Bitmanager.ImportPipeline
    {
       public HtmlEncodeConverter(XmlNode node) : base(node) { }
 
-      public override Object Convert(Object value)
+      public override Object ConvertScalar(Object value)
       {
          if (value == null) return null;
          return HttpUtility.HtmlEncode(value.ToString());
@@ -258,7 +303,7 @@ namespace Bitmanager.ImportPipeline
    {
       public HtmlDecodeConverter(XmlNode node) : base(node) { }
 
-      public override Object Convert(Object value)
+      public override Object ConvertScalar(Object value)
       {
          if (value == null) return null;
          return HttpUtility.HtmlDecode(value.ToString());
@@ -269,7 +314,7 @@ namespace Bitmanager.ImportPipeline
    {
       public UrlEncodeConverter(XmlNode node) : base(node) { }
 
-      public override Object Convert(Object value)
+      public override Object ConvertScalar(Object value)
       {
          if (value == null) return null;
          return HttpUtility.UrlEncode(value.ToString());
@@ -280,10 +325,27 @@ namespace Bitmanager.ImportPipeline
    {
       public UrlDecodeConverter(XmlNode node) : base(node) { }
 
-      public override Object Convert(Object value)
+      public override Object ConvertScalar(Object value)
       {
          if (value == null) return null;
          return HttpUtility.UrlDecode(value.ToString());
+      }
+   }
+
+   public class SplitConverter : Converter
+   {
+      bool trim = true;
+      char sep = ';';
+      public SplitConverter(XmlNode node) : base(node) { }
+
+      public override Object ConvertScalar(Object value)
+      {
+         String v = value as String;
+         if (v == null) return value;
+
+         String[] arr = v.Split (sep);
+         for (int i = 0; i < arr.Length; i++) arr[i] = arr[i].Trim();
+         return arr;
       }
    }
 

@@ -2,14 +2,14 @@
 <root>
    <tempdir dir="temp" clearonstart="true" />
    <endpoints>
-      <endpoint name="es" url="http://localhost:9200/">
-         <indextypes>
-            <indextype name="default" config="index.config.js" />
-         </indextypes>
-
+      <endpoint name="gorilla" type="esEndpoint" url="http://localhost:9200/">
          <indexes>
-            <index name="gorilla" type="default" />
+            <index name="gorilla" config="index.config.js"/>
          </indexes>
+         <types>
+            <type name="doc" index="gorilla" _keyfield="_id" />  
+         </types>
+
       </endpoint>
    </endpoints>
 
@@ -22,7 +22,7 @@
    </converters>
 
    <pipelines>
-      <pipeline name="pipe" trace="false" converters="trim" endpoint="gorilla/doc">
+      <pipeline name="gorilla" trace="false" converters="trim">
          <action key="html/record" add="*" />
          <action key="html/record/name" field="name" converters="trim" />
          <action key="html/record/code" field="code" />
@@ -42,8 +42,8 @@
    </pipelines>
 
    <datasources>
-      <datasource name="gorilla" type="HtmlDatasource#HtmlDatasource.BeursGorillaDS" trim="true" pipeline="pipe">
-         <provider type="UrlProvider" baseurl="http://www.beursgorilla.nl/" >
+      <datasource name="gorilla" type="HtmlDatasource#BeursGorillaDS" trim="true" >
+         <provider type="UrlFeeder" baseurl="http://www.beursgorilla.nl/" >
             <url>aex.asp</url>
             <url>amx.asp</url>
          </provider>   

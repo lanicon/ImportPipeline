@@ -25,7 +25,7 @@ namespace BeursGorilla
 
 
 
-      private List<JObject> toMail;
+      private List<JObject> toMail, toMailForced;
       private Logger logger = Logs.CreateLogger("Gorilla", "MailEndpoint");
       public readonly double Limit;
       public readonly String MailAddr;
@@ -36,6 +36,7 @@ namespace BeursGorilla
          : base(node)
       {
          toMail = new List<JObject>();
+         toMailForced = new List<JObject>();
          Limit = node.OptReadFloat("@limitperc", 1.0);
 
          MailAddr = node.OptReadStr("@email", null);
@@ -49,6 +50,12 @@ namespace BeursGorilla
       protected override void Open(PipelineContext ctx)
       {
       }
+
+      protected void buildMail(StringBuilder sb, List<JObject> stocksToMail)
+      {
+         stocksToMail.Sort((x, y) => Comparer<double>.Default.Compare(absolutePercentage(y), absolutePercentage(x)));
+         for (int i = 0; i < stocksToMail.Count; i++) objToLine(sb, stocksToMail[i]);
+      }
       protected override void Close(PipelineContext ctx)
       {
          if (!logCloseAndCheckForNormalClose(ctx)) return;
@@ -59,7 +66,6 @@ namespace BeursGorilla
             return;
          }
 
-         toMail.Sort ((x,y)=>Comparer<double>.Default.Compare (absolutePercentage (y), absolutePercentage (x)));
          StringBuilder bldr = new StringBuilder();
          const String htmlHead = "<html><head><style>\r\n thead { font-weight: bold; }" +
             " .red {color: red; }" +
@@ -69,7 +75,9 @@ namespace BeursGorilla
          const String htmlEnd = "</body></html>";
 
          bldr.Append("<table><thead><tr><td class='left'>Stock</td><td>Change</td><td>Price</td><td>Opened</td><td>Checked at</td></tr></thead>\r\n");
-         for (int i=0; i<toMail.Count; i++) objToLine(bldr, toMail[i]);
+         buildMail(bldr, toMailForced);
+         bldr.Append ("<tr></tr>");
+         buildMail(bldr, toMail);
          bldr.Append("</table>\r\n");
          logger.Log(bldr.ToString());
 
@@ -110,14 +118,19 @@ namespace BeursGorilla
       {
          toMail.Add(obj);
       }
+      public void AddForMailForced(JObject obj)
+      {
+         toMailForced.Add(obj);
+      }
 
       private void objToLine(StringBuilder b, JObject obj)
       {
          double perc = obj.ReadDbl(F_perc);
-         b.Append ((perc < 0.0) ? "<tr class='red'>" : "<tr>");
+         //b.Append ((perc < 0.0) ? "<tr class='red'>" : "<tr>");
+         b.Append("<tr>");
          b.Append("<td class='left'>");
          b.AppendFormat("{0}[{1}]</td>", obj.ReadStr(F_name), obj.ReadStr(F_exchange));
-         b.AppendFormat("<td>{0:F2}%</td>", obj.ReadDbl(F_perc));
+         b.AppendFormat("<td {1}>{0:F2}%</td>", perc, perc < 0.0 ? " class='red'" : String.Empty );
          b.AppendFormat("<td>{0:F3}</td>", obj.ReadDbl(F_price));
          b.AppendFormat("<td>{0:F3}</td>", obj.ReadDbl(F_priceOpened));
          b.AppendFormat("<td>{0}</td>", obj.ReadStr(F_checkTime));
@@ -162,7 +175,11 @@ namespace BeursGorilla
                return;
             }
             double perc = 100 * (price - priceAtOpen) / priceAtOpen;
-            if (Math.Abs(perc) >= limitPerc || isForced(base.accumulator))
+            if (isForced(base.accumulator))
+            {
+               accumulator.WriteToken(MailEndpoint.F_perc, perc);
+               Endpoint.AddForMailForced(accumulator);
+            } else if (Math.Abs(perc) >= limitPerc)
             {
                accumulator.WriteToken(MailEndpoint.F_perc, perc);
                Endpoint.AddForMail(accumulator);

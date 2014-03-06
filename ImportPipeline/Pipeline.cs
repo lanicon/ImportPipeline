@@ -74,7 +74,7 @@ namespace Bitmanager.ImportPipeline
          }
          trace = node.OptReadBool ("@trace", false);
 
-         AdminCollection<PipelineAction> rawActions = new AdminCollection<PipelineAction>(node, "action", (x) => PipelineAction.Create(this, x), true);
+         AdminCollection<PipelineAction> rawActions = new AdminCollection<PipelineAction>(node, "action", (x) => PipelineAction.Create(this, x), false);
          definedActions = new List<ActionAdmin>();
          for (int i = 0; i < rawActions.Count; i++)
          {

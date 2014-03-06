@@ -87,6 +87,8 @@
     <Compile Include="ScriptHost.cs" />
     <Compile Include="TikaDataSource.cs" />
     <Compile Include="UrlProvider.cs" />
+    <Compile Include="ValueFilter.cs" />
+    <Compile Include="XmlDatasource.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="index.config.js" />

@@ -37,23 +37,31 @@ namespace Bitmanager.Importer
       }
       private static int runAsConsole(String[] args)
       {
-         Bitmanager.Core.ConsoleHelpers.AllocConsole();
+         try
+         {
+            bool b = Bitmanager.Core.ConsoleHelpers.AttachConsole();
+            if (!b) b = Bitmanager.Core.ConsoleHelpers.AllocConsole();
+         }
+         catch { }
 
          try
          {
             var cmd = new CommandLineParms(args);
-            _ImportFlags flags = Invariant.ToEnum<_ImportFlags>(cmd.NamedArgs["flags"], _ImportFlags.UseFlagsFromXml);
+            _ImportFlags flags = Invariant.ToEnum<_ImportFlags>(cmd.NamedArgs.OptGetItem("flags"), _ImportFlags.UseFlagsFromXml);
             if (cmd.Args.Count == 0)
             {
                logError("Invalid commandline: {0}", Environment.CommandLine);
                logError("Syntax: <importxml file> [list of datasources] [/flags:<importflags>]");
                return 12;
             }
+            Logs.DebugLog.Log("1");
             ImportEngine eng = new ImportEngine();
+            Logs.DebugLog.Log("2");
             String[] dsList = new String[cmd.Args.Count - 1];
             for (int i=1; i<cmd.Args.Count; i++)
-               dsList[i-1] = cmd.Args[i]; 
+               dsList[i-1] = cmd.Args[i];
 
+            Logs.DebugLog.Log("4");
             eng.Load(cmd.Args[0]);
             if (flags != _ImportFlags.UseFlagsFromXml)
                eng.ImportFlags = flags;

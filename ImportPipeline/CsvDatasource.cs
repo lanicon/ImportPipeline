@@ -17,8 +17,10 @@ namespace Bitmanager.ImportPipeline
    public class CsvDatasource: Datasource
    {
       String file;
-      int sortKey;
       int[] sortValuesToKeep;
+      int sortKey;
+      int startAt;
+
 
       char delimChar, quoteChar, commentChar;
       bool hasHeaders;
@@ -32,6 +34,7 @@ namespace Bitmanager.ImportPipeline
          delimChar = readChar(node, "@dlm", ',');
          quoteChar = readChar(node, "@quote", '"');
          commentChar = readChar(node, "@comment", '#');
+         startAt = node.OptReadInt("@startat", -1);
 
          String sort = node.OptReadStr("@sort", null);
          sortKey = -1;
@@ -94,9 +97,11 @@ namespace Bitmanager.ImportPipeline
             //CsvReader csvRdr = new CsvReader(rdr, hasHeaders, delimChar, quoteChar, (char)0, commentChar, trim ? ValueTrimmingOptions.UnquotedOnly : ValueTrimmingOptions.None);
             //CsvReader csvRdr = new CsvReader(rdr, hasHeaders, delimChar, quoteChar, quoteChar, commentChar, trim ? ValueTrimmingOptions.UnquotedOnly : ValueTrimmingOptions.None); //, trim, 4096);
             CsvReader csvRdr = new CsvReader(rdr, hasHeaders, delimChar, quoteChar, quoteChar, commentChar, trim);
-            Logs.ErrorLog.Log("Multiline={0}, quote={1} ({2}), esc={3} ({4})", csvRdr.SupportsMultiline, csvRdr.Quote, (int)csvRdr.Quote, csvRdr.Escape, (int)csvRdr.Escape);
-            while (csvRdr.ReadNextRecord())
+            Logs.ErrorLog.Log("Multiline={0}, quote={1} ({2}), esc={3} ({4}), startat={5}", csvRdr.SupportsMultiline, csvRdr.Quote, (int)csvRdr.Quote, csvRdr.Escape, (int)csvRdr.Escape, startAt);
+            int line;
+            for (line=0; csvRdr.ReadNextRecord(); line++ )
             {
+               if (startAt > line) continue;
                sink.HandleValue(ctx, "record/_start", null);
                int fieldCount = csvRdr.FieldCount;
                for (int i = keys.Count; i <= fieldCount; i++) keys.Add(String.Format("record/f{0}", i));

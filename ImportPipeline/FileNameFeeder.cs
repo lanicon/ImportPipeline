@@ -14,7 +14,8 @@ namespace Bitmanager.ImportPipeline
 {
    public class FileNameFeeder : IDatasourceFeeder
    {
-      private XmlNode ctx;
+      private String file;
+      private XmlNode ctxNode;
       private FileTree tree;
       private string root, virtualRoot;
       private bool recursive;
@@ -26,19 +27,25 @@ namespace Bitmanager.ImportPipeline
       }
       public void Init(PipelineContext ctx, XmlNode node)
       {
-         tree = new FileTree();
-         this.ctx = node;
-         root = XmlUtils.ReadStr(node, "@root");
-         virtualRoot = XmlUtils.OptReadStr(node, "@virtualroot", null);
-         recursive = XmlUtils.OptReadBool(node, "@recursive", true);
+         file = node.OptReadStr("@file", null);
+         this.ctxNode = node;
+         if (file != null)
+            file = ctx.ImportEngine.Xml.CombinePath(file);
+         else
+         {
+            tree = new FileTree();
+            root = XmlUtils.ReadStr(node, "@root");
+            virtualRoot = XmlUtils.OptReadStr(node, "@virtualroot", null);
+            recursive = XmlUtils.OptReadBool(node, "@recursive", true);
 
-         String filter = XmlUtils.OptReadStr(node, "@filter", null);
+            String filter = XmlUtils.OptReadStr(node, "@filter", null);
 
-         tree.OnFileError += fileTree_OnFileError;
-         if (filter != null) tree.AddFileFilter(filter, true);
+            tree.OnFileError += fileTree_OnFileError;
+            if (filter != null) tree.AddFileFilter(filter, true);
 
-         addFilters(tree, node.SelectNodes("dir"), true);
-         addFilters(tree, node.SelectNodes("file"), false);
+            addFilters(tree, node.SelectNodes("dir"), true);
+            addFilters(tree, node.SelectNodes("file"), false);
+         }
       }
       private static void addFilters(FileTree tree, XmlNodeList nodes, bool isDir)
       {
@@ -70,10 +77,17 @@ namespace Bitmanager.ImportPipeline
 
       public IEnumerator<IDatasourceFeederElement> GetEnumerator()
       {
-         tree.ReadFiles (root, recursive ? (_ReadFileFlags.rfStoreFiles |  _ReadFileFlags.rfSubdirs) : (_ReadFileFlags.rfStoreFiles));
+         if (file != null)
+         {
+            yield return new FileNameFeederElement(ctxNode, file);
+         }
+         else
+         {
+            tree.ReadFiles(root, recursive ? (_ReadFileFlags.rfStoreFiles | _ReadFileFlags.rfSubdirs) : (_ReadFileFlags.rfStoreFiles));
 
-         for (int i = 0; i < tree.Files.Count; i++)
-            yield return new FileNameFeederElement (ctx, tree, tree.Files[i], virtualRoot);
+            for (int i = 0; i < tree.Files.Count; i++)
+               yield return new FileNameFeederElement(ctxNode, tree, tree.Files[i], virtualRoot);
+         }
       }
 
       System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
@@ -89,7 +103,8 @@ namespace Bitmanager.ImportPipeline
       public readonly String VirtualRoot;
       public readonly String VirtualFileName;
 
-      public FileNameFeederElement(XmlNode ctx, FileTree tree, String relname, String virtualRoot): base (ctx, tree.GetFullName(relname))
+      public FileNameFeederElement(XmlNode ctx, FileTree tree, String relname, String virtualRoot)
+         : base(ctx, tree.GetFullName(relname))
       {
          RelativeName = relname;
          FileName = (String)Element;
@@ -99,9 +114,16 @@ namespace Bitmanager.ImportPipeline
          else
          {
             VirtualRoot = virtualRoot;
-            VirtualFileName = Path.Combine (virtualRoot, relname);
+            VirtualFileName = Path.Combine(virtualRoot, relname);
          }
+      }
 
+      public FileNameFeederElement(XmlNode ctx, String name)
+         : base(ctx, name)
+      {
+         RelativeName = Path.GetFullPath(name);
+         FileName = RelativeName;
+         VirtualRoot = RelativeName;
       }
 
    }

@@ -19,6 +19,7 @@ namespace Bitmanager.ImportPipeline
       private String requestBody;
       private int numRecords;
       private int maxParallel;
+      private int splitUntil; 
 
       public void Init(PipelineContext ctx, XmlNode node)
       {
@@ -27,6 +28,7 @@ namespace Bitmanager.ImportPipeline
          timeout = node.OptReadStr("@timeout", ESRecordEnum.DEF_TIMEOUT);
          maxParallel = node.OptReadInt("@maxparallel", 1);
          requestBody = node.OptReadStr("request", null);
+         splitUntil = node.OptReadInt("@splituntil", 1);
       }
 
       public void Import(PipelineContext ctx, IDatasourceSink sink)
@@ -47,12 +49,15 @@ namespace Bitmanager.ImportPipeline
       private void importUrl(PipelineContext ctx, IDatasourceSink sink, IDatasourceFeederElement elt)
       {
          int maxParallel = elt.Context.OptReadInt ("@maxparallel", this.maxParallel);
+         int splitUntil = elt.Context.OptReadInt("@splituntil", this.splitUntil);
+         if (splitUntil < 0) splitUntil = int.MaxValue;
 
          //StringDict attribs = getAttributes(elt.Context);
          //var fullElt = (FileNameFeederElement)elt;
          String url = elt.ToString();
          sink.HandleValue(ctx, Pipeline.ItemStart, elt);
-         String index = elt.Context.ReadStr ("@index");
+         String command = elt.Context.OptReadStr("@command", null);
+         String index = command != null ? null : elt.Context.ReadStr("@index"); //mutual exclusive with command
          String reqBody = elt.Context.OptReadStr("request", this.requestBody);
          JObject req = null;
          if (reqBody != null)
@@ -62,21 +67,36 @@ namespace Bitmanager.ImportPipeline
          {
             Uri uri = new Uri (url);
             ESConnection conn = new ESConnection (url);
-            ESRecordEnum e = new ESRecordEnum(conn, index, req, numRecords, timeout);
-            if (maxParallel > 0) e.Async = true;
-            ctx.ImportLog.Log("Starting scan of {0} records. Index={1}, connection={2}, async={3}, buffersize={4} requestbody={5}.", e.Count, index, url, e.Async, numRecords, req != null);
-            foreach (var doc in e)
+            if (command != null)
             {
-               String[] fields = doc.GetLoadedFields();
-               for (int i = 0; i < fields.Length; i++)
+               var resp = conn.SendCmd("POST", command, reqBody);
+               resp.ThrowIfError();
+               Pipeline.EmitToken(ctx, sink, resp.JObject, "response", splitUntil);
+            }
+            else
+            {
+               ESRecordEnum e = new ESRecordEnum(conn, index, req, numRecords, timeout);
+               if (maxParallel > 0) e.Async = true;
+               ctx.ImportLog.Log("Starting scan of {0} records. Index={1}, connection={2}, async={3}, buffersize={4} requestbody={5}, splituntil={6}.", e.Count, index, url, e.Async, numRecords, req != null, splitUntil);
+               foreach (var doc in e)
                {
-                  String field = fields[i];
-                  sink.HandleValue(ctx, "record/" + field, doc.GetFieldAsToken(field));
+                  String[] fields = doc.GetLoadedFields();
+                  for (int i = 0; i < fields.Length; i++)
+                  {
+                     String field = fields[i];
+                     String pfx = "record/" + field;
+                     if (splitUntil <= 1)
+                     {
+                        sink.HandleValue(ctx, pfx, doc.GetFieldAsToken(field));
+                        continue;
+                     }
+                     Pipeline.EmitToken(ctx, sink, doc.GetFieldAsToken(field), pfx, splitUntil - 1);
+                  }
+                  sink.HandleValue(ctx, "record", null);
                }
-               sink.HandleValue(ctx, "record", null);
+               ctx.ImportLog.Log("Scanned {0} records", e.ScrolledCount);
             }
             sink.HandleValue(ctx, Pipeline.ItemStop, elt);
-            ctx.ImportLog.Log("Scanned {0} records", e.ScrolledCount);
          }
          catch (Exception e)
          {

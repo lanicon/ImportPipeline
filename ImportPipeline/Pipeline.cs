@@ -156,10 +156,10 @@ namespace Bitmanager.ImportPipeline
 
       public void Stop(PipelineContext ctx)
       {
-         logger.Log("Stopped datasource {0}. {1} missed keys.", ctx.DatasourceAdmin.Name, missed.Count);
+         ctx.MissedLog.Log("Stopped datasource [{0}]. {1} missed keys.", ctx.DatasourceAdmin.Name, missed.Count);
          foreach (var kvp in missed)
          {
-            logger.Log("-- {0}", kvp.Key);
+            ctx.MissedLog.Log("-- {0}", kvp.Key);
          }
          missed = new StringDict();
          ScriptObject = null;
@@ -337,8 +337,10 @@ namespace Bitmanager.ImportPipeline
             case JTokenType.Array:
                if (maxLevel < 0) break;
                var arr = (JArray)token;
+               String tmpKey = key + "/_v";
                for (int i=0; i<arr.Count; i++)
-                  EmitToken(ctx, sink, arr[i], key, maxLevel);
+                  EmitToken(ctx, sink, arr[i], tmpKey, maxLevel);
+               sink.HandleValue(ctx, key, null);
                return;
             case JTokenType.None:
             case JTokenType.Null:
@@ -357,13 +359,19 @@ namespace Bitmanager.ImportPipeline
                int newLvl = maxLevel - 1;
                foreach (var kvp in obj)
                {
-                  EmitToken (ctx, sink, kvp.Value, key + "/" + kvp.Key, maxLevel);
+                  EmitToken (ctx, sink, kvp.Value, key + "/" + generateObjectKey(kvp.Key), maxLevel);
                }
+               sink.HandleValue(ctx, key, null);
                return;
          }
          sink.HandleValue(ctx, key, value);
       }
+      static private String generateObjectKey(String k)
+      {
+         return String.IsNullOrEmpty(k) ? "_o" : k;
+      }
    }
+
 
 
 

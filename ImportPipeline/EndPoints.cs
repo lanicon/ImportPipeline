@@ -19,6 +19,10 @@ namespace Bitmanager.ImportPipeline
          : base(collNode, "endpoint", (n) => ImportEngine.CreateObject<Endpoint>(n, engine, n), true)
       {
          this.engine = engine;
+         if (OptGetByName("nop") == null)
+         {
+            Add (new Endpoint("nop")); //always have a NOP endpoint for free
+         }
       }
 
       public IDataEndpoint GetDataEndpoint(PipelineContext ctx, String name)
@@ -86,6 +90,13 @@ namespace Bitmanager.ImportPipeline
       public readonly DebugFlags Flags;
       public readonly CloseMode CloseMode;
 
+      internal Endpoint(String name)
+         : base(name)
+      {
+         Flags = DebugFlags._None;
+         ActiveMode = ImportPipeline.ActiveMode.Lazy;
+         CloseMode = ImportPipeline.CloseMode.Normal;
+      }
       public Endpoint(ImportEngine engine, XmlNode node) : this(node) { }
       public Endpoint(XmlNode node)
          : base(node)
@@ -246,7 +257,7 @@ namespace Bitmanager.ImportPipeline
          return (String.IsNullOrEmpty(fld)) ? accumulator : accumulator.SelectToken (fld, false);
       }
 
-      public virtual void SetField(String fld, Object value, FieldFlags fieldFlags, String sep)
+      public virtual void SetField(String fld, Object value, FieldFlags fieldFlags=FieldFlags.OverWrite, String sep=null)
       {
          //Logs.DebugLog.Log("SetField ({0}, {1})", fld, value);
          if (String.IsNullOrEmpty(fld))

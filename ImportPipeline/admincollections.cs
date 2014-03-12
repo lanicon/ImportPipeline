@@ -54,6 +54,13 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
+      public T Add(T item)
+      {
+         namedItems.Add(item.Name, item);
+         base.Add(item);
+         return item;
+      }
+
       /// <summary>
       /// Returns an element if it exists under that name . Otherwise return null.
       /// </summary>

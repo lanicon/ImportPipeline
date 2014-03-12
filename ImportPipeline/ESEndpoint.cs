@@ -102,16 +102,16 @@ namespace Bitmanager.ImportPipeline
 
    public class ESDataEndpoint : JsonEndpointBase<ESEndpoint>
    {
-      private readonly ESConnection connection;
-      private readonly IndexDocType doctype;
+      public readonly ESConnection Connection;
+      public readonly IndexDocType DocType;
       private readonly int cacheSize;
       private List<ESBulkEntry> cache;
       private AsyncRequestQueue asyncQ;
       public ESDataEndpoint(ESEndpoint endpoint, IndexDocType doctype)
          : base(endpoint)
       {
-         this.connection = endpoint.Connection;
-         this.doctype = doctype;
+         this.Connection = endpoint.Connection;
+         this.DocType = doctype;
          this.cacheSize = endpoint.CacheSize;
          if (endpoint.MaxParallel > 0)
             asyncQ = AsyncRequestQueue.Create (endpoint.MaxParallel);
@@ -128,14 +128,14 @@ namespace Bitmanager.ImportPipeline
          if (cache == null)
          {
             if (asyncQ == null)
-               connection.Post(doctype.UrlPart, accumulator).ThrowIfError();
+               Connection.Post(DocType.UrlPart, accumulator).ThrowIfError();
             else
                asyncQ.Add(new AsyncRequestElement(accumulator, asyncAdd));
          }
          else
          {
             cache.Add(new ESBulkEntry(accumulator));
-            if (cache.Count >= cacheSize) flushCache();
+            if (cache.Count >= cacheSize) FlushCache();
          }
          Clear();
       }
@@ -145,13 +145,13 @@ namespace Bitmanager.ImportPipeline
          JObject accu = ctx.WhatToAdd as JObject;
          if (accu != null)
          {
-            connection.Post(doctype.UrlPart, accu).ThrowIfError();
+            Connection.Post(DocType.UrlPart, accu).ThrowIfError();
             return;
          }
          flushCache((List<ESBulkEntry>)ctx.WhatToAdd);
       }
 
-      private void flushCache()
+      public void FlushCache()
       {
          if (cache.Count == 0) return;
          if (asyncQ == null)
@@ -165,7 +165,7 @@ namespace Bitmanager.ImportPipeline
       {
          //Logs.CreateLogger("import", "esdatendp").Log("Flush {0}", cache.Count);
          if (cache.Count == 0) return;
-         connection.Post(doctype.UrlPart + "/_bulk", cache).ThrowIfError();
+         Connection.Post(DocType.UrlPart + "/_bulk", cache).ThrowIfError();
       }
       public override void Start(PipelineContext ctx)
       {
@@ -181,7 +181,7 @@ namespace Bitmanager.ImportPipeline
          ctx.ImportLog.Log("stop cache=" + cache);
          if (cache != null)
          {
-            flushCache();
+            FlushCache();
             cache = null;
          }
          if (asyncQ != null) asyncQ.EndInvokeAll();
@@ -189,18 +189,18 @@ namespace Bitmanager.ImportPipeline
 
       public override ExistState Exists(PipelineContext ctx, string key, DateTime? timeStamp)
       {
-         ExistState st = doctype.Exists(connection, key, timeStamp);
+         ExistState st = DocType.Exists(Connection, key, timeStamp);
          Logs.DebugLog.Log("exist=" + st);
          return st;
          //return doctype.Exists(connection, key, timeStamp);
       }
       public override Object LoadRecord(PipelineContext ctx, String key)
       {
-         return doctype.LoadByKey(connection, key);
+         return DocType.LoadByKey(Connection, key);
       }
       public override void EmitRecord(PipelineContext ctx, String recordKey, String recordField, IDatasourceSink sink, String eventKey, int maxLevel)
       {
-         JObject obj = doctype.LoadByKey(connection, recordKey);
+         JObject obj = DocType.LoadByKey(Connection, recordKey);
          if (obj == null) return;
          JToken token = (recordField == null) ? obj : obj.GetValue(recordField, StringComparison.InvariantCultureIgnoreCase);
          if (token != null)

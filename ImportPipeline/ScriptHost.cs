@@ -59,6 +59,7 @@ namespace Bitmanager.ImportPipeline
       public void ClearCompilerParms()
       {
          _cp = new CompilerParameters();
+         _cp.CompilerOptions="/debug:pdbonly";// TreatWarningsAsErrors="false"
          _refs = new StringDict();
          AddReference("system.dll");
          AddReference("system.xml.dll");

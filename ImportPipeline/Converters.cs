@@ -119,6 +119,7 @@ namespace Bitmanager.ImportPipeline
             case "int32": return new ToInt32Converter(node);
             case "int64": return new ToInt32Converter(node);
             case "split": return new SplitConverter(node);
+            case "format": return new FormatConverter(node);
          }
          return Objects.CreateObject<Converter>(type, node);
       }
@@ -343,9 +344,22 @@ namespace Bitmanager.ImportPipeline
          String v = value as String;
          if (v == null) return value;
 
-         String[] arr = v.Split (sep);
+         String[] arr = v.Split(sep);
          for (int i = 0; i < arr.Length; i++) arr[i] = arr[i].Trim();
          return arr;
+      }
+   }
+
+   public class FormatConverter : Converter
+   {
+      String format;
+      public FormatConverter(XmlNode node) : base(node) {
+         format = node.ReadStr("@format"); 
+      }
+
+      public override Object ConvertScalar(Object value)
+      {
+         return Invariant.Format(format, value);
       }
    }
 

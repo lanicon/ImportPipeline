@@ -62,14 +62,51 @@
     <Compile Include="..\site\app_code\**\*.cs">
       <Visible>false</Visible>
     </Compile>
-    <Reference Include="bin\debug\*.dll" />
+    <Reference Include="bin\debug\HtmlAgilityPack.dll" />
+    <Reference Include="bin\debug\HtmlDatasource.dll" />
     <Reference Include="..\bin\debug\*.dll" />
+    <Reference Include="bmcore101">
+      <HintPath>..\..\_References\bmcore101.dll</HintPath>
+    </Reference>
+    <Reference Include="bmelastic100">
+      <HintPath>..\..\_References\bmelastic100.dll</HintPath>
+    </Reference>
+    <Reference Include="bmjson100">
+      <HintPath>..\..\_References\bmjson100.dll</HintPath>
+    </Reference>
+    <Reference Include="LumenWorks.Framework.IO">
+      <HintPath>..\..\..\codeproject\LumenWorks.Framework.IO\bin\Debug\LumenWorks.Framework.IO.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\_References\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Web" />
     <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="ImportDirs\**\*.xml" />
+    <Content Include="ImportDirs\AltNames\import.xml" />
+    <Content Include="ImportDirs\Channels\import.xml" />
+    <Content Include="ImportDirs\countCities\import.xml" />
+    <Content Include="ImportDirs\desttrans\import.xml" />
+    <Content Include="ImportDirs\esToNop\import.xml" />
+    <Content Include="ImportDirs\ES\import.xml" />
+    <Content Include="ImportDirs\EvaluateMissing\import.xml" />
+    <Content Include="ImportDirs\FinnishCountries\import.xml" />
+    <Content Include="ImportDirs\Giro\import.xml" />
+    <Content Include="ImportDirs\GorillaMail\import.xml" />
+    <Content Include="ImportDirs\Gorilla\import.xml" />
+    <Content Include="ImportDirs\hotelsVoorB\import.xml" />
+    <Content Include="ImportDirs\hotels\import.xml" />
+    <Content Include="ImportDirs\Missed2Canonical\import.xml" />
+    <Content Include="ImportDirs\Missed\import.xml" />
+    <Content Include="ImportDirs\RealtimeEvents\import.xml" />
+    <Content Include="ImportDirs\termlist\import.xml" />
+    <Content Include="ImportDirs\Tika\import.xml" />
+    <Content Include="ImportDirs\Xml\import.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="ImportDirs\zCsvToCsv\import.xml" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.0">
@@ -95,6 +132,16 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ImportPipeline\ImportPipeline.csproj">
+      <Project>{b0c6c1db-fa8a-418e-89d8-2f21d7650d3e}</Project>
+      <Name>ImportPipeline</Name>
+    </ProjectReference>
+    <ProjectReference Include="Importer.csproj">
+      <Project>{ffe19c24-9e55-459e-9cd9-0f589ddbd7e7}</Project>
+      <Name>Importer</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

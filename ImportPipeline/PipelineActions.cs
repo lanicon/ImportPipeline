@@ -37,6 +37,8 @@ namespace Bitmanager.ImportPipeline
       protected Converter[] converters;
       protected IDataEndpoint endPoint;
       protected String endpointName, convertersName, scriptName;
+      protected String clrvarName;
+      internal String[] VarsToClear;
       protected KeyCheckMode checkMode;
 
       public IDataEndpoint Endpoint { get { return endPoint; } }
@@ -51,6 +53,10 @@ namespace Bitmanager.ImportPipeline
          if (endpointName == null) node.ReadStr("@endpoint");
 
          scriptName = node.OptReadStr("@script", null);
+
+         clrvarName = node.OptReadStr("@clrvar", null);
+         VarsToClear = clrvarName.SplitStandard();
+         
          convertersName = Converters.readConverters(node);
          checkMode = node.OptReadEnum<KeyCheckMode>("@check", 0);
          if (checkMode == KeyCheckMode.date) checkMode |= KeyCheckMode.key;
@@ -68,6 +74,11 @@ namespace Bitmanager.ImportPipeline
          this.endpointName = optReplace (regex, name, template.endpointName);
          this.convertersName = optReplace (regex, name, template.convertersName); 
          this.scriptName = optReplace (regex, name, template.scriptName);
+         this.clrvarName = optReplace(regex, name, template.clrvarName);
+         if (this.clrvarName == template.clrvarName)
+            this.VarsToClear = template.VarsToClear;
+         else
+            this.VarsToClear = this.clrvarName.SplitStandard();
       }
 
       public virtual void Start(PipelineContext ctx)
@@ -109,7 +120,6 @@ namespace Bitmanager.ImportPipeline
                Object date = null;
                if ((checkMode & KeyCheckMode.date) != 0)
                   date = ctx.Pipeline.GetVariable("date");
-
                return endPoint.Exists(ctx, (String)k, (DateTime?)date);
             }
          }
@@ -136,12 +146,18 @@ namespace Bitmanager.ImportPipeline
       public override string ToString()
       {
          StringBuilder b = new StringBuilder();
+         _ToString(b);
+         b.Append(')');
+         return b.ToString();
+      }
+      protected virtual void _ToString(StringBuilder b)
+      {
          b.AppendFormat("{0}: (key={1}", this.GetType().Name, Name);
          if (endpointName != null) b.AppendFormat(", endpoint={0}", endpointName);
          if (convertersName != null) b.AppendFormat(", conv={0}", convertersName);
          if (scriptName != null) b.AppendFormat(", script={0}", scriptName);
          if (checkMode != 0) b.AppendFormat(", check={0}", checkMode);
-         return b.ToString();
+         if (clrvarName != null) b.AppendFormat(", clrvar={0}", clrvarName);
       }
 
       public abstract Object HandleValue(PipelineContext ctx, String key, Object value);
@@ -179,44 +195,67 @@ namespace Bitmanager.ImportPipeline
    public class PipelineFieldAction : PipelineAction
    {
       protected String toField;
-      protected String varName;
+      protected String toFieldFromVar;
+      protected String toVar;
+      protected String fromVar;
       protected FieldFlags fieldFlags;
       protected String sep;
 
       public PipelineFieldAction(Pipeline pipeline, XmlNode node)
          : base(pipeline, node)
       {
-         varName = node.OptReadStr("@tovar", null);
+         toVar = node.OptReadStr("@tovar", null);
+         fromVar = node.OptReadStr("@fromvar", null);
          toField = node.OptReadStr("@field", null);
+         toFieldFromVar = node.OptReadStr("@fieldfromvar", null);
          sep = node.OptReadStr("@sep", null);
          fieldFlags = node.OptReadEnum("@flags", sep==null ? FieldFlags.OverWrite : FieldFlags.Append);
 
-         if (checkMode == 0 && toField == null && varName == null && base.scriptName==null)
-            throw new BMNodeException(node, "At least one of 'field', 'tovar', 'script', 'check'-attributes is mandatory.");
+         if (checkMode == 0 && toField == null && toVar == null && base.scriptName == null && toFieldFromVar == null)
+            throw new BMNodeException(node, "At least one of 'field', 'toFieldFromVar', 'tovar', 'script', 'check'-attributes is mandatory.");
       }
 
       internal PipelineFieldAction(PipelineFieldAction template, String name, Regex regex)
          : base(template, name, regex)
       {
          this.toField = optReplace(regex, name, template.toField);
-         this.varName = optReplace(regex, name, template.varName);
+         this.toVar = optReplace(regex, name, template.toVar);
+         this.fromVar = optReplace(regex, name, template.fromVar);
+         this.toFieldFromVar = optReplace(regex, name, template.toFieldFromVar);
          this.sep = template.sep;
          this.fieldFlags = template.fieldFlags;
       }
 
       public override Object HandleValue(PipelineContext ctx, String key, Object value)
       {
+         if (fromVar != null) value = ctx.Pipeline.GetVariable(fromVar);
+
          value = ConvertAndCallScript(ctx, key, value);
          if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) return null;
 
-         if (toField != null) endPoint.SetField (toField, value, fieldFlags, sep);
-         if (varName != null) ctx.Pipeline.SetVariable(varName, value);
+         if (toField != null)
+            endPoint.SetField (toField, value, fieldFlags, sep);
+         else
+            if (toFieldFromVar != null)
+            {
+               String fn = ctx.Pipeline.GetVariableStr(toFieldFromVar);
+               if (fn != null) endPoint.SetField(fn, value, fieldFlags, sep);
+            }
+         if (toVar != null) ctx.Pipeline.SetVariable(toVar, value);
          return base.handleCheck(ctx);
       }
 
-      public override string ToString()
+      protected override void _ToString(StringBuilder sb)
       {
-         return base.ToString() + String.Format (", field={0}, var={1})", toField, varName);
+         base._ToString(sb);
+         if (toField != null)
+            sb.AppendFormat (", field={0}", toField);
+         else if (toFieldFromVar != null)
+            sb.AppendFormat(", fieldfromvar={0}", toFieldFromVar);
+         if (fromVar != null)
+            sb.AppendFormat(", fromvar={0}", fromVar);
+         if (toVar != null)
+            sb.AppendFormat(", tovar={0}", toVar);
       }
    }
 
@@ -259,12 +298,6 @@ namespace Bitmanager.ImportPipeline
          pipeline.ClearVariables();
          return null;
       }
-
-      public override string ToString()
-      {
-         return base.ToString() + ")";
-      }
-
    }
 
    public class PipelineNopAction : PipelineAction
@@ -283,11 +316,6 @@ namespace Bitmanager.ImportPipeline
       public override Object  HandleValue(PipelineContext ctx, String key, Object value)
       {
          return null;
-      }
-
-      public override string ToString()
-      {
-         return base.ToString() + ")";
       }
    }
 
@@ -328,10 +356,10 @@ namespace Bitmanager.ImportPipeline
          return null;
       }
 
-      public override string ToString()
+      protected override void _ToString(StringBuilder sb)
       {
-         return String.Format("{0} eventKey={1}, dest={2}, maxlevel={3})", base.ToString(), eventKey, destination, maxLevel);
+         base._ToString(sb);
+         sb.AppendFormat(", eventKey={1}, dest={2}, maxlevel={3}", eventKey, destination, maxLevel);
       }
-
    }
 }

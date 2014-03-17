@@ -54,7 +54,7 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
-      public T Add(T item)
+      public new T Add(T item)
       {
          namedItems.Add(item.Name, item);
          base.Add(item);

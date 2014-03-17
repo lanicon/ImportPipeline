@@ -38,8 +38,24 @@ namespace Bitmanager.ImportPipeline
          XmlNode typesNode = node.SelectSingleNode("indextypes");
          if (typesNode != null)
             IndexTypes = new IndexDefinitionTypes(engine.Xml, typesNode);
-         Indexes = new IndexDefinitions(IndexTypes, engine.Xml, node.SelectMandatoryNode("indexes"), false);
-         IndexDocTypes = new IndexDocTypes(Indexes, node.SelectMandatoryNode("types"));
+         XmlNode root = node.SelectSingleNode("indexes");
+         if (root == null) root = node;
+
+         IndexDocTypes = new IndexDocTypes();
+         Indexes = new IndexDefinitions(IndexTypes, engine.Xml, root, false);
+
+         //Add doctypes from indexes
+         for (int i = 0; i < Indexes.Count; i++)
+            for (int j = 0; j < Indexes[i].DocTypes.Count; j++)
+               IndexDocTypes.Add(Indexes[i].DocTypes[j]);
+
+         //Optional load other doctypes
+         root = node.SelectSingleNode("types");
+         if (root != null) IndexDocTypes.Load (Indexes, root);
+
+         //Error if nothing defined
+         if (IndexDocTypes.Count == 0)
+            throw new BMNodeException(node, "At least 1 index+type is required!");
 
          String[] arr = node.OptReadStr("waitfor/@status", "green|yellow").SplitStandard();
          WaitForTimeout = node.OptReadInt("waitfor/@timeout", 30);
@@ -68,6 +84,7 @@ namespace Bitmanager.ImportPipeline
          if (ReadOnly) return;
          ESIndexCmd._CheckIndexFlags flags = ESIndexCmd._CheckIndexFlags.AppendDate;
          if ((ctx.ImportFlags & _ImportFlags.ImportFull) != 0) flags |= ESIndexCmd._CheckIndexFlags.ForceCreate;
+         ctx.ImportLog.Log("ESEndpoint '{0}' [cache={1}, maxparallel={2}, readonly={3}, url={4}]", Name, CacheSize, MaxParallel, ReadOnly, Connection.BaseUri);
          Indexes.CreateIndexes(Connection, flags);
          WaitForStatus();
       }

@@ -22,13 +22,12 @@ namespace Bitmanager.ImportPipeline
 {
    public class XmlDatasource : Datasource
    {
-      private String processName;
-      private String uriBase;
       private IDatasourceFeeder feeder;
-      private int abstractLength, abstractDelta;
+      private bool dumpReader;
       public void Init(PipelineContext ctx, XmlNode node)
       {
          feeder = ctx.CreateFeeder(node);
+         dumpReader = node.OptReadBool("@debug", false);
       }
 
 
@@ -77,6 +76,7 @@ namespace Bitmanager.ImportPipeline
          }
 
          List<String> keys = new List<string>();
+         List<String> values = new List<String>();
          int lvl = -1;
          FileStream fs = null;
          try
@@ -87,17 +87,24 @@ namespace Bitmanager.ImportPipeline
             Logger l = ctx.DebugLog;
             while (rdr.Read())
             {
-               l.Log("{0}: {1}, {2}", rdr.Name, rdr.NodeType, rdr.IsEmptyElement);
+               if (dumpReader) l.Log("{0}: {1}, {2} [{3}]", rdr.Name, rdr.NodeType, rdr.IsEmptyElement, rdr.Value);
                switch (rdr.NodeType)
                {
+                  case XmlNodeType.CDATA:
+                  case XmlNodeType.Text:
+                  case XmlNodeType.Whitespace:
+                  case XmlNodeType.SignificantWhitespace:
+                     if (lvl <= 0) continue;
+                     values[lvl] = values[lvl] + rdr.Value;
+                     continue;
                   case XmlNodeType.Element:
                      lvl++;
-                     if (lvl >= keys.Count) keys.Add(null);
+                     if (lvl >= keys.Count) {keys.Add(null); values.Add(null);}
                      if (lvl == 0)
                         keys[0] = rdr.Name;
                      else
                         keys[lvl] = keys[lvl - 1] + "/" + rdr.Name;
-                     l.Log("{0}: [{1}, {2}]", lvl, keys[lvl], rdr.NodeType);
+                     //l.Log("{0}: [{1}, {2}]", lvl, keys[lvl], rdr.NodeType);
                      bool isEmpty = rdr.IsEmptyElement;  //cache this value: after reading the attribs its value is lost 
                      if (rdr.AttributeCount > 0)
                      {
@@ -105,16 +112,20 @@ namespace Bitmanager.ImportPipeline
                         for (int j=0; j<rdr.AttributeCount; j++)
                         {
                            rdr.MoveToNextAttribute();
-                           sink.HandleValue(ctx, pfx + rdr.Name, rdr.Value);
+                           sink.HandleValue(ctx, pfx + rdr.Name,  rdr.Value);
                         }
                      }
                      if (!isEmpty) continue;
-                     l.Log("{0}: [{1}]", keys[lvl], rdr.NodeType);
+
+                     //l.Log("{0}: [{1}]", keys[lvl], rdr.NodeType);
+                     sink.HandleValue(ctx, keys[lvl], null);
                      lvl--;
 
                      continue;
                   case XmlNodeType.EndElement:
-                     l.Log("{0}: [{1}]", keys[lvl], rdr.NodeType);
+                     //l.Log("{0}: [{1}]", keys[lvl], rdr.NodeType);
+                     sink.HandleValue(ctx, keys[lvl], values[lvl]);
+                     values[lvl] = null;
                      lvl--;
                      continue;
                }

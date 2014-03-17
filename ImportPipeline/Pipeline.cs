@@ -115,6 +115,14 @@ namespace Bitmanager.ImportPipeline
       {
          variables = null;
       }
+      public void ClearVariables(String[] varsToClear)
+      {
+         if (variables==null || varsToClear==null) return;
+         for (int i = 0; i < varsToClear.Length; i++)
+         {
+            variables.Remove(varsToClear[i]);
+         }
+      }
 
       private static String[] splitEndpoint(String s)
       {
@@ -212,7 +220,7 @@ namespace Bitmanager.ImportPipeline
          int ixStart = findAction(lcKey);
          if (ixStart < 0)
          {
-            if (!checkTemplates(ctx, key))
+            if (templates.Count == 0 || !checkTemplates(ctx, key)) //templates==0: otherwise checkTemplates() inserts a NOP action...
             {
                missed[lcKey] = null;
                goto UNHANDLED; 
@@ -229,6 +237,7 @@ namespace Bitmanager.ImportPipeline
 
             lastAction = ctx.SetAction (a.Action);
             Object tmp = a.Action.HandleValue(ctx, key, value);
+            ClearVariables(a.Action.VarsToClear); 
             if (tmp != null) ret = tmp;
             if ((ctx.ActionFlags & _ActionFlags.SkipRest) != 0)
                break;
@@ -304,17 +313,17 @@ namespace Bitmanager.ImportPipeline
          logger.Log("Dumping pipeline {0} {1}", Name, why);
          var list = actions == null ? definedActions : actions; 
 
-         logger.Log("{0} actions", list.Count);
+         logger.Log("-- {0} actions", list.Count);
          for (int i = 0; i < list.Count; i++)
          {
             var action = list[i];
-            logger.Log ("-- action order={0} {1}", action.Order, action.Action);
+            logger.Log("-- -- action order={0} {1}", action.Order, action.Action);
          }
 
-         logger.Log("{0} templates", templates.Count);
+         logger.Log("-- {0} templates", templates.Count);
          for (int i = 0; i < templates.Count; i++)
          {
-            logger.Log("-- " + templates[i]);
+            logger.Log("-- -- " + templates[i]);
          }
       }
 

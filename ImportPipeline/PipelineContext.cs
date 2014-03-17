@@ -102,7 +102,7 @@ namespace Bitmanager.ImportPipeline
 
       public void CountAndLogAdd()
       {
-         switch ((++Added % LogAdds))
+         switch ((++Added) % LogAdds)
          {
             case 0: ImportLog.Log(_LogType.ltTimer, "Added {0} records", Added); break;
             case 1: if (Added != 1) break; ImportLog.Log(_LogType.ltTimerStart, "Added 1 record"); break;
@@ -112,7 +112,10 @@ namespace Bitmanager.ImportPipeline
       }
       public void LogLastAdd()
       {
-         ImportLog.Log(_LogType.ltTimerStop, "Added {0} records", Added); 
+         if (Added == 0)
+            ImportLog.Log("No records were added.");
+         else
+            ImportLog.Log(_LogType.ltTimerStop, "Added {0} records", Added); 
       }
 
       public IDatasourceFeeder CreateFeeder(XmlNode node, String expr, Type defaultFeederType=null)

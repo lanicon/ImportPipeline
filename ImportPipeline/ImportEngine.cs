@@ -61,6 +61,7 @@ namespace Bitmanager.ImportPipeline
          ImportFlags = xml.OptReadEnum("@importflags", ImportFlags);
          LogAdds = xml.OptReadInt("@logadds", 50000);
          MaxAdds = xml.OptReadInt("@maxadds", -1);
+         ImportLog.Log("Loading import xml: flags={0}, logadds={1}, maxadds={2}", ImportFlags, LogAdds, MaxAdds);
 
          //Load the supplied script
          ImportLog.Log(_LogType.ltTimerStart, "loading: scripts"); 

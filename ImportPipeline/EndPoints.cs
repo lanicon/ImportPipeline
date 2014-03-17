@@ -208,6 +208,12 @@ namespace Bitmanager.ImportPipeline
       /// Gets the content of a field. If fld==null, the whole cached content is returned (if supported)
       /// </summary>
       Object GetField(String fld);
+      JToken GetFieldAsToken(String fld);
+      String GetFieldAsStr(String fld);
+      int GetFieldAsInt32(String fld);
+      long GetFieldAsInt64(String fld);
+      double GetFieldAsDbl(String fld);
+      DateTime GetFieldAsDate(String fld);
 
       /// <summary>
       /// Sets the content of a field. If fld==null, the whole cached content is replaced (if supported)
@@ -254,7 +260,43 @@ namespace Bitmanager.ImportPipeline
 
       public virtual Object GetField(String fld)
       {
-         return (String.IsNullOrEmpty(fld)) ? accumulator : accumulator.SelectToken (fld, false);
+         return (String.IsNullOrEmpty(fld)) ? accumulator : accumulator.SelectToken(fld, false).ToNative();
+      }
+      public virtual JToken GetFieldAsToken(String fld)
+      {
+         return (String.IsNullOrEmpty(fld)) ? accumulator : accumulator.SelectToken(fld, false);
+      }
+
+      public virtual String GetFieldAsStr(String fld)
+      {
+         if (String.IsNullOrEmpty(fld)) return accumulator.ToString(Newtonsoft.Json.Formatting.Indented);
+         JToken token = accumulator.SelectToken(fld);
+         return token == null ? null : token.ToString();
+      }
+      public virtual int GetFieldAsInt32(String fld)
+      {
+         checkField(fld);
+         return accumulator.ReadInt(checkField(fld));
+      }
+      public virtual long GetFieldAsInt64(String fld)
+      {
+         checkField(fld);
+         return accumulator.ReadInt(checkField(fld));
+      }
+      public virtual double GetFieldAsDbl(String fld)
+      {
+         checkField(fld);
+         return accumulator.ReadDbl(checkField(fld));
+      }
+      public virtual DateTime GetFieldAsDate(String fld)
+      {
+         checkField(fld);
+         return accumulator.ReadDate(checkField(fld));
+      }
+      private static String checkField(String fld)
+      {
+         if (String.IsNullOrEmpty(fld)) throw new BMException("Empty field is not allowed when asking for a typed field.");
+         return fld;
       }
 
       public virtual void SetField(String fld, Object value, FieldFlags fieldFlags=FieldFlags.OverWrite, String sep=null)

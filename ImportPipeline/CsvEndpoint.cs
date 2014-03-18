@@ -25,7 +25,7 @@ namespace Bitmanager.ImportPipeline
       bool trim;
 
       public CsvEndpoint(ImportEngine engine, XmlNode node)
-         : base(node)
+         : base(node, ActiveMode.Lazy | ActiveMode.Local)
       {
          FileName = engine.Xml.CombinePath(node.ReadStr("@file"));
          trim = node.OptReadBool("@trim", true);
@@ -36,6 +36,7 @@ namespace Bitmanager.ImportPipeline
 
       protected override void Open(PipelineContext ctx)
       {
+         base.Open(ctx);
          fs = new FileStream(FileName, FileMode.Create, FileAccess.Write, FileShare.Read);
          wtr = new StreamWriter(fs, Encoding.UTF8, 32*1024);
       }
@@ -52,6 +53,7 @@ namespace Bitmanager.ImportPipeline
             fs.Close();
             fs = null;
          }
+         base.Close(ctx);
       }
 
       protected override IDataEndpoint CreateDataEndpoint(PipelineContext ctx, string dataName)

@@ -173,6 +173,7 @@ namespace Bitmanager.ImportPipeline
                      }
                   }
                }
+               Endpoints.OptClosePerDatasource(ctx);
 
                foreach (var c in Converters) c.DumpMissed(ctx);
             }

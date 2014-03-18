@@ -82,6 +82,7 @@ namespace Bitmanager.ImportPipeline
       protected override void Open(PipelineContext ctx)
       {
          if (ReadOnly) return;
+         base.Open(ctx);
          ESIndexCmd._CheckIndexFlags flags = ESIndexCmd._CheckIndexFlags.AppendDate;
          if ((ctx.ImportFlags & _ImportFlags.ImportFull) != 0) flags |= ESIndexCmd._CheckIndexFlags.ForceCreate;
          ctx.ImportLog.Log("ESEndpoint '{0}' [cache={1}, maxparallel={2}, readonly={3}, url={4}]", Name, CacheSize, MaxParallel, ReadOnly, Connection.BaseUri);
@@ -92,12 +93,14 @@ namespace Bitmanager.ImportPipeline
       protected override void Close(PipelineContext ctx)
       {
          if (ReadOnly) return;
+
          if (!base.logCloseAndCheckForNormalClose(ctx)) return;
          ctx.ImportLog.Log("-- Optional optimize indexes");
          Indexes.OptionalOptimize(Connection);
          ctx.ImportLog.Log("-- Optional rename indexes");
          Indexes.OptionalRename(Connection);
          logCloseDone(ctx);
+         base.Close(ctx);
       }
 
       public bool WaitForStatus()

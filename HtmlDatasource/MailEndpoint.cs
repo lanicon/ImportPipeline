@@ -49,6 +49,7 @@ namespace BeursGorilla
 
       protected override void Open(PipelineContext ctx)
       {
+         base.Open(ctx);
       }
 
       protected void buildMail(StringBuilder sb, List<JObject> stocksToMail)
@@ -107,6 +108,7 @@ namespace BeursGorilla
          }
       EXIT_RTN:
          logCloseDone(ctx);
+         base.Close(ctx);
 
       }
       private static double absolutePercentage(JObject obj)

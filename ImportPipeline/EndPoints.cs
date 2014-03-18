@@ -16,7 +16,7 @@ namespace Bitmanager.ImportPipeline
    {
       public readonly ImportEngine engine;
       public Endpoints(ImportEngine engine, XmlNode collNode)
-         : base(collNode, "endpoint", (n) => ImportEngine.CreateObject<Endpoint>(n, engine, n), true)
+         : base(collNode, "endpoint", (n) => ImportEngine.CreateObject<Endpoint>(n, engine, n), false)
       {
          this.engine = engine;
          if (OptGetByName("nop") == null)
@@ -69,12 +69,28 @@ namespace Bitmanager.ImportPipeline
 
       public void Close(PipelineContext ctx)
       {
-         foreach (var x in this) 
-            x._Close (ctx);
+         foreach (var x in this)
+            x._Close(ctx);
+      }
+
+      /// <summary>
+      /// Auto close lazy non-global endpoints on datasource-stop
+      /// </summary>
+      /// <param name="ctx"></param>
+      public void OptClosePerDatasource(PipelineContext ctx)
+      {
+         foreach (var x in this)
+         {
+            if (!x.opened) continue;
+            if ((x.ActiveMode & ActiveMode.Lazy) == 0) continue;
+            if ((x.ActiveMode & ActiveMode.Global) != 0) continue; 
+            x._Close(ctx);
+         }
       }
    }
 
-   public enum ActiveMode {True, False, Lazy};
+   [Flags]
+   public enum ActiveMode {True=1, False=2, Lazy=4, Global=8, Local=16};
    public enum CloseMode
    {
       Normal = 0,
@@ -85,7 +101,7 @@ namespace Bitmanager.ImportPipeline
    public class Endpoint : NamedItem
    {
       public enum DebugFlags {_None=0, _LogField=1, _LogAdd=2};
-      internal bool opened;
+      internal protected bool opened;
       public readonly ActiveMode ActiveMode;
       public readonly DebugFlags Flags;
       public readonly CloseMode CloseMode;
@@ -94,16 +110,34 @@ namespace Bitmanager.ImportPipeline
          : base(name)
       {
          Flags = DebugFlags._None;
-         ActiveMode = ImportPipeline.ActiveMode.Lazy;
+         ActiveMode = ImportPipeline.ActiveMode.Lazy | ImportPipeline.ActiveMode.Global;
          CloseMode = ImportPipeline.CloseMode.Normal;
       }
       public Endpoint(ImportEngine engine, XmlNode node) : this(node) { }
-      public Endpoint(XmlNode node)
+      public Endpoint(XmlNode node, ImportPipeline.ActiveMode defActiveMode = 0)
          : base(node)
       {
+         if (defActiveMode == 0) defActiveMode = ImportPipeline.ActiveMode.Lazy | ImportPipeline.ActiveMode.Global;
+         if ((defActiveMode & (ImportPipeline.ActiveMode.Local | ImportPipeline.ActiveMode.Global)) != 0)
+            defActiveMode |= ImportPipeline.ActiveMode.Global;
          Flags = node.OptReadEnum<DebugFlags>("@flags", 0);
-         ActiveMode = node.OptReadEnum("@active", ActiveMode.Lazy);
          CloseMode = node.OptReadEnum("@closemode", CloseMode.Normal);
+         ActiveMode = node.OptReadEnum("@active", defActiveMode);
+         switch (ActiveMode)
+         {
+            case 0:
+               ActiveMode = defActiveMode;
+               break;
+            case ImportPipeline.ActiveMode.False:
+            case ImportPipeline.ActiveMode.True:
+               break;
+            default:
+               if ((ActiveMode & (ImportPipeline.ActiveMode.False | ImportPipeline.ActiveMode.True)) != 0)
+                  throw new BMNodeException (node, "ActiveMode true/false cannot be combined with other flags. ActiveMode={0}.", ActiveMode);
+               if ((ActiveMode & (ImportPipeline.ActiveMode.Local | ImportPipeline.ActiveMode.Global)) != 0)
+                  ActiveMode |= defActiveMode & (ImportPipeline.ActiveMode.Local | ImportPipeline.ActiveMode.Global);
+               break;
+         }
       }
 
       protected bool isNormalCloseAllowed(PipelineContext ctx)
@@ -170,6 +204,7 @@ namespace Bitmanager.ImportPipeline
 
       protected virtual void Close(PipelineContext ctx)
       {
+         opened = false;
       }
 
       protected virtual IDataEndpoint CreateDataEndpoint(PipelineContext ctx, string name)

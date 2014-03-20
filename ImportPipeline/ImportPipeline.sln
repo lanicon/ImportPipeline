@@ -20,6 +20,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "scriptsTester", "..\Importe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "importDirs", "..\Importer\importDirs.csproj", "{A8763DBE-7B61-40F5-938D-1CA0E8C2FBE4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "..\UnitTests\UnitTests.csproj", "{548CB122-39DF-4C60-9D8B-50E3A11BBA89}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -49,6 +51,10 @@ Global
 		{A8763DBE-7B61-40F5-938D-1CA0E8C2FBE4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A8763DBE-7B61-40F5-938D-1CA0E8C2FBE4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A8763DBE-7B61-40F5-938D-1CA0E8C2FBE4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{548CB122-39DF-4C60-9D8B-50E3A11BBA89}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{548CB122-39DF-4C60-9D8B-50E3A11BBA89}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{548CB122-39DF-4C60-9D8B-50E3A11BBA89}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{548CB122-39DF-4C60-9D8B-50E3A11BBA89}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

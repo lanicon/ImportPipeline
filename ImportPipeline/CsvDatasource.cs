@@ -104,6 +104,7 @@ namespace Bitmanager.ImportPipeline
                if (startAt > line) continue;
                sink.HandleValue(ctx, "record/_start", null);
                int fieldCount = csvRdr.FieldCount;
+               ctx.DebugLog.Log("Record {0}. FC={1}", line, fieldCount); 
                for (int i = keys.Count; i <= fieldCount; i++) keys.Add(String.Format("record/f{0}", i));
                for (int i = 0; i < fieldCount; i++)
                {
@@ -178,5 +179,181 @@ namespace Bitmanager.ImportPipeline
       }
    }
 
+#if true
+   public class _Reader
+   {
+      private StreamReader reader;
+      private int line;
+      private int nextChar;
+      private int quoteChar;
+      private int sepChar;
+      private int escapeChar;
+      private List<String> fields;
+      public List<String> Fields { get { return fields; } }
+      public int Line { get { return line; } }
+      public String SepChar
+      {
+         get { return new String((char)sepChar, 1); }
+         set { sepChar = String.IsNullOrEmpty(value) ? -1 : (int)value[0]; }
+      }
+      public String QuoteChar
+      {
+         get { return quoteChar < 0 ? null : new String((char)quoteChar, 1); }
+         set { quoteChar = String.IsNullOrEmpty(value) ? -1 : (int)value[0]; }
+      }
+      public String EscapeChar
+      {
+         get { return escapeChar < 0 ? null : new String((char)escapeChar, 1); }
+         set { escapeChar = String.IsNullOrEmpty(value) ? -1 : (int)value[0]; }
+      }
+
+      public int SepOrd
+      {
+         get { return sepChar; }
+         set { sepChar = value; }
+      }
+      public int QuoteOrd
+      {
+         get { return quoteChar; }
+         set { quoteChar = value; }
+      }
+      public int EscapeOrd
+      {
+         get { return escapeChar; }
+         set { escapeChar = value; }
+      }
+
+      //public _Reader (using (StreamReader sr = new StreamReader("TestFile.txt")) 
+      public _Reader(StreamReader sr)
+      {
+         reader = sr;
+         nextChar = sr.Read();
+         fields = new List<string>();
+         quoteChar = '"';
+         sepChar = 9;
+         escapeChar = -1;
+         line = -1;
+      }
+      public _Reader(Stream strm): this (new StreamReader (strm, Encoding.UTF8, true, 4096))
+      {
+      }
+
+      enum _State { None=0, InNormalField=1, InQuotedField=2 };
+
+      private void addFieldAndClear(StringBuilder sb)
+      {
+         if (sb.Length == 0)
+         {
+            fields.Add(String.Empty);
+            return;
+         }
+         fields.Add(sb.ToString());
+         sb.Length = 0;
+      }
+
+      public bool NextRecord()
+      {
+         fields.Clear();
+         if (nextChar < 0) return false;
+         ++line;
+         int ch = nextChar;
+         
+         _State state = _State.None;
+         StringBuilder sb = new StringBuilder();
+         int pos = 0;
+
+         while (true)
+         {
+            switch (ch)
+            {
+               case -1:
+                  if (fields.Count > 0 || sb.Length > 0) addFieldAndClear(sb);
+                  goto EOR;
+
+               case '\r':
+               case '\n':
+                  if (state == _State.InQuotedField)
+                  {
+                     sb.Append((char)ch);
+                     goto NEXT_CHAR;
+                  }
+                  if (fields.Count > 0 || sb.Length>0) addFieldAndClear (sb);
+                  if (ch == '\r')
+                  {
+                     ch = reader.Read();
+                     if (ch != '\n') goto EOR;
+                  }
+                  else
+                  {
+                     ch = reader.Read();
+                     if (ch != '\r') goto EOR;
+                  }
+                  ch = reader.Read();
+                  goto EOR;
+            }
+
+            if (ch == sepChar)
+            {
+               if (state == _State.InQuotedField)
+               {
+                  sb.Append((char)ch);
+                  goto NEXT_CHAR;
+               }
+               addFieldAndClear(sb);
+               state = _State.InNormalField;
+               goto NEXT_CHAR;
+            }
+
+            if (ch == quoteChar)
+            {
+               if (state == _State.InQuotedField)
+               {
+                  ch = reader.Read();
+                  if (ch == quoteChar)
+                  {
+                     sb.Append((char)ch);
+                     goto NEXT_CHAR;
+                  }
+
+                  while (ch == ' ') ch = reader.Read();
+                  switch (ch)
+                  {
+                     default:
+                        if (ch == sepChar) break;
+                        nextChar = -1;
+                        throw new BMException("error at line {0}: unexpected char {1}, field={2}. ", line, (char)ch, fields.Count);
+                     case '\r':
+                     case '\n':
+                     case -1:
+                        break;
+                  }
+                  state = _State.None;
+                  continue;
+               }
+
+               //Should be the beginning of a quoted field...
+               for (int i=0; i<sb.Length; i++)
+                  if (sb[i] != ' ')
+                  {
+                     nextChar = -1;
+                     throw new BMException("error at line {0}: unexpected char {1}, field={2}.", line, (char)ch, fields.Count);
+                  }
+               sb.Length = 0;
+               state = _State.InQuotedField;
+               goto NEXT_CHAR;
+            }
+
+            sb.Append ((char) ch);
+
+
+         NEXT_CHAR:
+            ch=reader.Read();
+         }
+         EOR:
+         nextChar = ch;
+         return true;
+      }
+   }
+#endif
 
 }

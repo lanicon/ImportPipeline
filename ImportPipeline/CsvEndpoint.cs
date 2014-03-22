@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using LumenWorks.Framework.IO.Csv;
 using Bitmanager.Core;
 using Bitmanager.Xml;
 using System.Xml;

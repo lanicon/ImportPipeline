@@ -359,7 +359,7 @@ namespace Bitmanager.ImportPipeline
       protected override void _ToString(StringBuilder sb)
       {
          base._ToString(sb);
-         sb.AppendFormat(", eventKey={1}, dest={2}, maxlevel={3}", eventKey, destination, maxLevel);
+         sb.AppendFormat(", eventKey={0}, dest={1}, maxlevel={2}", eventKey, destination, maxLevel);
       }
    }
 }

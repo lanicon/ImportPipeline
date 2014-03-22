@@ -43,10 +43,6 @@
     <Reference Include="HtmlAgilityPack">
       <HintPath>..\..\_References\HtmlAgilityPack.dll</HintPath>
     </Reference>
-    <Reference Include="LumenWorks.Framework.IO, Version=3.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\codeproject\LumenWorks.Framework.IO\bin\Debug\LumenWorks.Framework.IO.dll</HintPath>
-    </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\_References\Newtonsoft.Json.dll</HintPath>
     </Reference>
@@ -62,6 +58,7 @@
     <Compile Include="admincollections.cs" />
     <Compile Include="AsyncEndpointRequestQueue.cs" />
     <Compile Include="CsvEndpoint.cs" />
+    <Compile Include="CsvReader.cs" />
     <Compile Include="ESDatasource.cs" />
     <Compile Include="JsonEndPoint.cs" />
     <Compile Include="ProcessHost.cs" />

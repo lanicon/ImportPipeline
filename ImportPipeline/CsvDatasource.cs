@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using LumenWorks.Framework.IO.Csv;
 using Bitmanager.Core;
 using Bitmanager.Xml;
 using System.Xml;
@@ -24,13 +23,13 @@ namespace Bitmanager.ImportPipeline
 
       char delimChar, quoteChar, commentChar;
       bool hasHeaders;
-      ValueTrimmingOptions trim;
+      CsvTrimOptions trim;
 
       public void Init(PipelineContext ctx, XmlNode node)
       {
          file = ctx.ImportEngine.Xml.CombinePath (node.ReadStr("@file"));
          hasHeaders = node.OptReadBool("@headers", false);
-         trim = node.OptReadEnum ("@trim", ValueTrimmingOptions.UnquotedOnly);
+         trim = node.OptReadEnum("@trim", CsvTrimOptions.None);
          delimChar = readChar(node, "@dlm", ',');
          quoteChar = readChar(node, "@quote", '"');
          commentChar = readChar(node, "@comment", '#');
@@ -93,22 +92,19 @@ namespace Bitmanager.ImportPipeline
          sink.HandleValue(ctx, Pipeline.ItemStart, fileName);
          using (FileStream strm = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
          {
-            StreamReader rdr = new StreamReader(strm, true);
-            //CsvReader csvRdr = new CsvReader(rdr, hasHeaders, delimChar, quoteChar, (char)0, commentChar, trim ? ValueTrimmingOptions.UnquotedOnly : ValueTrimmingOptions.None);
-            //CsvReader csvRdr = new CsvReader(rdr, hasHeaders, delimChar, quoteChar, quoteChar, commentChar, trim ? ValueTrimmingOptions.UnquotedOnly : ValueTrimmingOptions.None); //, trim, 4096);
-            CsvReader csvRdr = new CsvReader(rdr, hasHeaders, delimChar, quoteChar, quoteChar, commentChar, trim);
-            Logs.ErrorLog.Log("Multiline={0}, quote={1} ({2}), esc={3} ({4}), startat={5}", csvRdr.SupportsMultiline, csvRdr.Quote, (int)csvRdr.Quote, csvRdr.Escape, (int)csvRdr.Escape, startAt);
+            CsvReader csvRdr = createReader(strm);
             int line;
-            for (line=0; csvRdr.ReadNextRecord(); line++ )
+            for (line=0; csvRdr.NextRecord(); line++ )
             {
                if (startAt > line) continue;
                sink.HandleValue(ctx, "record/_start", null);
-               int fieldCount = csvRdr.FieldCount;
-               ctx.DebugLog.Log("Record {0}. FC={1}", line, fieldCount); 
+               var fields = csvRdr.Fields;
+               int fieldCount = fields.Count;
+               //ctx.DebugLog.Log("Record {0}. FC={1}", line, fieldCount); 
                for (int i = keys.Count; i <= fieldCount; i++) keys.Add(String.Format("record/f{0}", i));
                for (int i = 0; i < fieldCount; i++)
                {
-                  sink.HandleValue(ctx, keys[i], csvRdr[i]);
+                  sink.HandleValue(ctx, keys[i], fields[i]);
                }
                sink.HandleValue(ctx, "record", null);
             }
@@ -116,10 +112,20 @@ namespace Bitmanager.ImportPipeline
          sink.HandleValue(ctx, Pipeline.ItemStop, fileName);
       }
 
-
       private int cbSortString(String[] a, String[] b)
       {
          return StringComparer.OrdinalIgnoreCase.Compare(a[0], b[0]);
+      }
+      CsvReader createReader(FileStream strm)
+      {
+         CsvReader rdr = new CsvReader(strm);
+         rdr.QuoteOrd = (int)quoteChar;
+         rdr.SepOrd = (int)delimChar;
+         rdr.SkipHeader = hasHeaders;
+         rdr.SkipEmptyRecords = true;
+         rdr.TrimOptions = trim;
+         //Logs.ErrorLog.Log("Multiline={0}, quote={1} ({2}), esc={3} ({4}), startat={5}", true, csvRdr.QuoteChar, (int)csvRdr.QuoteOrd, csvRdr.EscapeOrd, (int)csvRdr.SepOrd, startAt);
+         return rdr;
       }
       protected void processSortedFile(PipelineContext ctx, String fileName, IDatasourceSink sink)
       {
@@ -128,15 +134,15 @@ namespace Bitmanager.ImportPipeline
          int maxFieldCount = 0;
          using (FileStream strm = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
          {
-            StreamReader rdr = new StreamReader(strm, true);
-            CsvReader csvRdr = new CsvReader(rdr, hasHeaders, delimChar, quoteChar, quoteChar, commentChar, trim);
-            while (csvRdr.ReadNextRecord())
+            CsvReader csvRdr = createReader(strm);
+            while (csvRdr.NextRecord())
             {
-               int fieldCount = csvRdr.FieldCount;
+               var fields = csvRdr.Fields;
+               int fieldCount = fields.Count;
                if (fieldCount > maxFieldCount) maxFieldCount = fieldCount;
                String[] arr = new String[fieldCount+1];
 
-               for (int i = 0; i < fieldCount; i++) arr[i+1] = csvRdr[i];
+               for (int i = 0; i < fieldCount; i++) arr[i+1] = fields[i];
                if (fieldCount > sortKey) arr[0] = arr[sortKey+1];
                rows.Add (arr);
             }
@@ -178,182 +184,5 @@ namespace Bitmanager.ImportPipeline
          sink.HandleValue(ctx, Pipeline.ItemStop, fileName);
       }
    }
-
-#if true
-   public class _Reader
-   {
-      private StreamReader reader;
-      private int line;
-      private int nextChar;
-      private int quoteChar;
-      private int sepChar;
-      private int escapeChar;
-      private List<String> fields;
-      public List<String> Fields { get { return fields; } }
-      public int Line { get { return line; } }
-      public String SepChar
-      {
-         get { return new String((char)sepChar, 1); }
-         set { sepChar = String.IsNullOrEmpty(value) ? -1 : (int)value[0]; }
-      }
-      public String QuoteChar
-      {
-         get { return quoteChar < 0 ? null : new String((char)quoteChar, 1); }
-         set { quoteChar = String.IsNullOrEmpty(value) ? -1 : (int)value[0]; }
-      }
-      public String EscapeChar
-      {
-         get { return escapeChar < 0 ? null : new String((char)escapeChar, 1); }
-         set { escapeChar = String.IsNullOrEmpty(value) ? -1 : (int)value[0]; }
-      }
-
-      public int SepOrd
-      {
-         get { return sepChar; }
-         set { sepChar = value; }
-      }
-      public int QuoteOrd
-      {
-         get { return quoteChar; }
-         set { quoteChar = value; }
-      }
-      public int EscapeOrd
-      {
-         get { return escapeChar; }
-         set { escapeChar = value; }
-      }
-
-      //public _Reader (using (StreamReader sr = new StreamReader("TestFile.txt")) 
-      public _Reader(StreamReader sr)
-      {
-         reader = sr;
-         nextChar = sr.Read();
-         fields = new List<string>();
-         quoteChar = '"';
-         sepChar = 9;
-         escapeChar = -1;
-         line = -1;
-      }
-      public _Reader(Stream strm): this (new StreamReader (strm, Encoding.UTF8, true, 4096))
-      {
-      }
-
-      enum _State { None=0, InNormalField=1, InQuotedField=2 };
-
-      private void addFieldAndClear(StringBuilder sb)
-      {
-         if (sb.Length == 0)
-         {
-            fields.Add(String.Empty);
-            return;
-         }
-         fields.Add(sb.ToString());
-         sb.Length = 0;
-      }
-
-      public bool NextRecord()
-      {
-         fields.Clear();
-         if (nextChar < 0) return false;
-         ++line;
-         int ch = nextChar;
-         
-         _State state = _State.None;
-         StringBuilder sb = new StringBuilder();
-         int pos = 0;
-
-         while (true)
-         {
-            switch (ch)
-            {
-               case -1:
-                  if (fields.Count > 0 || sb.Length > 0) addFieldAndClear(sb);
-                  goto EOR;
-
-               case '\r':
-               case '\n':
-                  if (state == _State.InQuotedField)
-                  {
-                     sb.Append((char)ch);
-                     goto NEXT_CHAR;
-                  }
-                  if (fields.Count > 0 || sb.Length>0) addFieldAndClear (sb);
-                  if (ch == '\r')
-                  {
-                     ch = reader.Read();
-                     if (ch != '\n') goto EOR;
-                  }
-                  else
-                  {
-                     ch = reader.Read();
-                     if (ch != '\r') goto EOR;
-                  }
-                  ch = reader.Read();
-                  goto EOR;
-            }
-
-            if (ch == sepChar)
-            {
-               if (state == _State.InQuotedField)
-               {
-                  sb.Append((char)ch);
-                  goto NEXT_CHAR;
-               }
-               addFieldAndClear(sb);
-               state = _State.InNormalField;
-               goto NEXT_CHAR;
-            }
-
-            if (ch == quoteChar)
-            {
-               if (state == _State.InQuotedField)
-               {
-                  ch = reader.Read();
-                  if (ch == quoteChar)
-                  {
-                     sb.Append((char)ch);
-                     goto NEXT_CHAR;
-                  }
-
-                  while (ch == ' ') ch = reader.Read();
-                  switch (ch)
-                  {
-                     default:
-                        if (ch == sepChar) break;
-                        nextChar = -1;
-                        throw new BMException("error at line {0}: unexpected char {1}, field={2}. ", line, (char)ch, fields.Count);
-                     case '\r':
-                     case '\n':
-                     case -1:
-                        break;
-                  }
-                  state = _State.None;
-                  continue;
-               }
-
-               //Should be the beginning of a quoted field...
-               for (int i=0; i<sb.Length; i++)
-                  if (sb[i] != ' ')
-                  {
-                     nextChar = -1;
-                     throw new BMException("error at line {0}: unexpected char {1}, field={2}.", line, (char)ch, fields.Count);
-                  }
-               sb.Length = 0;
-               state = _State.InQuotedField;
-               goto NEXT_CHAR;
-            }
-
-            sb.Append ((char) ch);
-
-
-         NEXT_CHAR:
-            ch=reader.Read();
-         }
-         EOR:
-         nextChar = ch;
-         return true;
-      }
-   }
-#endif
 
 }

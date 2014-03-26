@@ -34,6 +34,7 @@ namespace Bitmanager.ImportPipeline
       private StringDict<IDataEndpoint> endPointCache;
 
       public readonly String DefaultEndpoint;
+      public readonly String DefaultConverters;
       public readonly ImportEngine ImportEngine;
       public readonly String ScriptTypeName;
 
@@ -64,6 +65,7 @@ namespace Bitmanager.ImportPipeline
          logger = engine.DebugLog.Clone ("pipeline");
 
          ScriptTypeName = node.OptReadStr("@script", null);
+         DefaultConverters = node.OptReadStr("@converters", null);
          DefaultEndpoint = node.OptReadStr("@endpoint", null);
          if (DefaultEndpoint == null)
          {

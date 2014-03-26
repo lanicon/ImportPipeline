@@ -18,10 +18,10 @@ namespace Bitmanager.ImportPipeline
          : base(collNode, childrenNode, factory, mandatory)
       {
       }
-      public Converter[] ToConverters (XmlNode node)
-      {
-         return ToConverters(readConverters(node));
-      }
+      //public Converter[] ToConverters (XmlNode node)
+      //{
+      //   return ToConverters(readConverters(node));
+      //}
       public Converter[] ToConverters (String convertersStr)
       {
          if (String.IsNullOrEmpty(convertersStr)) return null;
@@ -39,7 +39,7 @@ namespace Bitmanager.ImportPipeline
       public static String readConverters(XmlNode node)
       {
          String s = node.OptReadStr("@converters", null);
-         return s != null ? s : node.OptReadStr("@convert", null); 
+         return s != null ? s : node.OptReadStr("@converter", null); 
       }
    }
 

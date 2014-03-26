@@ -58,6 +58,8 @@ namespace Bitmanager.ImportPipeline
          VarsToClear = clrvarName.SplitStandard();
          
          convertersName = Converters.readConverters(node);
+         if (convertersName == null) convertersName = pipeline.DefaultConverters;
+
          checkMode = node.OptReadEnum<KeyCheckMode>("@check", 0);
          if (checkMode == KeyCheckMode.date) checkMode |= KeyCheckMode.key;
       }

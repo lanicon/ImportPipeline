@@ -85,7 +85,6 @@ namespace Bitmanager.ImportPipeline
       {
          converters = ctx.ImportEngine.Converters.ToConverters(convertersName);
          endPoint = ctx.Pipeline.GetDataEndpoint(ctx, endpointName);
-         logger.Log("Script=" + scriptName);
          if (scriptName != null)
          {
             Object scriptObj = pipeline.ScriptObject;
@@ -139,7 +138,7 @@ namespace Bitmanager.ImportPipeline
 
          if (converters == null) return value;
          for (int i = 0; i < converters.Length; i++)
-            value = converters[i].Convert(value);
+            value = converters[i].Convert(ctx, value);
          return value;
       }
 

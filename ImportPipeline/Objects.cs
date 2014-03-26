@@ -27,7 +27,7 @@ namespace Bitmanager.ImportPipeline
       private static Type findNonExactType(Assembly a, String typeName)
       {
          String lcType = typeName.ToLowerInvariant();
-         Logs.DebugLog.Log("Searching for '{0}'", lcType);
+         //Logs.DebugLog.Log("Searching for '{0}'", lcType);
          try
          {
             Type[] arr = a.GetTypes();
@@ -36,7 +36,7 @@ namespace Bitmanager.ImportPipeline
                Type t = arr[i];
                if (!t.IsClass) continue;
                String fullName = t.FullName.ToLowerInvariant();
-               Logs.DebugLog.Log("-- '{0}'", fullName);
+               //Logs.DebugLog.Log("-- '{0}'", fullName);
                if (fullName.Length < lcType.Length) continue;
                if (!fullName.EndsWith(lcType)) continue;
 

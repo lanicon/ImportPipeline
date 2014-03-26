@@ -43,7 +43,7 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
-      public override object ConvertScalar(object obj)
+      public override object ConvertScalar(PipelineContext ctx, object obj)
       {
          if (obj == null) return null;
          String arg = obj.ToString();

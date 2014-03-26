@@ -45,55 +45,59 @@ namespace Bitmanager.ImportPipeline
 
    public abstract class Converter : NamedItem
    {
-      public Converter(XmlNode node) : base(node) { }
+      protected bool needValue;
+      public Converter(XmlNode node) : base(node) { needValue = true; }
 
-      protected bool TryConvertArray(Object value, out Object convertedArray)
+      protected bool TryConvertArray(PipelineContext ctx, Object value, out Object convertedArray)
       {
          convertedArray = value;
          if (value == null) return true;
          Array arr = value as Array;
          if (arr != null) 
          {
-            convertedArray = convertArray (arr);
+            convertedArray = convertArray (ctx, arr);
             return true;
          }
          JArray jarr = value as JArray;
          if (jarr != null) 
          {
-            convertedArray = convertArray (jarr);
+            convertedArray = convertArray (ctx, jarr);
             return true;
          }
          return false;
       }
-      protected Object[] convertArray(JArray src)
+      protected Object[] convertArray(PipelineContext ctx, JArray src)
       {
          Object[] ret = new Object[src.Count];
          for (int i = 0; i < src.Count; i++)
          {
-            ret[i] = ConvertScalar(src[i].ToNative());
+            ret[i] = ConvertScalar(ctx, src[i].ToNative());
          }
          return ret;
       }
-      protected Object[] convertArray(Array src)
+      protected Object[] convertArray(PipelineContext ctx, Array src)
       {
          Object[] ret = new Object[src.Length];
          for (int i = 0; i < src.Length; i++)
          {
-            ret[i] = ConvertScalar(src.GetValue(i));
+            ret[i] = ConvertScalar(ctx, src.GetValue(i));
          }
          return ret;
       }
 
-      public virtual Object Convert(Object value)
+      public virtual Object Convert(PipelineContext ctx, Object value)
       {
-         if (value == null) return value;
+         if (value == null)
+         {
+            return needValue ? null : ConvertScalar(ctx, value); 
+         }
          Array arr = value as Array;
-         if (arr != null)  return convertArray(arr);
+         if (arr != null)  return convertArray(ctx, arr);
          JArray jarr = value as JArray;
-         if (jarr != null) return convertArray(jarr);
-         return ConvertScalar(value);
+         if (jarr != null) return convertArray(ctx, jarr);
+         return ConvertScalar(ctx, value);
       }
-      public abstract Object ConvertScalar(Object obj);
+      public abstract Object ConvertScalar(PipelineContext ctx, Object obj);
       public virtual void DumpMissed(PipelineContext ctx)
       {
       }
@@ -137,7 +141,7 @@ namespace Bitmanager.ImportPipeline
          if (type == "date") utc = false;
       }
 
-      public override Object ConvertScalar(Object value)
+      public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
          DateTime ret;
          String str = value as String;
@@ -179,7 +183,7 @@ namespace Bitmanager.ImportPipeline
    {
       public ToDoubleConverter(XmlNode node) : base(node)  {}
 
-      public override Object ConvertScalar(Object value)
+      public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
          if (value == null) return null;
 
@@ -202,7 +206,7 @@ namespace Bitmanager.ImportPipeline
    {
       public ToInt64Converter(XmlNode node) : base(node) {}
 
-      public override Object ConvertScalar(Object value)
+      public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
          if (value == null) return null;
 
@@ -226,7 +230,7 @@ namespace Bitmanager.ImportPipeline
    {
       public ToInt32Converter(XmlNode node) : base(node) {}
 
-      public override Object ConvertScalar(Object value)
+      public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
          if (value == null) return null;
 
@@ -250,7 +254,7 @@ namespace Bitmanager.ImportPipeline
    {
       public ToLowerConverter(XmlNode node) : base(node) { }
 
-      public override Object ConvertScalar(Object value)
+      public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
          if (value == null) return null;
          return value.ToString().ToLowerInvariant();
@@ -261,7 +265,7 @@ namespace Bitmanager.ImportPipeline
    {
       public ToUpperConverter(XmlNode node) : base(node) { }
 
-      public override Object ConvertScalar(Object value)
+      public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
          if (value == null) return null;
          return value.ToString().ToUpperInvariant();
@@ -272,7 +276,7 @@ namespace Bitmanager.ImportPipeline
    {
       public TrimConverter(XmlNode node) : base(node) { }
 
-      public override Object ConvertScalar(Object value)
+      public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
          if (value == null) return null;
          return value.ToString().Trim();
@@ -282,7 +286,7 @@ namespace Bitmanager.ImportPipeline
    {
       public TrimWhiteConverter(XmlNode node) : base(node) { }
 
-      public override Object ConvertScalar(Object value)
+      public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
          if (value == null) return null;
          return value.ToString().TrimWhiteSpace();
@@ -293,7 +297,7 @@ namespace Bitmanager.ImportPipeline
    {
       public HtmlEncodeConverter(XmlNode node) : base(node) { }
 
-      public override Object ConvertScalar(Object value)
+      public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
          if (value == null) return null;
          return HttpUtility.HtmlEncode(value.ToString());
@@ -304,7 +308,7 @@ namespace Bitmanager.ImportPipeline
    {
       public HtmlDecodeConverter(XmlNode node) : base(node) { }
 
-      public override Object ConvertScalar(Object value)
+      public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
          if (value == null) return null;
          return HttpUtility.HtmlDecode(value.ToString());
@@ -315,7 +319,7 @@ namespace Bitmanager.ImportPipeline
    {
       public UrlEncodeConverter(XmlNode node) : base(node) { }
 
-      public override Object ConvertScalar(Object value)
+      public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
          if (value == null) return null;
          return HttpUtility.UrlEncode(value.ToString());
@@ -326,7 +330,7 @@ namespace Bitmanager.ImportPipeline
    {
       public UrlDecodeConverter(XmlNode node) : base(node) { }
 
-      public override Object ConvertScalar(Object value)
+      public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
          if (value == null) return null;
          return HttpUtility.UrlDecode(value.ToString());
@@ -339,7 +343,7 @@ namespace Bitmanager.ImportPipeline
       char sep = ';';
       public SplitConverter(XmlNode node) : base(node) { }
 
-      public override Object ConvertScalar(Object value)
+      public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
          String v = value as String;
          if (v == null) return value;
@@ -352,15 +356,96 @@ namespace Bitmanager.ImportPipeline
 
    public class FormatConverter : Converter
    {
-      String format;
+      enum FormatFlags { None = 0, NeedArguments = 1, NeedValue = 2, NeedAll = 3 };
+      private FormatArgument[] arguments;
+      private String format;
+      private FormatFlags flags;
       public FormatConverter(XmlNode node) : base(node) {
-         format = node.ReadStr("@format"); 
+         format = node.ReadStr("@format");
+         flags = node.OptReadEnum("@flags", FormatFlags.NeedArguments);
+         needValue = (flags & FormatFlags.NeedValue) != 0;
+
+         String[] args = node.ReadStr("@arguments").SplitStandard();
+         if (args != null && args.Length > 0)
+         {
+            arguments = new FormatArgument[args.Length];
+            for (int i = 0; i < args.Length; i++)
+            {
+               arguments[i] = createArgument(args[i]);
+            }
+         }
       }
 
-      public override Object ConvertScalar(Object value)
+      private FormatArgument createArgument(string arg)
       {
-         return Invariant.Format(format, value);
+         if (String.IsNullOrEmpty(arg)) throw new Exception ("FormatArgument cannot be empty.");
+         String lcArg = arg.ToLowerInvariant();
+         if (lcArg[lcArg.Length-1] == ')')
+         {
+            if (lcArg.StartsWith("field("))
+               return new FormatArgument_Field(lcArg.Substring (6, lcArg.Length-7).Trim());
+            if (lcArg.StartsWith("key("))
+               return new FormatArgument_Key(lcArg.Substring (4, lcArg.Length-5).Trim());
+            if (lcArg.StartsWith("f("))
+               return new FormatArgument_Field(lcArg.Substring (2, lcArg.Length-3).Trim());
+            if (lcArg.StartsWith("k("))
+               return new FormatArgument_Key(lcArg.Substring (2, lcArg.Length-3).Trim());
+         }
+         throw new BMException ("Invalid FormatArgument specifier: '{0}'.", arg);
+      }
+
+      public override Object ConvertScalar(PipelineContext ctx, Object value)
+      {
+         if ((flags & FormatFlags.NeedValue) != 0 && value == null) return null;
+         if (arguments == null)
+            return Invariant.Format(format, value);
+
+         Object[] argArr = new Object[arguments.Length + 1];
+         argArr[0] = value;
+         for (int i = 0; i < arguments.Length; i++)
+         {
+            argArr[i+1] = arguments[i].GetArgument(ctx);
+            if ((flags & FormatFlags.NeedArguments) == 0) continue;
+            if (argArr[i + 1] == null) return null;
+            String tmp = argArr[i + 1] as String;
+            if (tmp != null && tmp.Length == 0) return null;
+         }
+         return Invariant.Format(format, argArr);
       }
    }
 
+
+   class FormatArgument
+   {
+      public virtual Object GetArgument(PipelineContext ctx)
+      {
+         return null;
+      }
+   }
+   class FormatArgument_Key : FormatArgument
+   {
+      protected readonly String key;
+      public FormatArgument_Key(String key)
+      {
+         this.key = key;
+      }
+
+      public override Object GetArgument(PipelineContext ctx)
+      {
+         return ctx.Pipeline.GetVariable(key);
+      }
+   }
+   class FormatArgument_Field : FormatArgument
+   {
+      protected readonly String field;
+      public FormatArgument_Field(String field)
+      {
+         this.field = field;
+      }
+
+      public override Object GetArgument(PipelineContext ctx)
+      {
+         return ctx.Action.Endpoint.GetField (field);
+      }
+   }
 }

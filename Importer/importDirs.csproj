@@ -59,8 +59,9 @@
       <SubType>Code</SubType>
       <Visible>true</Visible>
     </Compile>
-    <Compile Include="..\site\app_code\**\*.cs">
-      <Visible>false</Visible>
+    <Compile Include="ImportDirs\**\*.xml">
+      <SubType>Code</SubType>
+      <Visible>true</Visible>
     </Compile>
     <Reference Include="bin\debug\HtmlAgilityPack.dll" />
     <Reference Include="bin\debug\HtmlDatasource.dll" />
@@ -73,9 +74,6 @@
     </Reference>
     <Reference Include="bmjson100">
       <HintPath>..\..\_References\bmjson100.dll</HintPath>
-    </Reference>
-    <Reference Include="LumenWorks.Framework.IO">
-      <HintPath>..\..\..\codeproject\LumenWorks.Framework.IO\bin\Debug\LumenWorks.Framework.IO.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\_References\Newtonsoft.Json.dll</HintPath>

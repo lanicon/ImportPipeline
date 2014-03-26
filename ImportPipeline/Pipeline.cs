@@ -102,13 +102,17 @@ namespace Bitmanager.ImportPipeline
       }
       public Object GetVariable(String varName)
       {
-         return (variables == null) ? null : variables[varName.ToLowerInvariant()];
+         if (variables == null) return null;
+         Object ret;
+         if (variables.TryGetValue(varName.ToLowerInvariant(), out ret)) return ret;
+         return null;
       }
       public String GetVariableStr(String varName)
       {
          if (variables == null) return null;
-         Object obj = variables[varName.ToLowerInvariant()];
-         return obj == null ? null : obj.ToString();
+         Object ret;
+         if (variables.TryGetValue(varName.ToLowerInvariant(), out ret)) return ret.ToString();
+         return null;
       }
 
       public void ClearVariables()
@@ -143,8 +147,10 @@ namespace Bitmanager.ImportPipeline
          logger.Log("Starting datasource {0}", ctx.DatasourceAdmin.Name);
          missed = new StringDict();
          if (ScriptTypeName != null)
+         {
             ScriptObject = Objects.CreateObject(ScriptTypeName, ctx);
-         logger.Log("Script({0})={1}", ScriptTypeName, ScriptObject);
+            logger.Log("Script({0})={1}", ScriptTypeName, ScriptObject);
+         }
 
          //Clone the list of actions and strat them
          actions = new List<ActionAdmin>(definedActions.Count);

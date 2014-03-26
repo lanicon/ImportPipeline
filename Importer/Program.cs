@@ -3,6 +3,7 @@ using Bitmanager.ImportPipeline;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -46,6 +47,7 @@ namespace Bitmanager.Importer
 
          try
          {
+            Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
             var cmd = new CommandLineParms(args);
             _ImportFlags flags = Invariant.ToEnum<_ImportFlags>(cmd.NamedArgs.OptGetItem("flags"), _ImportFlags.UseFlagsFromXml);
             if (cmd.Args.Count == 0)

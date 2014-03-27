@@ -148,10 +148,10 @@ namespace Bitmanager.ImportPipeline
          if (trace) ctx.ImportFlags |= _ImportFlags.TraceValues;
          logger.Log("Starting datasource {0}", ctx.DatasourceAdmin.Name);
          missed = new StringDict();
-         if (ScriptTypeName != null)
+         if (ScriptTypeName != null && ScriptObject==null)
          {
             ScriptObject = Objects.CreateObject(ScriptTypeName, ctx);
-            logger.Log("Script({0})={1}", ScriptTypeName, ScriptObject);
+            logger.Log("XScript({0})={1}", ScriptTypeName, ScriptObject);
          }
 
          //Clone the list of actions and strat them
@@ -178,7 +178,6 @@ namespace Bitmanager.ImportPipeline
             ctx.MissedLog.Log("-- {0}", kvp.Key);
          }
          missed = new StringDict();
-         ScriptObject = null;
 
          started = false;
          if (endPointCache != null)

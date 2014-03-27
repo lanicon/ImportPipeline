@@ -279,7 +279,7 @@ namespace Bitmanager.ImportPipeline
       public override Object HandleValue(PipelineContext ctx, String key, Object value)
       {
          value = ConvertAndCallScript(ctx, key, value);
-         if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) return null;
+         if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) { ctx.Skipped++; return null; }
          if (checkMode != 0)
          {
             Object res = base.handleCheck(ctx);

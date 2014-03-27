@@ -1,4 +1,5 @@
 //@ref=bmjson100.dll
+//@ref=bmelastic100.dll
 //@ref=Newtonsoft.Json.dll
 using Bitmanager.Core;
 using Bitmanager.Xml;
@@ -13,12 +14,82 @@ using Bitmanager.ImportPipeline;
 using Bitmanager.Json;
 using Newtonsoft.Json.Linq;
 
+namespace Giro {
+   class RecordChecker
+   {
+      ESDataEndpoint ep;
+      StringDict<bool> presentKeys;
+      PipelineContext ctx;
+      public RecordChecker(PipelineContext ctx, IDataEndpoint endpoint)
+      {
+         this.ctx = ctx;
+         ctx.ImportLog.Log("Create RecordChecker with {0}", endpoint);
+         presentKeys = new StringDict<bool>();
+         ep = endpoint as ESDataEndpoint;
+         if (ep == null) return;
+
+         var e = ep.Connection.CreateEnumerator (ep.DocType.UrlPart);
+         foreach (var rec in e)
+         {
+            var date = rec.GetField("date");
+            if (String.IsNullOrEmpty(date)) continue;
+            presentKeys[date] = true;
+         }
+         ctx.ImportLog.Log("-- loaded {0} keys", presentKeys.Count);
+      }
+      public bool IsPresent(String key)
+      {
+         int entries = presentKeys.Count; 
+         bool ret = _IsPresent(key);
+         ctx.ImportLog.Log("IsPresent ({0})-->{1} (entries={2})", key, ret, entries);
+         return ret;
+      }
+      public bool IsPresent(String key, RecordChecker main)
+      {
+         int entries = presentKeys.Count;
+         bool ret = _IsPresent(key, main);
+         ctx.ImportLog.Log("IsPresent ({0}, {3})-->{1}  (entries={2})", key, ret, entries, main);
+         return ret;
+      }
+
+      public bool _IsPresent(String key)
+      {
+         bool ret;
+         if (presentKeys.TryGetValue(key, out ret)) return ret;
+         presentKeys.Add(key, true);
+         return false;
+      }
+      public bool _IsPresent(String key, RecordChecker main)
+      {
+         bool ret;
+         if (presentKeys.TryGetValue(key, out ret)) return ret;
+         ret = main.IsPresent(key);
+         presentKeys.Add(key, ret);
+         return ret;
+      }
+   }
    public class ScriptExtension
    {
-      String name = null;
-      public Object OnAdd (PipelineContext ctx, String key, Object value)
+      RecordChecker indexChecker;
+      RecordChecker fileChecker;
+      public ScriptExtension()
       {
-         SortAndUndupField (ctx.Action.Endpoint, "account_other", compare);
+         Logs.ErrorLog.Log("__CREATED__");
+      }
+
+      String name = null;
+      public Object OnDSStart(PipelineContext ctx, String key, Object value)
+      {
+         if (indexChecker == null) indexChecker = new RecordChecker(ctx, ctx.Action.Endpoint);
+         fileChecker = new RecordChecker(ctx, null);
+         return value;
+      }
+      public Object OnAdd(PipelineContext ctx, String key, Object value)
+      {
+         if (fileChecker.IsPresent(ctx.Action.Endpoint.GetFieldAsStr("date"), indexChecker))
+            ctx.ClearAllAndSetFlags();
+
+         SortAndUndupField(ctx.Action.Endpoint, "account_other", compare);
          return value;
       }
       
@@ -64,10 +135,40 @@ using Newtonsoft.Json.Linq;
          name = (value == null) ? null : value.ToString();
          return value;
       }
-      public Object OnDescription (PipelineContext ctx, String key, Object value)
+
+      private StringBuilder prepareValue(Object value)
+      {
+         StringBuilder ret = new StringBuilder();
+         String tmp = value.ToString();
+         int state = 0;
+         for (int i = 0; i < tmp.Length; i++)
+         {
+            if (!Char.IsWhiteSpace(tmp[i])) 
+            {
+               switch (state)
+               {
+                  case 2: ret.Append(' '); break;
+                  case 3: ret.Append(", "); break;
+               }
+               state = 1; 
+               ret.Append(tmp[i]); continue;
+            }
+            switch (state)
+            {
+               case 0: continue;
+               case 1: state = 2;  continue;
+               case 2: state = 3;  continue;
+               case 3: continue;
+            }
+         }
+         ret.Append(" A: B");  
+         return ret;
+      }
+
+      public Object OnDescription(PipelineContext ctx, String key, Object value)
       {
          if (value == null) return null;
-         String desc = value.ToString()+" A: b";
+         StringBuilder desc = prepareValue(value);
          List<Part> parts = new List<Part>();
 
          Part lastPart = null;
@@ -75,37 +176,22 @@ using Newtonsoft.Json.Linq;
          for (int i=0; i<desc.Length; i++)
          {
             if (desc[i] != ':') continue;
-            if (i==desc.Length-1 || desc[i+1] != ' ') continue;
+            ctx.DebugLog.Log("possible part [{0}/{1}]: '{2}'", i, desc.Length, desc.ToString(i, desc.Length-i));
+            if (i==desc.Length-1) continue; // || desc[i+1] != ' ') continue;
             if (i==0 || !char.IsLetter (desc[i-1])) continue;
+            cur.SetKey(desc, i); 
 
-            cur.dotIndex = i;
-            int j=i-1;
-            bool upperFound = false;
-            for (; j>=0; j--)
-            {
-               if (!char.IsLetter(desc[j])) break;
-               if (char.IsLower(desc[j]))
-               {
-                  if (upperFound) break;
-                  continue;
-               }
-               upperFound = true;
-            }
-            j++;
-            cur.startIndex = j;
             if (lastPart != null)
             {
-               lastPart.endIndex = j;
+               lastPart.SetEndIndex(desc, cur.keyStart);
                parts.Add(lastPart);
             }
             else
             {
-               if (j > 0)
+               if (cur.keyLen > 0)
                {
                   lastPart = new Part();
-                  lastPart.startIndex = 0;
-                  lastPart.endIndex = j;
-                  lastPart.dotIndex = -1;
+                  lastPart.SetEndIndex(desc, cur.keyStart); 
                   parts.Add(lastPart);
                }
             }
@@ -114,6 +200,10 @@ using Newtonsoft.Json.Linq;
          }
          
          StringBuilder sb = new StringBuilder();
+         for (int i = 0; i < parts.Count; i++)
+         {
+            ctx.DebugLog.Log("[{0}]: {1}", i, parts[i]);
+         }
          for (int i = 0; i < parts.Count; i++)
          {
             Part x = parts[i];
@@ -142,27 +232,113 @@ using Newtonsoft.Json.Linq;
    
    class Part
    {
-      public int startIndex;
-      public int dotIndex;
-      public int endIndex;
+      public int keyStart;
+      public int keyLen;
+      public int valStart;
+      public int valLen;
 
-      public String GetKey(String container)
+      public String GetKey(StringBuilder container)
       {
-         if (dotIndex < 0) return null;
-         return container.Substring(startIndex, dotIndex - startIndex);
+         if (keyLen <= 0) return null;
+         return container.ToString(keyStart, keyLen);
       }
-      public String GetVal(String container)
+      public String GetVal(StringBuilder container)
       {
-         if (endIndex < startIndex) return "??";
-
-         if (dotIndex < 0) return container.Substring(startIndex, endIndex - startIndex);
-
-         return container.Substring(dotIndex+2, endIndex - dotIndex- 2);
+         if (valLen <= 0) return null;
+         return container.ToString(valStart, valLen);
       }
-      
-      public String GetAll (String container)
+
+      public String GetAll(StringBuilder container)
       {
-         return container.Substring(startIndex, endIndex - startIndex);
+         int len = valStart + valLen - keyStart;
+         return container.ToString(keyStart, len);
+      }
+
+      public void SetKey(StringBuilder sb, int index)
+      {
+         int end = -1;
+         int start = -1;
+         int state = 0;
+         for (int i = index - 1; i >= 0; i--)
+         {
+            char ch = sb[i];
+            if (Char.IsWhiteSpace(ch))
+            {
+               if (state == 0) continue;
+               start = i + 1;
+               break;
+            }
+            if (!char.IsLetterOrDigit(ch))
+            {
+               start = i + 1;
+               break;
+            }
+
+            if (char.IsDigit(ch))
+            {
+               switch (state)
+               {
+                  case 0: end = i+1; state = 1; continue;
+                  case 3: start = i + 1; goto END;
+               }
+               start = i;
+               continue;
+            }
+
+            if (char.IsLower(ch))
+            {
+               switch (state)
+               {
+                  case 0: end = i+1; state = 2; continue;
+                  case 3: start = i + 1; goto END;
+               }
+               start = i;
+               continue;
+            }
+
+            //Uppercase
+            switch (state)
+            {
+               case 0: end = i+1; state = 3; continue;
+               case 1:
+               case 2:
+                  start = i;
+                  goto END;
+               case 3:
+                  start = i;
+                  continue;
+            }
+            //start = i + 1;
+            //break;
+         }
+      END:
+         if (start < 0 || end < 0)
+         {
+            keyStart = index;
+            keyLen = 1;
+            return;
+         }
+         keyStart = start;
+         keyLen = end - start;
+      }
+
+
+      internal void SetEndIndex(StringBuilder desc, int index)
+      {
+         int end;
+         for (end = index - 1; end >= 0 && (char.IsWhiteSpace(desc[end]) || desc[end] == ':'); end--) ;
+         end++;
+
+         int start;
+         for (start = keyStart+keyLen; start < end && (char.IsWhiteSpace(desc[start]) || desc[start] == ':'); start++) ;
+
+         valStart = start;
+         valLen = end - start;
+      }
+
+      public override string ToString()
+      {
+         return String.Format ("Part [start={0}, end={1}, keylen={2}, valLen={3}]", keyStart, valStart+valLen, keyLen, valLen);
       }
    }
 
@@ -204,7 +380,8 @@ using Newtonsoft.Json.Linq;
          Account = tmp.Substring(accnr);
          if (Account != null) TrimmedAccount = Account.TrimStart(TRIM_CHARS);
          StringBuilder sb = new StringBuilder();
-         sb.AppendIfNotNull (Country).AppendIfNotNull (Bank, ' ').AppendIfNotNull (Account, ' ');
+         sb.Append (Country);
+         sb.AppendIfNotNull (Bank, ' ').AppendIfNotNull (Account, ' ');
          FormattedIban = sb.ToString();
          Iban = FormattedIban.Replace(" ", "");
       }
@@ -214,5 +391,4 @@ using Newtonsoft.Json.Linq;
          return Iban;
       }
    }
-
-   
+}

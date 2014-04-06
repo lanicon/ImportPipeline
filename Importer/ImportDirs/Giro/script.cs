@@ -86,10 +86,15 @@ namespace Giro {
       }
       public Object OnAdd(PipelineContext ctx, String key, Object value)
       {
+         //ctx.ImportLog.Log("accu={0}", ((JObject)ctx.Action.Endpoint.GetFieldAsToken(null)).Count);
          if (fileChecker.IsPresent(ctx.Action.Endpoint.GetFieldAsStr("date"), indexChecker))
+         {
             ctx.ClearAllAndSetFlags();
+            return value;
+         }
 
          SortAndUndupField(ctx.Action.Endpoint, "account_other", compare);
+         CalculateFacetValues (ctx.Action.Endpoint);
          return value;
       }
       
@@ -101,20 +106,83 @@ namespace Giro {
       }
       
       
-      private void SortAndUndupField (IDataEndpoint endpoint, String fld, Comparison<String> comparer)
+      private object SortAndUndupField (IDataEndpoint endpoint, String fld, Comparison<String> comparer)
       {
-         Object val = endpoint.GetField ("account_other");
+         Object val = endpoint.GetFieldAsToken ("account_other");
          if (UndupAndSort (comparer, ref val))
             endpoint.SetField (fld, val, FieldFlags.OverWrite, null);
+         return val;
       } 
-      
-      public bool UndupAndSort (Comparison<String> comparison, ref Object obj)
+
+      private void CalculateFacetValues (IDataEndpoint endpoint)
       {
-         JArray arr = obj as JArray;
+         int date = endpoint.GetFieldAsInt32("date");
+         endpoint.SetField ("year", date / 10000); 
+         endpoint.SetField ("month", (date / 100) % 100); 
+         endpoint.SetField ("day", date % 100); 
+
+         double amount = endpoint.GetFieldAsDbl ("amount");
+         String type = endpoint.GetFieldAsStr("type").ToLowerInvariant();
+         if (type == "af")
+         {
+            endpoint.SetField("amount_neg", amount);
+            endpoint.SetField("amount_tot", -amount);
+         }
+         else
+         {
+            endpoint.SetField("amount_pos", amount);
+            endpoint.SetField("amount_tot", amount);
+         }
+         String nameFacet = endpoint.GetFieldAsStr("name");
+         String mut = endpoint.GetFieldAsStr("mutation_code").ToLowerInvariant();
+         switch (mut)
+         {
+            default:
+               nameFacet = endpoint.GetFieldAsStr("name"); break;
+            case "ba":
+               nameFacet = endpoint.GetFieldAsStr("comment"); 
+               int ix = nameFacet.IndexOf(',');
+               if (ix >= 0) nameFacet = nameFacet.Substring(0, ix);
+               break;
+         }
+         endpoint.SetField("name_facet", nameFacet);
+
+         var accountOther = endpoint.GetFieldAsToken("account_other");
+         if (accountOther != null)
+         {
+            var accountFacets = new List<String>();
+            foreach (var jt in accountOther)
+            {
+               String acc = (String)jt;
+               if (acc.IndexOf(' ') >= 0) continue;
+               accountFacets.Add(acc);
+            }
+            if (accountFacets.Count > 0) endpoint.SetField("account_other_facet", accountFacets);
+            //account_other_facet
+         }
+      }
+
+      public String ToLowerIfOnlyUpper(String x)
+      {
+         if (String.IsNullOrEmpty(x)) return x;
+         int lc = 0;
+         int uc = 0;
+         for (int i = 0; i < x.Length; i++)
+         {
+            if (Char.IsLower(x[i])) { ++lc; continue; }
+            if (Char.IsUpper(x[i])) { ++uc; continue; }
+         }
+         return (lc == 0 && uc > 0) ? x.ToLowerInvariant() : x;
+      }
+      public bool UndupAndSort(Comparison<String> comparison, ref Object obj)
+      {
+         if (obj==null) return false;
+         Logs.DebugLog.Log ("Undup: arr={0}", obj.GetType().FullName);
+         var arr = obj as JArray;
          if (arr==null || arr.Count <= 1) return false;
-         
-         List<String> list = new List<String> (arr.Count); 
-         for (int i=0; i<arr.Count; i++)
+
+         List<String> list = new List<String>(arr.Count);
+         for (int i = 0; i < arr.Count; i++)
          {
             String x = (String)arr[i];
             if (x==null) continue;
@@ -127,7 +195,7 @@ namespace Giro {
             if (String.Equals (a, list[i], StringComparison.InvariantCultureIgnoreCase))
                list.RemoveAt(i); 
          } 
-         obj = new JArray (list);
+         obj = list;
          return true;
       }
       public Object SaveName (PipelineContext ctx, String key, Object value)
@@ -225,7 +293,8 @@ namespace Giro {
                   continue;
             }
             sb.AppendIfNotNullOrEmpty (x.GetAll (desc), ", ");
-         } 
+         }
+         //return ToLowerIfOnlyUpper(sb.ToString());
          return sb.ToString();
       }
    }

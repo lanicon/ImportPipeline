@@ -2,6 +2,7 @@
    settings: {  
       "number_of_shards" : 1,
       "number_of_replicas" : 0,
+      "refresh_interval": "60",
       "analysis" : {
          "char_filter" : {
             "html_strip" : {
@@ -74,13 +75,22 @@
             _meta: { lastmod:""}, 
             properties: { 
                "date": {"type": "date", "index": "not_analyzed"},
+               "year": {"type": "integer", "index": "not_analyzed", "store": "no"}, 
+               "month": {"type": "integer", "index": "not_analyzed", "store": "no"}, 
+               "day": {"type": "integer", "index": "not_analyzed", "store": "no"}, 
                "name": {"type": "string", "analyzer": "lc_text", "include_in_all": false},
+               "name_facet": {"type": "string", "analyzer": "lc_keyword", "store": "no"},
                "account": {"type": "string", "analyzer": "lc_text", "include_in_all": false},
                "account_other": {"type": "string", "analyzer": "lc_text", "include_in_all": false},
+               "account_other_facet": {"type": "string", "index": "not_analyzed", "store": "no"},
                "type": {"type": "string", "analyzer": "lc_text", "include_in_all": false},
-               "mutation_code": {"type": "string", "analyzer": "lc_text", "include_in_all": false},
+               "mutation_code": {"type": "string", "analyzer": "lc_keyword", "include_in_all": false},
                "amount": {"type": "double", "index": "not_analyzed"},
-               "mutation": {"type": "string", "analyzer": "lc_text", "include_in_all": false},
+               "amount_str": {"type": "String", "index": "not_analyzed"},
+               "amount_neg": {"type": "double", "index": "not_analyzed"},
+               "amount_pos": {"type": "double", "index": "not_analyzed"},
+               "amount_raw": {"type": "double", "index": "not_analyzed"},
+               "mutation": {"type": "string", "analyzer": "lc_text", "include_in_all": false, "fields" :{"facet": {"type": "string", "analyzer": "lc_keyword", "store": "no"}} },
                "comment": {"type": "string", "analyzer": "lc_text", "include_in_all": false}
             }
       },

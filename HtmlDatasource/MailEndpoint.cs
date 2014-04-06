@@ -14,6 +14,41 @@ using System.Text.RegularExpressions;
 
 namespace BeursGorilla
 {
+   public enum _StockSort
+   {
+      Exchange =1,
+      Percentage = 2,
+      Name = 4,
+   }
+
+   public class MultiSort<T> : IComparer<T>
+   {
+      private List<Comparison<T>> comparers;
+      public int Compare(T x, T y)
+      {
+         for (int i = 0; i < comparers.Count; i++)
+         {
+            int rc = comparers[i] (x,y);
+            if (rc != 0) return rc;
+         }
+         return 0;
+      }
+
+      public MultiSort()
+      {
+         comparers = new List<Comparison<T>>();
+      }
+      public MultiSort(Comparison<T> cmp): this()
+      {
+         comparers.Add(cmp);
+      }
+      public void Add(Comparison<T> cmp)
+      {
+         comparers.Add(cmp);
+      }
+   }
+ 
+
    public class MailEndpoint: Endpoint
    {
       public const String F_price = "price";
@@ -32,6 +67,8 @@ namespace BeursGorilla
       public readonly String MailServer;
       public readonly String MailSubject;
       public readonly Regex ForceExpr;
+      private MultiSort<JObject> sortComparer;
+      public readonly _StockSort SortMethod;
       public MailEndpoint(ImportEngine engine, XmlNode node)
          : base(node)
       {
@@ -45,6 +82,11 @@ namespace BeursGorilla
          String force = node.OptReadStr("@force", null);
          if (force != null)
             ForceExpr = new Regex(force, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+         SortMethod = node.OptReadEnum("@sort", _StockSort.Percentage);
+         sortComparer = new MultiSort<JObject>();
+         if ((SortMethod & _StockSort.Exchange) != 0) sortComparer.Add((x, y) => String.CompareOrdinal((String)x["exchange"], (String)y["exchange"]));
+         if ((SortMethod & _StockSort.Name) != 0) sortComparer.Add((x, y) => StringComparer.InvariantCultureIgnoreCase.Compare((String)x["name"], (String)y["name"]));
+         if ((SortMethod & _StockSort.Percentage) != 0) sortComparer.Add((x, y) => Comparer<double>.Default.Compare(absolutePercentage(y), absolutePercentage(x)));
       }
 
       protected override void Open(PipelineContext ctx)
@@ -54,7 +96,7 @@ namespace BeursGorilla
 
       protected void buildMail(StringBuilder sb, List<JObject> stocksToMail)
       {
-         stocksToMail.Sort((x, y) => Comparer<double>.Default.Compare(absolutePercentage(y), absolutePercentage(x)));
+         stocksToMail.Sort(sortComparer);
          for (int i = 0; i < stocksToMail.Count; i++) objToLine(sb, stocksToMail[i]);
       }
       protected override void Close(PipelineContext ctx)

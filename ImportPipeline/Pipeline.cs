@@ -206,51 +206,68 @@ namespace Bitmanager.ImportPipeline
 
       public Object HandleValue(PipelineContext ctx, String key, Object value)
       {
-         Object ret = null;
-         lastAction = null;
-         ctx.ActionFlags = 0;
-
-         if ((ctx.ImportFlags & _ImportFlags.TraceValues) != 0) logger.Log("HandleValue ({0}, {1} [{2}]", key, value, value==null ? "null": value.GetType().Name);
-
-         if (key == null) goto UNHANDLED;
-         String lcKey = key.ToLowerInvariant();
-         int keyLen = lcKey.Length;
-
-         if (ctx.SkipUntilKey != null)
+         try
          {
-            ctx.ActionFlags |= _ActionFlags.Skipped;
-            if (ctx.SkipUntilKey.Length == keyLen && lcKey.Equals(ctx.SkipUntilKey, StringComparison.InvariantCultureIgnoreCase))
-               ctx.SkipUntilKey = null;
-            goto UNHANDLED;
-         }
+            Object ret = null;
+            lastAction = null;
+            ctx.ActionFlags = 0;
 
-         int ixStart = findAction(lcKey);
-         if (ixStart < 0)
-         {
-            if (templates.Count == 0 || !checkTemplates(ctx, key)) //templates==0: otherwise checkTemplates() inserts a NOP action...
+            if ((ctx.ImportFlags & _ImportFlags.TraceValues) != 0) logger.Log("HandleValue ({0}, {1} [{2}]", key, value, value == null ? "null" : value.GetType().Name);
+
+            if (key == null) goto UNHANDLED;
+            String lcKey = key.ToLowerInvariant();
+            int keyLen = lcKey.Length;
+
+            if (ctx.SkipUntilKey != null)
             {
-               missed[lcKey] = null;
-               goto UNHANDLED; 
+               ctx.ActionFlags |= _ActionFlags.Skipped;
+               if (ctx.SkipUntilKey.Length == keyLen && lcKey.Equals(ctx.SkipUntilKey, StringComparison.InvariantCultureIgnoreCase))
+                  ctx.SkipUntilKey = null;
+               goto UNHANDLED;
             }
-            ixStart = findAction(lcKey);
-            if (ixStart < 0) goto UNHANDLED; ;  //Should not happen, just to be sure!
-         }
 
-         for (int i = ixStart; i < actions.Count; i++)
-         {
-            ActionAdmin a = actions[i];
-            if (a.KeyLen != keyLen) break;
-            if (!lcKey.Equals(a.Key, StringComparison.InvariantCulture)) break;
+            int ixStart = findAction(lcKey);
+            if (ixStart < 0)
+            {
+               if (templates.Count == 0 || !checkTemplates(ctx, key)) //templates==0: otherwise checkTemplates() inserts a NOP action...
+               {
+                  missed[lcKey] = null;
+                  goto UNHANDLED;
+               }
+               ixStart = findAction(lcKey);
+               if (ixStart < 0) goto UNHANDLED; ;  //Should not happen, just to be sure!
+            }
 
-            lastAction = ctx.SetAction (a.Action);
-            Object tmp = a.Action.HandleValue(ctx, key, value);
-            ClearVariables(a.Action.VarsToClear); 
-            if (tmp != null) ret = tmp;
-            if ((ctx.ActionFlags & _ActionFlags.SkipRest) != 0)
-               break;
-         }
-         
+            for (int i = ixStart; i < actions.Count; i++)
+            {
+               ActionAdmin a = actions[i];
+               if (a.KeyLen != keyLen) break;
+               if (!lcKey.Equals(a.Key, StringComparison.InvariantCulture)) break;
+
+               lastAction = ctx.SetAction(a.Action);
+               Object tmp = a.Action.HandleValue(ctx, key, value);
+               ClearVariables(a.Action.VarsToClear);
+               if (tmp != null) ret = tmp;
+               if ((ctx.ActionFlags & _ActionFlags.SkipRest) != 0)
+                  break;
+            }
+
          UNHANDLED: return null;
+         }
+         catch (Exception e)
+         {
+            ctx.ErrorLog.Log(e, "Exception while handling event. Key={0}", key);
+            PipelineAction act = lastAction as PipelineAction;
+            if (act == null)
+               ctx.ErrorLog.Log("Cannot dump accu: no current action found.");
+            else
+            {
+               var accu = (JObject)act.Endpoint.GetFieldAsToken(null);
+               ctx.ErrorLog.Log("Dumping content of current accu: fieldcount={0}", accu.Count);
+               ctx.ErrorLog.Log(act.Endpoint.GetFieldAsToken(null).ToString());
+            }
+            throw;
+         }
       }
 
       private bool checkTemplates(PipelineContext ctx, String key)

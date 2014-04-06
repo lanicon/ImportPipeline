@@ -41,7 +41,7 @@ namespace Bitmanager.ImportPipeline
       public MaxAddsExceededException Exceeded { get; private set; }
       public PipelineAction Action;
       public String SkipUntilKey;
-      public int Added, Deleted, Skipped;
+      public int Added, Deleted, Skipped, Emitted;
       public int LogAdds;
       public int MaxAdds;
       public _ImportFlags ImportFlags;
@@ -139,7 +139,7 @@ namespace Bitmanager.ImportPipeline
 
       public String GetStats()
       {
-         return String.Format("Added={0}, Deleted={1}, Skipped={2}", Added, Deleted, Skipped);
+         return String.Format("Emitted={3}, Added={0}, Deleted={1}, Skipped={2}", Added, Deleted, Skipped, Emitted);
       }
    }
 

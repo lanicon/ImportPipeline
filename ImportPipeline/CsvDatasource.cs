@@ -15,7 +15,8 @@ namespace Bitmanager.ImportPipeline
 {
    public class CsvDatasource: Datasource
    {
-      String file;
+      private IDatasourceFeeder feeder;
+      //DSString file;
       int[] sortValuesToKeep;
       int sortKey;
       int startAt;
@@ -25,9 +26,11 @@ namespace Bitmanager.ImportPipeline
       bool hasHeaders;
       CsvTrimOptions trim;
 
+
       public void Init(PipelineContext ctx, XmlNode node)
       {
-         file = ctx.ImportEngine.Xml.CombinePath (node.ReadStr("@file"));
+         feeder = ctx.CreateFeeder(node, typeof (FileNameFeeder));
+         //DS file = ctx.ImportEngine.Xml.CombinePath(node.ReadStr("@file"));
          hasHeaders = node.OptReadBool("@headers", false);
          trim = node.OptReadEnum("@trim", CsvTrimOptions.None);
          delimChar = readChar(node, "@dlm", ',');
@@ -82,8 +85,21 @@ namespace Bitmanager.ImportPipeline
 
       public void Import(PipelineContext ctx, IDatasourceSink sink)
       {
-         if (sortKey < 0) processFile(ctx, file, sink);
-         else processSortedFile(ctx, file, sink);
+         ctx.Emitted = 0;
+         foreach (var elt in feeder)
+         {
+            try
+            {
+               String file = elt.Element.ToString();
+               ctx.ImportLog.Log("-- Importing {0}...", file);
+               if (sortKey < 0) processFile(ctx, file, sink);
+               else processSortedFile(ctx, file, sink);
+            }
+            catch (Exception e)
+            {
+               throw new BMException(e, e.Message + "\r\nFile=" + elt.Element + ".");
+            }
+         }
       }
 
       protected void processFile(PipelineContext ctx, String fileName, IDatasourceSink sink)
@@ -106,6 +122,7 @@ namespace Bitmanager.ImportPipeline
                {
                   sink.HandleValue(ctx, keys[i], fields[i]);
                }
+               ctx.Emitted++;
                sink.HandleValue(ctx, "record", null);
             }
          }
@@ -179,6 +196,7 @@ namespace Bitmanager.ImportPipeline
             {
                sink.HandleValue(ctx, keys[i-1], arr[i]);
             }
+            ctx.Emitted++;
             sink.HandleValue(ctx, "record", null);
          }
          sink.HandleValue(ctx, Pipeline.ItemStop, fileName);

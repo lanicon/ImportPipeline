@@ -59,7 +59,95 @@
       <SubType>Code</SubType>
       <Visible>true</Visible>
     </Compile>
-    <Compile Include="ImportDirs\**\*.xml">
+    <Compile Include="ImportDirs\AltNames\import.xml">
+      <SubType>Code</SubType>
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Include="ImportDirs\Channels\import.xml">
+      <SubType>Code</SubType>
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Include="ImportDirs\countCities\import.xml">
+      <SubType>Code</SubType>
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Include="ImportDirs\desttrans\import.xml">
+      <SubType>Code</SubType>
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Include="ImportDirs\esToNop\import.xml">
+      <SubType>Code</SubType>
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Include="ImportDirs\ES\import.xml">
+      <SubType>Code</SubType>
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Include="ImportDirs\EvaluateMissing\import.xml">
+      <SubType>Code</SubType>
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Include="ImportDirs\ExportAltNames\import.xml">
+      <SubType>Code</SubType>
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Include="ImportDirs\FinnishCountries\import.xml">
+      <SubType>Code</SubType>
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Include="ImportDirs\formatSample\import.xml">
+      <SubType>Code</SubType>
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Include="ImportDirs\Giro\import.xml">
+      <SubType>Designer</SubType>
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Include="ImportDirs\GorillaMail\import.xml">
+      <SubType>Code</SubType>
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Include="ImportDirs\Gorilla\import.xml">
+      <SubType>Code</SubType>
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Include="ImportDirs\hotelsVoorB\import.xml">
+      <SubType>Code</SubType>
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Include="ImportDirs\hotels\import.xml">
+      <SubType>Code</SubType>
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Include="ImportDirs\Missed2Canonical\import.xml">
+      <SubType>Code</SubType>
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Include="ImportDirs\Missed\import.xml">
+      <SubType>Code</SubType>
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Include="ImportDirs\queries\import.xml">
+      <SubType>Code</SubType>
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Include="ImportDirs\RealtimeEvents\import.xml">
+      <SubType>Code</SubType>
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Include="ImportDirs\termlist\import.xml">
+      <SubType>Code</SubType>
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Include="ImportDirs\Tika\import.xml">
+      <SubType>Code</SubType>
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Include="ImportDirs\Xml\import.xml">
+      <SubType>Code</SubType>
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Include="ImportDirs\zCsvToCsv\import.xml">
       <SubType>Code</SubType>
       <Visible>true</Visible>
     </Compile>

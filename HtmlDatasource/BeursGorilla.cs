@@ -204,7 +204,10 @@ namespace BeursGorilla
          StringDict attribs = getAttributes(elt.Context);
          Uri url = (Uri)elt.Element;
 
-         ctx.DebugLog.Log("-- Fetching url " + url);
+         int offset = elt.Context.OptReadInt("@offset", 0);
+         ctx.DebugLog.Log("-- Node={0}", elt.Context.OuterXml);
+
+         ctx.DebugLog.Log("-- Fetching url " + url + ", offset=" + offset);
          const String expr = "//tr[@class='koersen_tabel_fondsen']";
          sink.HandleValue(ctx, "_start", url);
          HtmlDocument doc = loadUrl(url);
@@ -213,7 +216,7 @@ namespace BeursGorilla
          if (nodes.Count == 0)
             throw new BMException("No nodes found for expr \"{0}\".", expr);
 
-         for (int i = 1; i < nodes.Count; i++)
+         for (int i = offset; i < nodes.Count; i++)
          {
             var trNode = nodes[i];
             var tdNodes = trNode.SelectNodes("td");
@@ -242,6 +245,7 @@ namespace BeursGorilla
             }
 
             String name = anchorNode.InnerText;
+            ctx.DebugLog.Log("-- -- STOCK[{0}]: {1}", i, name);
             foreach (var kvp in attribs)
                sink.HandleValue(ctx, "record/" + kvp.Key, kvp.Value);
 

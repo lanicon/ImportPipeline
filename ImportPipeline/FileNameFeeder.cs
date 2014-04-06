@@ -75,11 +75,28 @@ namespace Bitmanager.ImportPipeline
          args.Continue = true;
       }
 
+      private static String[] getFilesFromFileSpec(String file)
+      {
+         if (file.IndexOf('*') < 0 && file.IndexOf('?') < 0)
+         {
+            String[] arr = new String[1];
+            arr[0] = file;
+            return arr;
+         }
+         String dir = Path.GetDirectoryName(file);
+         String spec = Path.GetFileName(file);
+         if (!Directory.Exists(dir)) return new String[0];
+         return Directory.GetFiles(dir, spec);
+      }
       public IEnumerator<IDatasourceFeederElement> GetEnumerator()
       {
          if (file != null)
          {
-            yield return new FileNameFeederElement(ctxNode, file);
+            foreach (var s in getFilesFromFileSpec(file))
+            {
+               Logs.ErrorLog.Log("File=" + s);
+               yield return new FileNameFeederElement(ctxNode, s);
+            }
          }
          else
          {

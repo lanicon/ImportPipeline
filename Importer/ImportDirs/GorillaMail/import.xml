@@ -3,13 +3,9 @@
    <tempdir dir="temp" clearonstart="true" />
    <endpoints>
       <endpoint name="gorilla" type="esEndpoint" url="http://localhost:9200/">
-         <indexes>
-            <index name="gorilla" config="index.config.js"/>
-         </indexes>
-         <types>
+         <index name="gorilla" config="index.config.js" >
             <type name="doc" index="gorilla" _keyfield="_id" />  
-         </types>
-
+         </index>
       </endpoint>
    </endpoints>
 

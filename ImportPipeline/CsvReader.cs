@@ -21,7 +21,7 @@ namespace Bitmanager.ImportPipeline
       private String fileName;
       private StreamReader reader;
       public bool SkipEmptyRecords;
-      public bool SkipHeader;
+      public bool SkipHeader, Lenient;
       public CsvTrimOptions TrimOptions;
       private int line;
       private int nextChar;
@@ -85,9 +85,13 @@ namespace Bitmanager.ImportPipeline
 
       public bool NextRecord()
       {
+         //local vars are accessed faster...
          bool trimUnquoted = (TrimOptions & CsvTrimOptions.TrimUnquoted) != 0;
          bool trimQuoted = (TrimOptions & CsvTrimOptions.TrimQuoted) != 0;
+         bool lenient = Lenient;
          bool inQuotedField;
+         int sepChar = this.sepChar;
+         int quoteChar = this.quoteChar;
 
          while (true)  //Loop for processing multiple records (in case of the 1st header or skipping empty records)
          {
@@ -154,6 +158,30 @@ namespace Bitmanager.ImportPipeline
                         goto NEXT_CHAR;
                      }
 
+                     //Lenient behavior: a quoteChar inside the text is acceptable.
+                     //                  To discriminate between a real quote and one somewhere in the text is
+                     //                  that an end quote needs to be followed by <spaces><spechar|crlf>
+                     if (lenient)
+                     {
+                        int orgLen = sb.Length;
+                        while (ch == ' ') { sb.Append(ch); ch = reader.Read(); }
+                        switch (ch)
+                        {
+                           default:
+                              if (ch != sepChar) continue;
+                              //Otherwise this was a real end-quote...
+                              break;
+                           case '\r':
+                           case '\n':
+                           case -1:
+                              break;
+                        }
+                        sb.Length = orgLen;
+                        inQuotedField = false;
+                        continue;
+                     }
+
+                     //Non-lenient behavior
                      while (ch == ' ') ch = reader.Read();
                      switch (ch)
                      {

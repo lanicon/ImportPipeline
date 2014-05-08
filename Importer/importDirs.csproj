@@ -140,7 +140,7 @@
       <Visible>true</Visible>
     </Compile>
     <Compile Include="ImportDirs\Tika\import.xml">
-      <SubType>Code</SubType>
+      <SubType>Designer</SubType>
       <Visible>true</Visible>
     </Compile>
     <Compile Include="ImportDirs\Xml\import.xml">

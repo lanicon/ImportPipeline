@@ -19,7 +19,8 @@ namespace Bitmanager.ImportPipeline
       private String requestBody;
       private int numRecords;
       private int maxParallel;
-      private int splitUntil; 
+      private int splitUntil;
+      private bool scan;
 
       public void Init(PipelineContext ctx, XmlNode node)
       {
@@ -29,6 +30,7 @@ namespace Bitmanager.ImportPipeline
          maxParallel = node.OptReadInt("@maxparallel", 1);
          requestBody = node.OptReadStr("request", null);
          splitUntil = node.OptReadInt("@splituntil", 1);
+         scan = node.OptReadBool("@scan", true);
       }
 
       public void Import(PipelineContext ctx, IDatasourceSink sink)
@@ -51,6 +53,7 @@ namespace Bitmanager.ImportPipeline
          int maxParallel = elt.Context.OptReadInt ("@maxparallel", this.maxParallel);
          int splitUntil = elt.Context.OptReadInt("@splituntil", this.splitUntil);
          if (splitUntil < 0) splitUntil = int.MaxValue;
+         bool scan = elt.Context.OptReadBool("@scan", this.scan);
 
          //StringDict attribs = getAttributes(elt.Context);
          //var fullElt = (FileNameFeederElement)elt;
@@ -62,7 +65,7 @@ namespace Bitmanager.ImportPipeline
          JObject req = null;
          if (reqBody != null)
             req = JObject.Parse(reqBody);
-         ctx.DebugLog.Log("Request body={0}", reqBody);
+         ctx.DebugLog.Log("Request scan={1}, body={0}", reqBody, scan);
          try
          {
             Uri uri = new Uri (url);
@@ -75,9 +78,9 @@ namespace Bitmanager.ImportPipeline
             }
             else
             {
-               ESRecordEnum e = new ESRecordEnum(conn, index, req, numRecords, timeout);
+               ESRecordEnum e = new ESRecordEnum(conn, index, req, numRecords, timeout, scan);
                if (maxParallel > 0) e.Async = true;
-               ctx.ImportLog.Log("Starting scan of {0} records. Index={1}, connection={2}, async={3}, buffersize={4} requestbody={5}, splituntil={6}.", e.Count, index, url, e.Async, numRecords, req != null, splitUntil);
+               ctx.ImportLog.Log("Starting scan of {0} records. Index={1}, connection={2}, async={3}, buffersize={4} requestbody={5}, splituntil={6}, scan={7}.", e.Count, index, url, e.Async, numRecords, req != null, splitUntil, scan);
                foreach (var doc in e)
                {
                   String[] fields = doc.GetLoadedFields();

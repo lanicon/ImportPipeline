@@ -100,7 +100,7 @@ namespace Bitmanager.ImportPipeline
             if (ix >= data.Length)
             {
                JToken[] newArr = new JToken[2 * ix + 4];
-               Array.Copy(data, newArr, newArr.Length);
+               Array.Copy(data, newArr, data.Length);
                data = newArr;
             }
             if (ix >= maxDataElts) maxDataElts = ix + 1;

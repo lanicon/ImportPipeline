@@ -25,7 +25,8 @@ namespace Bitmanager.ImportPipeline
       public void Init(PipelineContext ctx, XmlNode node)
       {
          feeder = ctx.CreateFeeder(node, typeof (UrlFeeder));
-         numRecords = node.OptReadInt("@buffersize", ESRecordEnum.DEF_BUFFER_SIZE);
+         int size = node.OptReadInt("@buffersize", 0);
+         numRecords = size > 0 ? size : node.OptReadInt("@buffersize", ESRecordEnum.DEF_BUFFER_SIZE);
          timeout = node.OptReadStr("@timeout", ESRecordEnum.DEF_TIMEOUT);
          maxParallel = node.OptReadInt("@maxparallel", 1);
          requestBody = node.OptReadStr("request", null);

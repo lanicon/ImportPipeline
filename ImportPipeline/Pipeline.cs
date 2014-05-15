@@ -13,9 +13,14 @@ namespace Bitmanager.ImportPipeline
    class ActionAdmin
    {
       public readonly String Key;
+      public readonly PipelineAction Action;
       public readonly int KeyLen;
       public readonly int Order;
-      public readonly PipelineAction Action;
+
+      //Next fields are filled by the pipeline when sorting
+      public int  Index;
+      public int  EqualityID;
+      public bool EqualToPrev;
 
       public ActionAdmin(String key, int order, PipelineAction action)
       {
@@ -162,6 +167,7 @@ namespace Bitmanager.ImportPipeline
             act.Action.Start(ctx);
             actions.Add(act);
          }
+         prepareActions();
 
          if (endPointCache != null)
             foreach (var kvp in this.endPointCache)
@@ -241,8 +247,7 @@ namespace Bitmanager.ImportPipeline
             for (int i = ixStart; i < actions.Count; i++)
             {
                ActionAdmin a = actions[i];
-               if (a.KeyLen != keyLen) break;
-               if (!lcKey.Equals(a.Key, StringComparison.InvariantCulture)) break;
+               if (i > ixStart && !a.EqualToPrev) break;
 
                lastAction = ctx.SetAction(a.Action);
                Object tmp = a.Action.HandleValue(ctx, key, value);
@@ -270,6 +275,31 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
+      Dictionary<String, ActionAdmin> actionDict; 
+      private void prepareActions()
+      {
+         actionDict = new Dictionary<string, ActionAdmin>(actions.Count);
+         if (actions.Count==0) return;
+         int equalityID = 0;
+         actions.Sort(cbSortAction);
+         ActionAdmin prev = actions[0];
+         actionDict.Add(prev.Key, prev);
+         prev.EqualToPrev = false;
+         prev.Index       = 0;
+         prev.EqualityID = equalityID;
+         for (int i=1; i<actions.Count; i++)
+         {
+            ActionAdmin a = actions[i];
+            a.Index = i;
+            a.EqualityID = equalityID;
+            a.EqualToPrev = (a.Key == prev.Key);
+            if (a.EqualToPrev) continue;
+            prev = a;
+            a.EqualityID = ++equalityID;
+            actionDict.Add(a.Key, a);
+         }
+      }
+
       private bool checkTemplates(PipelineContext ctx, String key)
       {
          PipelineAction a = null;
@@ -283,7 +313,7 @@ namespace Bitmanager.ImportPipeline
          }
          a = new PipelineNopAction (key);
          actions.Add(new ActionAdmin(a.Name, actions.Count, a));
-         actions.Sort(cbSortAction);
+         prepareActions();
          return false;
 
       ADD_TEMPLATE:
@@ -298,7 +328,7 @@ namespace Bitmanager.ImportPipeline
             a = templates[i].OptCreateAction(ctx, key);
             if (a == null) break;
          }
-         actions.Sort(cbSortAction);
+         prepareActions();
          return true;
       }
 
@@ -310,7 +340,7 @@ namespace Bitmanager.ImportPipeline
             ActionAdmin a = actions[i];
             if (a.KeyLen < kl) continue;
             if (a.KeyLen > kl) return -1;
-            int rc = String.Compare(a.Key, key, StringComparison.InvariantCulture);
+            int rc = String.CompareOrdinal(a.Key, key);
             if (rc < 0) continue;
             if (rc > 0) return -1;
 
@@ -325,7 +355,7 @@ namespace Bitmanager.ImportPipeline
          int rc = intComparer.Compare(left.KeyLen, right.KeyLen);
          if (rc != 0) return rc;
 
-         rc = String.Compare(left.Key, right.Key, StringComparison.InvariantCultureIgnoreCase);
+         rc = String.CompareOrdinal(left.Key, right.Key);
          if (rc != 0) return rc;
 
          return intComparer.Compare(left.Order, right.Order);

@@ -8,6 +8,7 @@ using Bitmanager.Elastic;
 using Bitmanager.Json;
 using Newtonsoft.Json.Linq;
 using System.Xml;
+using System.Net;
 
 
 namespace Bitmanager.ImportPipeline
@@ -49,6 +50,27 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
+      class ContextCallback
+      {
+         IDatasourceFeederElement elt;
+         PipelineContext ctx;
+         ESDatasource ds;
+         public ContextCallback(PipelineContext ctx, ESDatasource ds, IDatasourceFeederElement elt)
+         {
+            this.elt = elt;
+            this.ctx = ctx;
+            this.ds = ds;
+         }
+
+         public void OnPrepareRequest(ESConnection conn, HttpWebRequest req)
+         {
+            UrlFeederElement ufe = elt as UrlFeederElement;
+            if (ufe == null) return;
+
+            ufe.OptSetCredentials(ctx, req);
+         }
+      }
+
       private void importUrl(PipelineContext ctx, IDatasourceSink sink, IDatasourceFeederElement elt)
       {
          int maxParallel = elt.Context.OptReadInt ("@maxparallel", this.maxParallel);
@@ -71,6 +93,8 @@ namespace Bitmanager.ImportPipeline
          {
             Uri uri = new Uri (url);
             ESConnection conn = new ESConnection (url);
+            ContextCallback cb = new ContextCallback(ctx, this, elt);
+            conn.OnPrepareRequest = cb.OnPrepareRequest;   
             if (command != null)
             {
                var resp = conn.SendCmd("POST", command, reqBody);

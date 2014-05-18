@@ -19,12 +19,19 @@ namespace Bitmanager.ImportPipeline
 
    public class FeederElementBase: IDatasourceFeederElement
    {
-      public XmlNode Context { get; private set; }
-      public Object Element { get; private set; }
+      public XmlNode Context { get; protected set; }
+      public Object Element { get; protected set; }
       public FeederElementBase(XmlNode ctx, Object element)
       {
          Context = ctx;
          Element = element;
+      }
+      protected FeederElementBase(XmlNode ctx)
+      {
+         Context = ctx;
+      }
+      protected FeederElementBase()
+      {
       }
       public override string ToString()
       {

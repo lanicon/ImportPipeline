@@ -22,6 +22,7 @@ namespace Bitmanager.ImportPipeline
       IgnoreLimited = 1<<4,
       IgnoreAll = IgnoreErrors | IgnoreLimited,
       UseFlagsFromXml = 1 << 5,
+      Silent = 1<<6,
    }
    public class ImportEngine
    {

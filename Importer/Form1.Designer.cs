@@ -36,6 +36,8 @@
          this.label1 = new System.Windows.Forms.Label();
          this.label2 = new System.Windows.Forms.Label();
          this.grpFlags = new System.Windows.Forms.GroupBox();
+         this.cbIgnoreErrors = new System.Windows.Forms.CheckBox();
+         this.cbIgnoreLimited = new System.Windows.Forms.CheckBox();
          this.cbTraceValues = new System.Windows.Forms.CheckBox();
          this.cbDoNotRename = new System.Windows.Forms.CheckBox();
          this.CbFullImport = new System.Windows.Forms.CheckBox();
@@ -45,8 +47,6 @@
          this.button6 = new System.Windows.Forms.Button();
          this.timer1 = new System.Windows.Forms.Timer(this.components);
          this.btnCancel = new System.Windows.Forms.Button();
-         this.cbIgnoreLimited = new System.Windows.Forms.CheckBox();
-         this.cbIgnoreErrors = new System.Windows.Forms.CheckBox();
          this.grpFlags.SuspendLayout();
          this.SuspendLayout();
          // 
@@ -117,6 +117,26 @@
          this.grpFlags.TabIndex = 7;
          this.grpFlags.TabStop = false;
          this.grpFlags.Text = "Flags";
+         // 
+         // cbIgnoreErrors
+         // 
+         this.cbIgnoreErrors.AutoSize = true;
+         this.cbIgnoreErrors.Location = new System.Drawing.Point(17, 122);
+         this.cbIgnoreErrors.Name = "cbIgnoreErrors";
+         this.cbIgnoreErrors.Size = new System.Drawing.Size(90, 19);
+         this.cbIgnoreErrors.TabIndex = 14;
+         this.cbIgnoreErrors.Text = "IgnoreErrors";
+         this.cbIgnoreErrors.UseVisualStyleBackColor = true;
+         // 
+         // cbIgnoreLimited
+         // 
+         this.cbIgnoreLimited.AutoSize = true;
+         this.cbIgnoreLimited.Location = new System.Drawing.Point(17, 97);
+         this.cbIgnoreLimited.Name = "cbIgnoreLimited";
+         this.cbIgnoreLimited.Size = new System.Drawing.Size(100, 19);
+         this.cbIgnoreLimited.TabIndex = 13;
+         this.cbIgnoreLimited.Text = "IgnoreLimited";
+         this.cbIgnoreLimited.UseVisualStyleBackColor = true;
          // 
          // cbTraceValues
          // 
@@ -204,26 +224,6 @@
          this.btnCancel.Text = "Cancel";
          this.btnCancel.UseVisualStyleBackColor = true;
          this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-         // 
-         // cbIgnoreLimited
-         // 
-         this.cbIgnoreLimited.AutoSize = true;
-         this.cbIgnoreLimited.Location = new System.Drawing.Point(17, 97);
-         this.cbIgnoreLimited.Name = "cbIgnoreLimited";
-         this.cbIgnoreLimited.Size = new System.Drawing.Size(100, 19);
-         this.cbIgnoreLimited.TabIndex = 13;
-         this.cbIgnoreLimited.Text = "IgnoreLimited";
-         this.cbIgnoreLimited.UseVisualStyleBackColor = true;
-         // 
-         // cbIgnoreErrors
-         // 
-         this.cbIgnoreErrors.AutoSize = true;
-         this.cbIgnoreErrors.Location = new System.Drawing.Point(17, 122);
-         this.cbIgnoreErrors.Name = "cbIgnoreErrors";
-         this.cbIgnoreErrors.Size = new System.Drawing.Size(90, 19);
-         this.cbIgnoreErrors.TabIndex = 14;
-         this.cbIgnoreErrors.Text = "IgnoreErrors";
-         this.cbIgnoreErrors.UseVisualStyleBackColor = true;
          // 
          // Form1
          // 

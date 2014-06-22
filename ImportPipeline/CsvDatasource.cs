@@ -24,7 +24,7 @@ namespace Bitmanager.ImportPipeline
 
       char delimChar, quoteChar, commentChar;
       bool hasHeaders;
-      bool lenient;
+      CsvLenientMode lenient;
       CsvTrimOptions trim;
 
 
@@ -33,7 +33,7 @@ namespace Bitmanager.ImportPipeline
          feeder = ctx.CreateFeeder(node, typeof (FileNameFeeder));
          //DS file = ctx.ImportEngine.Xml.CombinePath(node.ReadStr("@file"));
          hasHeaders = node.OptReadBool("@headers", false);
-         lenient = node.OptReadBool("@lenient", false);
+         lenient = node.OptReadEnum("@lenient", CsvLenientMode.False);
          trim = node.OptReadEnum("@trim", CsvTrimOptions.None);
          delimChar = readChar(node, "@dlm", ',');
          quoteChar = readChar(node, "@quote", '"');
@@ -141,7 +141,7 @@ namespace Bitmanager.ImportPipeline
          rdr.QuoteOrd = (int)quoteChar;
          rdr.SepOrd = (int)delimChar;
          rdr.SkipHeader = hasHeaders;
-         rdr.Lenient = lenient;
+         rdr.LenientMode = lenient;
          rdr.SkipEmptyRecords = true;
          rdr.TrimOptions = trim;
          //Logs.ErrorLog.Log("Multiline={0}, quote={1} ({2}), esc={3} ({4}), startat={5}", true, csvRdr.QuoteChar, (int)csvRdr.QuoteOrd, csvRdr.EscapeOrd, (int)csvRdr.SepOrd, startAt);

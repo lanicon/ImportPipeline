@@ -57,6 +57,7 @@
   <ItemGroup>
     <Compile Include="admincollections.cs" />
     <Compile Include="AsyncEndpointRequestQueue.cs" />
+    <Compile Include="JsonDatasource.cs" />
     <Compile Include="Credentials.cs" />
     <Compile Include="CsvEndpoint.cs" />
     <Compile Include="CsvReader.cs" />

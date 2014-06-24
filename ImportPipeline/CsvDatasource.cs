@@ -21,7 +21,7 @@ namespace Bitmanager.ImportPipeline
       int sortKey;
       int startAt;
 
-
+      String escChar;
       char delimChar, quoteChar, commentChar;
       bool hasHeaders;
       CsvLenientMode lenient;
@@ -35,6 +35,8 @@ namespace Bitmanager.ImportPipeline
          hasHeaders = node.OptReadBool("@headers", false);
          lenient = node.OptReadEnum("@lenient", CsvLenientMode.False);
          trim = node.OptReadEnum("@trim", CsvTrimOptions.None);
+         escChar = node.OptReadStr("@escape", null);
+
          delimChar = readChar(node, "@dlm", ',');
          quoteChar = readChar(node, "@quote", '"');
          commentChar = readChar(node, "@comment", '#');
@@ -127,6 +129,7 @@ namespace Bitmanager.ImportPipeline
                ctx.Emitted++;
                sink.HandleValue(ctx, "record", null);
             }
+            ctx.ImportLog.Log ("Invalid records: {0}", csvRdr.NumInvalidRecords);
          }
          sink.HandleValue(ctx, Pipeline.ItemStop, fileName);
       }
@@ -140,6 +143,7 @@ namespace Bitmanager.ImportPipeline
          CsvReader rdr = new CsvReader(strm);
          rdr.QuoteOrd = (int)quoteChar;
          rdr.SepOrd = (int)delimChar;
+         if (escChar != null) rdr.EscapeChar = escChar;
          rdr.SkipHeader = hasHeaders;
          rdr.LenientMode = lenient;
          rdr.SkipEmptyRecords = true;

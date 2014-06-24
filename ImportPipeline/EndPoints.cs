@@ -72,6 +72,20 @@ namespace Bitmanager.ImportPipeline
          foreach (var x in this)
             x._Close(ctx);
       }
+      public void CloseFinally(PipelineContext ctx)
+      {
+         foreach (var x in this)
+         {
+            try
+            {
+               x._Close(ctx);
+            }
+            catch (Exception e)
+            {
+               ctx.ErrorLog.Log(e, "Close [{0}] failed: ", x.Name);
+            }
+         }
+      }
 
       /// <summary>
       /// Auto close lazy non-global endpoints on datasource-stop
@@ -83,7 +97,7 @@ namespace Bitmanager.ImportPipeline
          {
             if (!x.opened) continue;
             if ((x.ActiveMode & ActiveMode.Lazy) == 0) continue;
-            if ((x.ActiveMode & ActiveMode.Global) != 0) continue; 
+            if ((x.ActiveMode & ActiveMode.Global) != 0) continue;
             x._Close(ctx);
          }
       }

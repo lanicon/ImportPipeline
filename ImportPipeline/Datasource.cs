@@ -24,8 +24,8 @@ namespace Bitmanager.ImportPipeline
       public String Type { get; private set; }
       public Datasource Datasource {get; private set;}
       public Pipeline Pipeline { get; private set; }
-      public int LogAdds { get; private set; }
-      public int MaxAdds { get; private set; }
+      public int LogAdds { get; set; }
+      public int MaxAdds { get; set; }
       public PipelineContext LastContext { get; set; }
       public bool Active { get; private set; }
 
@@ -34,8 +34,8 @@ namespace Bitmanager.ImportPipeline
       {
          Type = node.ReadStr("@type");
          Active = node.OptReadBool("@active", true);
-         LogAdds = node.OptReadInt("@logadds", ctx.ImportEngine.LogAdds);
-         MaxAdds = node.OptReadInt("@maxadds", ctx.ImportEngine.MaxAdds);
+         LogAdds = node.OptReadInt("@logadds", -1);
+         MaxAdds = node.OptReadInt("@maxadds", -1);
          String pipelineName = node.OptReadStr("@pipeline", null);
          Pipeline = ctx.ImportEngine.Pipelines.GetByNamesOrFirst(pipelineName, Name);
 

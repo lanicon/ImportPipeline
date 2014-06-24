@@ -37,8 +37,8 @@ namespace Bitmanager.ImportPipeline
       public readonly Logger DebugLog;
       public readonly Logger ErrorLog;
       public readonly Logger MissedLog;
-      public int LogAdds {get; private set;}
-      public int MaxAdds { get; private set; }
+      public int LogAdds {get; set;}
+      public int MaxAdds { get; set; }
       public _ImportFlags ImportFlags { get; set; }
 
 
@@ -49,6 +49,8 @@ namespace Bitmanager.ImportPipeline
          MissedLog = Logs.CreateLogger("import-missed", "ImportEngine");
          ErrorLog = Logs.ErrorLog.Clone("ImportEngine");
          Logs.DebugLog.Log(((InternalLogger)ImportLog)._Logger.Name);
+         LogAdds = 50000;
+         MaxAdds = -1;
       }
       public void Load(String fileName)
       {
@@ -60,8 +62,8 @@ namespace Bitmanager.ImportPipeline
          Xml = xml;
          PipelineContext ctx = new PipelineContext(this);
          ImportFlags = xml.OptReadEnum("@importflags", ImportFlags);
-         LogAdds = xml.OptReadInt("@logadds", 50000);
-         MaxAdds = xml.OptReadInt("@maxadds", -1);
+         LogAdds = xml.OptReadInt("@logadds", LogAdds);
+         MaxAdds = xml.OptReadInt("@maxadds", MaxAdds);
          ImportLog.Log("Loading import xml: flags={0}, logadds={1}, maxadds={2}", ImportFlags, LogAdds, MaxAdds);
 
          //Load the supplied script
@@ -124,7 +126,7 @@ namespace Bitmanager.ImportPipeline
       public void Import(String[] enabledDSses=null)
       {
          ImportLog.Log();
-         ImportLog.Log(_LogType.ltProgress, "Starting import. Flags={0}, ActiveDS's='{1}'.", ImportFlags, enabledDSses==null ? null : String.Join (", ", enabledDSses));
+         ImportLog.Log(_LogType.ltProgress, "Starting import. Flags={0}, MaxAdds={1}, ActiveDS's='{2}'.", ImportFlags, MaxAdds, enabledDSses==null ? null : String.Join (", ", enabledDSses));
          PipelineContext mainCtx = new PipelineContext(this);
          Endpoints.Open(mainCtx);
 
@@ -180,12 +182,13 @@ namespace Bitmanager.ImportPipeline
             }
             ImportLog.Log(_LogType.ltProgress, "Import ended");
             JavaHostCollection.StopAll();
+            Endpoints.Close(mainCtx);
          }
          finally
          {
             try
             {
-               Endpoints.Close(mainCtx);
+               Endpoints.CloseFinally(mainCtx);
                JavaHostCollection.StopAll();
             }
             catch (Exception e2)

@@ -10,13 +10,18 @@ using Bitmanager.Json;
 using System.IO;
 using System.Globalization;
 using Bitmanager.Elastic;
+using Bitmanager.IO;
 
 namespace Bitmanager.ImportPipeline
 {
    public class CsvEndpoint : Endpoint
    {
-      public readonly String FileName;
+      public readonly String FileNameBase;
+      private String fileName;
+      public String FileName { get { return fileName; } }
+      public readonly int MaxGenerations;
 
+      private FileGenerations generations;
       private FileStream fs;
       private StreamWriter wtr;
 
@@ -26,7 +31,12 @@ namespace Bitmanager.ImportPipeline
       public CsvEndpoint(ImportEngine engine, XmlNode node)
          : base(node, ActiveMode.Lazy | ActiveMode.Local)
       {
-         FileName = engine.Xml.CombinePath(node.ReadStr("@file"));
+         MaxGenerations = node.OptReadInt("@generations", int.MinValue);
+         if (MaxGenerations != int.MinValue)
+            generations = new FileGenerations();
+         String tmp = MaxGenerations == int.MinValue ? node.ReadStr("@file") : node.OptReadStr("@file", null);
+         FileNameBase = engine.Xml.CombinePath(tmp==null ? "csvOutput" : tmp);
+         fileName = FileNameBase;
          trim = node.OptReadBool("@trim", true);
          delimChar = CsvDatasource.readChar(node, "@dlm", ',');
          quoteChar = CsvDatasource.readChar(node, "@quote", '"');
@@ -35,8 +45,16 @@ namespace Bitmanager.ImportPipeline
 
       protected override void Open(PipelineContext ctx)
       {
+         if (MaxGenerations != int.MinValue)
+         {
+            generations.Load (Path.GetDirectoryName(FileNameBase), Path.GetFileName (FileNameBase) + "*.csv", 1);
+            fileName = generations.GetGenerationName (1);
+         }
+         else
+            fileName = FileNameBase;
+
          base.Open(ctx);
-         fs = new FileStream(FileName, FileMode.Create, FileAccess.Write, FileShare.Read);
+         fs = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.Read);
          wtr = new StreamWriter(fs, Encoding.UTF8, 32*1024);
       }
       protected override void Close(PipelineContext ctx)
@@ -53,6 +71,8 @@ namespace Bitmanager.ImportPipeline
             fs = null;
          }
          base.Close(ctx);
+
+         if (generations != null) generations.RemoveSuperflouisGenerations(MaxGenerations);
       }
 
       protected override IDataEndpoint CreateDataEndpoint(PipelineContext ctx, string dataName)

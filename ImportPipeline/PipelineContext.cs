@@ -58,8 +58,8 @@ namespace Bitmanager.ImportPipeline
          ErrorLog = eng.ErrorLog.Clone(ds.Name);
          MissedLog = eng.MissedLog.Clone(ds.Name);
          ImportFlags = eng.ImportFlags;
-         LogAdds = ds.LogAdds <= 0 ? int.MaxValue : ds.LogAdds;
-         MaxAdds = ds.MaxAdds;
+         LogAdds = (ds.LogAdds > 0) ? ds.LogAdds : eng.LogAdds;
+         MaxAdds = (ds.MaxAdds >= 0) ? ds.MaxAdds : eng.MaxAdds;
       }
       public PipelineContext(ImportEngine eng)
       {

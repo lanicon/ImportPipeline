@@ -129,7 +129,7 @@ namespace Bitmanager.Importer
 
 
          AsyncAdmin asyncAdmin = new AsyncAdmin();
-         asyncAdmin.Start(uiToFlags(), comboBox1.Text, activeDSses);
+         asyncAdmin.Start(uiToFlags(), comboBox1.Text, activeDSses, Invariant.ToInt32 (txtMaxRecords.Text));
          this.asyncAdmin = asyncAdmin;
 
          timer1.Enabled = true;
@@ -177,6 +177,7 @@ namespace Bitmanager.Importer
          ImportEngine engine = new ImportEngine();
          engine.Load(comboBox1.Text);
          uiFromFlags (engine);
+         txtMaxRecords.Text = engine.MaxAdds.ToString();
 
          foreach (var ds in engine.Datasources)
          {

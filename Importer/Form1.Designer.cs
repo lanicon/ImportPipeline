@@ -47,6 +47,8 @@
          this.button6 = new System.Windows.Forms.Button();
          this.timer1 = new System.Windows.Forms.Timer(this.components);
          this.btnCancel = new System.Windows.Forms.Button();
+         this.label3 = new System.Windows.Forms.Label();
+         this.txtMaxRecords = new System.Windows.Forms.TextBox();
          this.grpFlags.SuspendLayout();
          this.SuspendLayout();
          // 
@@ -113,7 +115,7 @@
          this.grpFlags.Controls.Add(this.CbFullImport);
          this.grpFlags.Location = new System.Drawing.Point(30, 155);
          this.grpFlags.Name = "grpFlags";
-         this.grpFlags.Size = new System.Drawing.Size(165, 188);
+         this.grpFlags.Size = new System.Drawing.Size(165, 160);
          this.grpFlags.TabIndex = 7;
          this.grpFlags.TabStop = false;
          this.grpFlags.Text = "Flags";
@@ -225,6 +227,23 @@
          this.btnCancel.UseVisualStyleBackColor = true;
          this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
          // 
+         // label3
+         // 
+         this.label3.AutoSize = true;
+         this.label3.Location = new System.Drawing.Point(27, 328);
+         this.label3.Name = "label3";
+         this.label3.Size = new System.Drawing.Size(71, 15);
+         this.label3.TabIndex = 13;
+         this.label3.Text = "MaxRecords";
+         // 
+         // txtMaxRecords
+         // 
+         this.txtMaxRecords.Location = new System.Drawing.Point(104, 325);
+         this.txtMaxRecords.Name = "txtMaxRecords";
+         this.txtMaxRecords.Size = new System.Drawing.Size(94, 23);
+         this.txtMaxRecords.TabIndex = 14;
+         this.txtMaxRecords.Text = "-1";
+         // 
          // Form1
          // 
          this.AcceptButton = this.btnImport;
@@ -232,6 +251,8 @@
          this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
          this.CancelButton = this.btnCancel;
          this.ClientSize = new System.Drawing.Size(1143, 401);
+         this.Controls.Add(this.txtMaxRecords);
+         this.Controls.Add(this.label3);
          this.Controls.Add(this.btnCancel);
          this.Controls.Add(this.button6);
          this.Controls.Add(this.button5);
@@ -275,6 +296,8 @@
       private System.Windows.Forms.Button btnCancel;
       private System.Windows.Forms.CheckBox cbIgnoreErrors;
       private System.Windows.Forms.CheckBox cbIgnoreLimited;
+      private System.Windows.Forms.Label label3;
+      private System.Windows.Forms.TextBox txtMaxRecords;
    }
 }
 

@@ -11,13 +11,14 @@ namespace Bitmanager.Importer
 {
    public class EngineWrapper : MarshalByRefObject
    {
-      public void Run(_ImportFlags flags, String xml, String[] activeDS)
+      public void Run(_ImportFlags flags, String xml, String[] activeDS, int maxAdds)
       {
          try
          {
             ImportEngine engine = new ImportEngine();
             engine.Load(xml);
             engine.ImportFlags = flags;
+            engine.MaxAdds = maxAdds;
             engine.Import(activeDS);
          }
          catch (Exception e)
@@ -31,11 +32,11 @@ namespace Bitmanager.Importer
    public class AsyncAdmin : IDisposable
    {
       AppDomain domain;
-      Action<_ImportFlags, String, String[]> action;
+      Action<_ImportFlags, String, String[], int> action;
       IAsyncResult asyncResult;
       bool started; 
 
-      public void Start(_ImportFlags flags, String xml, String[] activeDS)
+      public void Start(_ImportFlags flags, String xml, String[] activeDS, int maxRecords)
       {
          domain = AppDomain.CreateDomain("import");
          Type type = typeof(EngineWrapper);
@@ -43,7 +44,7 @@ namespace Bitmanager.Importer
          EngineWrapper wrapper = (EngineWrapper)domain.CreateInstanceAndUnwrap(type.Assembly.FullName, type.FullName, false, BindingFlags.CreateInstance, null, null, Invariant.Culture, null);
          action = wrapper.Run;
 
-         asyncResult = action.BeginInvoke(flags, xml, activeDS, null, null);
+         asyncResult = action.BeginInvoke(flags, xml, activeDS, maxRecords, null, null);
          started = true;
          return;
       }

@@ -344,9 +344,9 @@ namespace BeursGorilla
             if ((ctx.ImportFlags & _ImportFlags.TraceValues) != 0) ctx.DebugLog.Log("HIST HandleValue ({0}, {1} [{2}]", key, value, value == null ? "null" : value.GetType().Name);
             switch (key.ToLowerInvariant())
             {
-               case "history/date": histDate = (DateTime)value; break;
-               case "history/price": histPrice = (double)value; break;
-               case "history":
+               case "history/_v/date": histDate = (DateTime)value; break;
+               case "history/_v/price": histPrice = (double)value; break;
+               case "history/_v":
                   if (histDate == DateTime.MinValue || histPrice < 0)
                      throw new BMException("Unexpected history: date={0}, price={1}", histDate, histPrice);
                   history.Add(histDate, histPrice);

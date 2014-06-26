@@ -119,6 +119,7 @@ namespace Bitmanager.ImportPipeline
             case "trimwhite": return new TrimWhiteConverter(node);
             case "lower": return new ToLowerConverter(node);
             case "upper": return new ToUpperConverter(node);
+            case "string": return new ToStringConverter(node);
             case "double": return new ToDoubleConverter(node);
             case "int32": return new ToInt32Converter(node);
             case "int64": return new ToInt32Converter(node);
@@ -228,7 +229,7 @@ namespace Bitmanager.ImportPipeline
 
    public class ToInt32Converter : ToNumConverter
    {
-      public ToInt32Converter(XmlNode node) : base(node) {}
+      public ToInt32Converter(XmlNode node) : base(node) { }
 
       public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
@@ -250,14 +251,25 @@ namespace Bitmanager.ImportPipeline
       }
    }
 
+   public class ToStringConverter : Converter
+   {
+      public ToStringConverter(XmlNode node) : base(node) { }
+
+      public override Object ConvertScalar(PipelineContext ctx, Object value)
+      {
+         if (value == null) return null;
+         return Invariant.ToString(value);
+      }
+   }
+
    public class ToLowerConverter : Converter
    {
       public ToLowerConverter(XmlNode node) : base(node) { }
 
       public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
-         if (value == null) return null;
-         return value.ToString().ToLowerInvariant();
+         String v = value as String;
+         return v == null ? value : v.ToLowerInvariant();
       }
    }
 
@@ -267,8 +279,8 @@ namespace Bitmanager.ImportPipeline
 
       public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
-         if (value == null) return null;
-         return value.ToString().ToUpperInvariant();
+         String v = value as String;
+         return v == null ? value : v.ToUpperInvariant();
       }
    }
 
@@ -278,8 +290,8 @@ namespace Bitmanager.ImportPipeline
 
       public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
-         if (value == null) return null;
-         return value.ToString().Trim();
+         String v = value as String;
+         return v == null ? value : v.Trim();
       }
    }
    public class TrimWhiteConverter : Converter
@@ -288,8 +300,8 @@ namespace Bitmanager.ImportPipeline
 
       public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
-         if (value == null) return null;
-         return value.ToString().TrimWhiteSpace();
+         String v = value as String;
+         return v == null ? value : v.TrimWhiteSpace();
       }
    }
 
@@ -299,8 +311,8 @@ namespace Bitmanager.ImportPipeline
 
       public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
-         if (value == null) return null;
-         return HttpUtility.HtmlEncode(value.ToString());
+         String v = value as String;
+         return v == null ? value : HttpUtility.HtmlEncode(v); 
       }
    }
 
@@ -310,8 +322,8 @@ namespace Bitmanager.ImportPipeline
 
       public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
-         if (value == null) return null;
-         return HttpUtility.HtmlDecode(value.ToString());
+         String v = value as String;
+         return v == null ? value : HttpUtility.HtmlDecode(v);
       }
    }
 
@@ -321,8 +333,8 @@ namespace Bitmanager.ImportPipeline
 
       public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
-         if (value == null) return null;
-         return HttpUtility.UrlEncode(value.ToString());
+         String v = value as String;
+         return v == null ? value : HttpUtility.UrlEncode(v);
       }
    }
 
@@ -332,8 +344,8 @@ namespace Bitmanager.ImportPipeline
 
       public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
-         if (value == null) return null;
-         return HttpUtility.UrlDecode(value.ToString());
+         String v = value as String;
+         return v == null ? value : HttpUtility.UrlDecode(v);
       }
    }
 

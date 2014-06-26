@@ -13,6 +13,8 @@ using System.Reflection;
 using System.IO;
 using Bitmanager.ImportPipeline;
 using System.Threading;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 
 namespace Bitmanager.Importer
 {
@@ -90,6 +92,19 @@ namespace Bitmanager.Importer
          }
          UseWaitCursor = false;
          enableAllButCancel();
+      }
+
+      private void tryJson()
+      {
+         JObject x = new JObject();
+         x.Add("date", DateTime.UtcNow);
+         x.Add("double", 123.45);
+         MemoryStream m = new MemoryStream();
+            JsonWriter wtr = new JsonTextWriter(new StreamWriter(m));
+            x.WriteTo(wtr);
+            wtr.Flush();
+            String result = Encoding.UTF8.GetString(m.GetBuffer());
+            Logs.ErrorLog.Log(result);
       }
       private void timer1_Tick(object sender, EventArgs e)
       {
@@ -250,6 +265,12 @@ namespace Bitmanager.Importer
          int idx = comboBox1.Items.Count;
          comboBox1.Items.Add(openFileDialog1.FileName);
          comboBox1.SelectedIndex = idx;
+      }
+
+      private void button1_Click_1(object sender, EventArgs e)
+      {
+         tryJson(); return; //PW moet weg
+
       }
    }
 }

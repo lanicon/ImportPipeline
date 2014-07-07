@@ -10,6 +10,7 @@ using Bitmanager.Json;
 using System.IO;
 using System.Globalization;
 using Bitmanager.Elastic;
+using Bitmanager.IO;
 
 namespace Bitmanager.ImportPipeline
 {

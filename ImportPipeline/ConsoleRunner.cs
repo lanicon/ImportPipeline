@@ -124,6 +124,9 @@ namespace Bitmanager.Java
          if (process == null) return true;
          if (!process.HasExited) return false;
          exitCode = process.ExitCode;
+         if ((uint)exitCode == 0xC000013A && this.Settings.ShutdownUrl == null)
+            exitCode = 0;
+
          _LogType lt = _LogType.ltInfo;
          if (exitCode != 0)
          {

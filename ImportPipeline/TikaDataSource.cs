@@ -17,6 +17,7 @@ using System.Text.RegularExpressions;
 using System.Web;
 using System.Threading;
 using Bitmanager.Elastic;
+using Bitmanager.IO;
 
 namespace Bitmanager.ImportPipeline
 {
@@ -26,6 +27,8 @@ namespace Bitmanager.ImportPipeline
       private String uriBase;
       private IDatasourceFeeder feeder;
       private int abstractLength, abstractDelta;
+      private String dbgStoreDir;
+      private static int storeNum;
       public void Init(PipelineContext ctx, XmlNode node)
       {
          processName = node.ReadStr("@tikaprocess");
@@ -34,6 +37,13 @@ namespace Bitmanager.ImportPipeline
          feeder = ctx.CreateFeeder (node);
          abstractLength = node.OptReadInt("abstract/@maxlength", 256);
          abstractDelta = node.OptReadInt("abstract/@delta", 20);
+         dbgStoreDir = node.OptReadStr("dbgstore", null);
+         if (dbgStoreDir != null)
+         {
+            dbgStoreDir = IOUtils.AddSlash(ctx.ImportEngine.Xml.CombinePath(dbgStoreDir));
+            IOUtils.ForceDirectories(dbgStoreDir, true);
+         }
+         ctx.ImportLog.Log("dbgstore dir={0}", dbgStoreDir ?? "NULL");
       }
 
 
@@ -43,6 +53,7 @@ namespace Bitmanager.ImportPipeline
          using (WebClient client = new WebClient())
          {
             byte[] bytes = client.DownloadData(uri);
+            if (dbgStoreDir != null) storeHtml(fn, bytes);
             MemoryStream m = new MemoryStream(bytes);
             m.Position = 0;
             HtmlDocument doc = new HtmlDocument();
@@ -50,6 +61,17 @@ namespace Bitmanager.ImportPipeline
             return new HtmlProcessor (doc);
          }
       }
+
+      private void storeHtml(string fn, byte[] bytes)
+      {
+         String name = String.Format ("{0}{1}_{2}.html", dbgStoreDir, Interlocked.Increment(ref storeNum), Path.GetFileName(fn));
+         Logs.CreateLogger("import", "dbg").Log("store f={0}", name);
+         using (var fs = new FileStream(name, FileMode.Create, FileAccess.Write, FileShare.Read))
+         {
+            fs.Write(bytes, 0, bytes.Length);
+         }
+      }
+
 
 
       private StringDict getAttributes(XmlNode node)

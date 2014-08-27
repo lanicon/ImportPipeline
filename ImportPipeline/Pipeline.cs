@@ -220,7 +220,7 @@ namespace Bitmanager.ImportPipeline
 
             if ((ctx.ImportFlags & _ImportFlags.TraceValues) != 0) logger.Log("HandleValue ({0}, {1} [{2}]", key, value, value == null ? "null" : value.GetType().Name);
 
-            if (key == null) goto UNHANDLED;
+            if (key == null) goto EXIT_RTN;
             String lcKey = key.ToLowerInvariant();
             int keyLen = lcKey.Length;
 
@@ -229,7 +229,7 @@ namespace Bitmanager.ImportPipeline
                ctx.ActionFlags |= _ActionFlags.Skipped;
                if (ctx.SkipUntilKey.Length == keyLen && lcKey.Equals(ctx.SkipUntilKey, StringComparison.InvariantCultureIgnoreCase))
                   ctx.SkipUntilKey = null;
-               goto UNHANDLED;
+               goto EXIT_RTN;
             }
 
             int ixStart = findAction(lcKey);
@@ -238,10 +238,10 @@ namespace Bitmanager.ImportPipeline
                if (templates.Count == 0 || !checkTemplates(ctx, key)) //templates==0: otherwise checkTemplates() inserts a NOP action...
                {
                   missed[lcKey] = null;
-                  goto UNHANDLED;
+                  goto EXIT_RTN;
                }
                ixStart = findAction(lcKey);
-               if (ixStart < 0) goto UNHANDLED; ;  //Should not happen, just to be sure!
+               if (ixStart < 0) goto EXIT_RTN;  //Should not happen, just to be sure!
             }
 
             for (int i = ixStart; i < actions.Count; i++)
@@ -257,7 +257,7 @@ namespace Bitmanager.ImportPipeline
                   break;
             }
 
-         UNHANDLED: return null;
+            EXIT_RTN: return ret;
          }
          catch (Exception e)
          {

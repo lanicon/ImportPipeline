@@ -15,11 +15,20 @@ using Bitmanager.ImportPipeline;
 using System.Threading;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
+using System.Runtime.InteropServices;
+using System.Diagnostics;
 
 namespace Bitmanager.Importer
 {
    public partial class Form1 : Form
    {
+      private const int WM_SETICON = 0x80;
+      private const int ICON_SMALL = 0;
+      private const int ICON_BIG = 1;
+      [DllImport("user32.dll")]
+      public static extern int SendMessage(IntPtr hwnd, int message, int wParam, IntPtr lParam);
+
+      
       private const String HISTORY_KEY = @"Software\Bitmanager\ImportPipeline";
       public Form1()
       {
@@ -29,7 +38,9 @@ namespace Bitmanager.Importer
 
       private void Form1_Load(object sender, EventArgs e)
       {
+         trySetIcon();
          String dir = Assembly.GetExecutingAssembly().Location;
+
          dir = IOUtils.FindDirectoryToRoot(Path.GetDirectoryName(dir), "ImportDirs");
          if (dir!=null)
          {
@@ -43,6 +54,19 @@ namespace Bitmanager.Importer
             }
          }
          History.LoadHistory(comboBox1, HISTORY_KEY);
+      }
+      private void trySetIcon()
+      {
+         try {
+            Icon icon = Icon.ExtractAssociatedIcon(Assembly.GetExecutingAssembly().Location);
+            if (icon==null) return;
+            this.Icon = icon;
+            SendMessage(this.Handle, WM_SETICON, ICON_SMALL, icon.Handle);
+            SendMessage(this.Handle, WM_SETICON, ICON_BIG, icon.Handle);
+         }
+         catch (Exception e) {
+            Logs.ErrorLog.Log(e);
+         }
       }
 
       private void import()
@@ -142,9 +166,16 @@ namespace Bitmanager.Importer
             activeDSses = list.ToArray();
          }
 
-
+         //if (Debugger.IsAttached)
+         //{
+         //   ImportEngine engine = new ImportEngine();
+         //   engine.Load(comboBox1.Text);
+         //   engine.ImportFlags = uiToFlags();
+         //   engine.MaxAdds = Invariant.ToInt32(txtMaxRecords.Text);
+         //   engine.Import(activeDSses);
+         //}
          AsyncAdmin asyncAdmin = new AsyncAdmin();
-         asyncAdmin.Start(uiToFlags(), comboBox1.Text, activeDSses, Invariant.ToInt32 (txtMaxRecords.Text));
+         asyncAdmin.Start(uiToFlags(), comboBox1.Text, activeDSses, Invariant.ToInt32(txtMaxRecords.Text));
          this.asyncAdmin = asyncAdmin;
 
          timer1.Enabled = true;

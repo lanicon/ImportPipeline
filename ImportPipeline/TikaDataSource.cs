@@ -26,6 +26,8 @@ namespace Bitmanager.ImportPipeline
       private String processName;
       private String uriBase;
       private IDatasourceFeeder feeder;
+      private String pingUrl;
+      private int pingTimeout;
       private int abstractLength, abstractDelta;
       private String dbgStoreDir;
       private static int storeNum;
@@ -44,31 +46,77 @@ namespace Bitmanager.ImportPipeline
             IOUtils.ForceDirectories(dbgStoreDir, true);
          }
          ctx.ImportLog.Log("dbgstore dir={0}", dbgStoreDir ?? "NULL");
-      }
 
+         pingUrl = node.OptReadStr("@pingurl", null);
+         pingTimeout = node.OptReadInt("@pingtimeout", 30000);
+      }
 
       private HtmlProcessor loadUrl(String fn)
       {
          Uri uri = new Uri(uriBase + HttpUtility.UrlEncode (fn));
-         using (WebClient client = new WebClient())
+         HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create(uri);
+         req.KeepAlive = true;
+         HttpWebResponse resp;
+         try
          {
-            byte[] bytes = client.DownloadData(uri);
-            if (dbgStoreDir != null) storeHtml(fn, bytes);
-            MemoryStream m = new MemoryStream(bytes);
-            m.Position = 0;
-            HtmlDocument doc = new HtmlDocument();
-            doc.Load(m, Encoding.UTF8);
-            return new HtmlProcessor (doc);
+            resp = (HttpWebResponse)req.GetResponse();
          }
+         catch (WebException we)
+         {
+            resp = (HttpWebResponse)we.Response;
+            Logs.ErrorLog.Log("error");
+            if (resp == null || resp.StatusCode != HttpStatusCode.InternalServerError) throw;
+            Logs.ErrorLog.Log("error: reading");
+            StreamReader x = new StreamReader(resp.GetResponseStream(), Encoding.UTF8);
+            String strResp = x.ReadToEnd();
+            Logs.ErrorLog.Log("error={0}", strResp);
+
+            throw new BMException(we, strResp); 
+         }
+         HtmlDocument doc = new HtmlDocument();
+
+         if (dbgStoreDir == null) 
+            doc.Load(resp.GetResponseStream(), Encoding.UTF8);
+         else
+         {
+            MemoryStream m = new MemoryStream(4096);
+            CopyStream(m, resp.GetResponseStream(), 4096);
+            storeHtml (fn, m.GetBuffer(), (int)m.Length);
+            m.Position = 0;
+            doc.Load(m, Encoding.UTF8);
+         }
+         return new HtmlProcessor(doc);
+
+
+
+
+         //using (WebClient client = new WebClient())
+         //{
+         //   byte[] bytes = client.DownloadData(uri);
+         //   if (dbgStoreDir != null) storeHtml(fn, bytes);
+         //   MemoryStream m = new MemoryStream(bytes);
+         //   m.Position = 0;
+         //   HtmlDocument doc = new HtmlDocument();
+         //   doc.Load(m, Encoding.UTF8);
+         //   return new HtmlProcessor (doc);
+         //}
       }
 
-      private void storeHtml(string fn, byte[] bytes)
+      private static void CopyStream(Stream dst, Stream src, int bufferSize)
+      {
+         byte[] buffer = new byte[bufferSize];
+         int count;
+         while ((count = src.Read(buffer, 0, buffer.Length)) != 0)
+            dst.Write(buffer, 0, count);
+      }
+
+      private void storeHtml(string fn, byte[] bytes, int len)
       {
          String name = String.Format ("{0}{1}_{2}.html", dbgStoreDir, Interlocked.Increment(ref storeNum), Path.GetFileName(fn));
          Logs.CreateLogger("import", "dbg").Log("store f={0}", name);
          using (var fs = new FileStream(name, FileMode.Create, FileAccess.Write, FileShare.Read))
          {
-            fs.Write(bytes, 0, bytes.Length);
+            fs.Write(bytes, 0, len);
          }
       }
 
@@ -140,15 +188,17 @@ namespace Bitmanager.ImportPipeline
          }
          catch (Exception e)
          {
+            var added = ctx.Added; 
             if (!sink.HandleException(ctx, "record", e))
                throw;
+            ctx.Added = added;
+            ctx.Errors++;
          }
       }
 
       public void Import(PipelineContext ctx, IDatasourceSink sink)
       {
-         ctx.ImportEngine.JavaHostCollection.EnsureStarted(this.processName);
-         Thread.Sleep(1000);
+         ensureTikaServiceStarted (ctx);
          foreach (var elt in feeder)
          {
             try
@@ -162,11 +212,43 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
+      private void ensureTikaServiceStarted(PipelineContext ctx)
+      {
+         ctx.ImportEngine.JavaHostCollection.EnsureStarted(this.processName);
+         if (pingUrl == null)
+         {
+            ctx.ImportLog.Log("No pingurl specified. Just waiting for 10s.");
+            Thread.Sleep(10000);
+            return;
+         }
+
+         DateTime limit = DateTime.UtcNow.AddMilliseconds(pingTimeout);
+         Uri uri = new Uri(pingUrl);
+         Exception saved = null;
+         using (WebClient client = new WebClient())
+         {
+            while (true)
+            {
+               try
+               {
+                  client.DownloadData(uri);
+                  return;
+               }
+               catch (Exception err)
+               {
+                  saved = err;
+               }
+               if (DateTime.UtcNow >= limit) break;
+            }
+            throw new BMException(saved, "Tika service did not startup within {0}ms. LastErr={1}", pingTimeout, saved.Message);
+         }
+      }
    }
 
 
    public class HtmlProcessor
    {
+      private Logger logger;
       private String _newHtml;
       public readonly List<KeyValuePair<String,String>> Properties;
       public readonly HtmlDocument Document;
@@ -175,6 +257,7 @@ namespace Bitmanager.ImportPipeline
 
       public HtmlProcessor(HtmlDocument doc)
       {
+         logger = Logs.CreateLogger("tika", "htmlprocessor");
          Properties = new List<KeyValuePair<string, string>>();
          var docNode = doc.DocumentNode;
          BodyNode = docNode.SelectSingleNode("//body");
@@ -190,8 +273,22 @@ namespace Bitmanager.ImportPipeline
          processMetaNodes(headNode.SelectNodes("meta"));
          processTitleNodes(headNode.SelectNodes("title"));
          removeEmptyTextNodes(headNode.ChildNodes);
+         undupMailNodes();
+         removeEmptyTextNodes(BodyNode.SelectNodes("//text()"));
       EXIT_RTN:
          Document = doc;
+      }
+
+      public void undupMailNodes()
+      {
+         if (BodyNode == null) return;
+         HtmlNodeCollection nodes = BodyNode.SelectNodes("div[@class='email-entry']");
+         if (nodes==null || nodes.Count != 2) return;
+
+         BodyNode.RemoveChild (nodes[0], false);
+         //nodes = nodes[1].SelectNodes("p/text()");
+         //String arg = "\r\n&nbsp;\r\n";
+         //for (int i=0; i<nodes.
       }
 
 
@@ -213,6 +310,7 @@ namespace Bitmanager.ImportPipeline
 
       public static String GetAbstractFromText(String text, int maxLength, int delta)
       {
+         //StringBuilder sb = new StringBuilder();
          if (text==null || text.Length <= maxLength + delta) return text;
 
          int from = maxLength - delta;
@@ -261,7 +359,7 @@ namespace Bitmanager.ImportPipeline
       }
 
 
-      private static readonly char[] TRIMCHARS = { ' ', '\r', '\n' };
+      private static readonly char[] TRIMCHARS = { ' ', '\t', '\r', '\n' };
       private static bool appendInnerText(StringBuilder bld, HtmlNode node, int maxLength = -1)
       {
          switch (node.NodeType)
@@ -362,27 +460,47 @@ namespace Bitmanager.ImportPipeline
             node.Remove();
          }
       }
+      //String s = HttpUtility.HtmlDecode(node.InnerText);
       private void removeEmptyTextNodes(HtmlNodeCollection textNodes)
       {
+         logger.Log ("textNodes={0}", textNodes==null ? -1 : textNodes.Count);
          if (textNodes == null) return;
          List<HtmlNode> list = toList(textNodes);
          for (int i = 0; i < list.Count; i++)
          {
             HtmlTextNode txtNode = list[i] as HtmlTextNode;
+
             if (txtNode == null) continue;
-            if (onlyWhiteSpace(txtNode))
+            logger.Log("textNode[{0}]={1} [{2}]", i, onlyWhiteSpace(txtNode.Text), txtNode.Text);
+            if (onlyWhiteSpace(txtNode.Text))
                txtNode.Remove();
          }
       }
 
-      private static bool onlyWhiteSpace(HtmlTextNode node)
+      private  bool onlyWhiteSpace(String txt, bool decoded=false)
       {
-         String txt = node.Text;
          if (String.IsNullOrEmpty(txt)) return true;
 
          for (int i = 0; i < txt.Length; i++)
          {
-            if (txt[i] > ' ') return false;
+            switch (txt[i])
+            {
+               //case '&':
+               //   if (decoded)
+               //   {
+               //      logger.Log("Non empty char={0:X}", (int)txt[i]);
+               //      return false;
+               //   }
+               //   return onlyWhiteSpace(HttpUtility.HtmlDecode(txt), true);
+
+               case (char)0xA0:
+               case ' ':
+               case '\r':
+               case '\n':
+               case '\t': continue;
+            }
+            logger.Log("Non empty char={0:X}", (int)txt[i]);
+            return false;
          }
          return true;
       }

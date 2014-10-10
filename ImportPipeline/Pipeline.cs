@@ -384,10 +384,11 @@ namespace Bitmanager.ImportPipeline
       public bool HandleException(PipelineContext ctx, string prefix, Exception err)
       {
          String pfx = String.IsNullOrEmpty(prefix) ? "_error" : prefix + "/_error";
-         HandleValue(ctx, pfx + "/object", err);
+         HandleValue(ctx, pfx + "/date", DateTime.UtcNow);
          HandleValue(ctx, pfx + "/msg", err.Message);
          HandleValue(ctx, pfx + "/trace", err.StackTrace);
-         return (HandleValue(ctx, pfx, null) != null);
+         HandleValue(ctx, pfx, err);
+         return (ctx.ActionFlags & _ActionFlags.Handled) != 0;
       }
 
       public static void EmitToken(PipelineContext ctx, IDatasourceSink sink, JToken token, String key, int maxLevel)

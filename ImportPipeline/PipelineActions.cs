@@ -293,9 +293,9 @@ namespace Bitmanager.ImportPipeline
                }
             }
          }
+         ctx.CountAndLogAdd();
          endPoint.Add(ctx);
          endPoint.Clear();
-         ctx.CountAndLogAdd();
          pipeline.ClearVariables();
          return null;
       }

@@ -234,6 +234,12 @@ namespace Bitmanager.ImportPipeline
       Append = 1<<1,
       ToArray = 1<<2,
       SkipEmpty = 1<<3,
+      KeepFirst = 1<<4,
+      KeepSmallest = 1<< 5,
+      KeepSmallestCaseSensitive = 1 << 6,
+      KeepLargest = 1 << 7,
+      CaseSensitive = 1<<8,
+      Unique = 1<<9,
    }
 
    /// <summary>
@@ -355,7 +361,7 @@ namespace Bitmanager.ImportPipeline
          {
             if (value == null) return;
             accumulator = (JObject)value;
-            return;
+            goto EXIT_RTN; 
          }
          if ((flags & Bitmanager.ImportPipeline.Endpoint.DebugFlags._LogField) != 0) addLogger.Log("-- setfield {0}: '{1}'", fld, value);
          //if (value == null) addLogger.Log("Field {0}==null", fld);
@@ -363,43 +369,101 @@ namespace Bitmanager.ImportPipeline
          //Test for empty fields
          if ((fieldFlags & FieldFlags.SkipEmpty) != 0)
          {
-            if (value==null) return;
+            if (value == null) goto EXIT_RTN; ;
             String tmp = value as String;
-            if (tmp != null && tmp.Length==0) return;
+            if (tmp != null && tmp.Length == 0) goto EXIT_RTN; ;
          }
 
-         switch (fieldFlags & (FieldFlags.Append | FieldFlags.OverWrite | FieldFlags.ToArray))
+         switch (fieldFlags & (FieldFlags.Append | FieldFlags.OverWrite | FieldFlags.ToArray | FieldFlags.KeepFirst | FieldFlags.KeepSmallest | FieldFlags.KeepLargest))
          {
             case 0:
             case FieldFlags.OverWrite:
-               accumulator.WriteToken(fld, value);
-               return;
+               goto WRITE_TOKEN;
+
+            case FieldFlags.KeepFirst:
+               Object obj = accumulator[fld];
+               if (obj != null) goto EXIT_RTN;
+               goto WRITE_TOKEN;
+
+            case FieldFlags.KeepSmallest:
+               if (compareToken (accumulator[fld], value, fieldFlags) <= 0) goto EXIT_RTN;
+               goto WRITE_TOKEN;
+
+            case FieldFlags.KeepLargest:
+               if (compareToken (accumulator[fld], value, fieldFlags) >= 0) goto EXIT_RTN;
+               goto WRITE_TOKEN;
 
             case FieldFlags.Append:
                String existing = accumulator.ReadStr (fld, null);
-               if (existing == null)
-               {
-                  accumulator.WriteToken(fld, value);
-                  return;
-               }
+               if (existing == null) goto WRITE_TOKEN;
                accumulator.WriteToken(fld, existing + sep + value);
-               return;
+               goto EXIT_RTN;
 
             default:
                JToken token = accumulator.SelectToken(fld, false);
                JArray arr = token as JArray;
                if (arr != null)
                {
-                  arr.Add (value);
-                  return;
+                  if (0 != (fieldFlags & FieldFlags.Unique))
+                      addUnique(arr, value, fieldFlags); 
+                  else
+                     arr.Add(value); 
+                  goto EXIT_RTN;
                }
                arr = accumulator.AddArray (fld);
                if (token != null) arr.Add(token);
                arr.Add(value);
                return;
          }
+
+         WRITE_TOKEN:
+         accumulator.WriteToken(fld, value);
+         EXIT_RTN:;
       }
-      
+
+      protected static StringComparison toComparison(FieldFlags flags)
+      {
+         return (flags & FieldFlags.KeepSmallestCaseSensitive) != 0 ? StringComparison.InvariantCulture : StringComparison.InvariantCultureIgnoreCase;
+      }
+      protected static void addUnique(JArray arr, Object value, FieldFlags flags)
+      {
+         StringComparison comparison = toComparison(flags);
+         String v = value == null ? null : value.ToString();
+         for (int i = 0; i < arr.Count; i++)
+         {
+            if (String.Equals((String)arr[i], v, comparison)) return;
+         }
+         arr.Add(value);
+         return;
+      }
+
+      protected static int compareToken(JToken token, Object value, FieldFlags flags)
+      {
+         if (value == null)
+         {
+            return token == null ? 0 : -1;
+         }
+         if (token == null) return 1;
+
+         //For strings: just compare the length
+         var t1 = token.Type;
+         if (value is String || t1==JTokenType.String)
+            return value.ToString().Length - token.ToString().Length;
+
+         JToken valToken = (JToken)value;
+         var t2 = valToken.Type;
+         if (t1 == t2)
+         {
+            switch (t1)
+            {
+               case JTokenType.Boolean: return Comparer<bool>.Default.Compare((bool)token, (bool)valToken);
+               case JTokenType.Date: return Comparer<DateTime>.Default.Compare((DateTime)token, (DateTime)valToken);
+               case JTokenType.Float: return Comparer<double>.Default.Compare((double)token, (double)valToken);
+               case JTokenType.Integer: return Comparer<long>.Default.Compare((long)token, (long)valToken);
+            }
+         }
+         return String.Compare(token.ToString(), value.ToString(), toComparison(flags));
+      }
 
       protected void OptLogAdd()
       {

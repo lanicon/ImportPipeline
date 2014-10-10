@@ -1,5 +1,6 @@
 ﻿using Bitmanager.Core;
 using Bitmanager.Elastic;
+using Bitmanager.IO;
 using Bitmanager.Xml;
 using System;
 using System.Collections.Generic;
@@ -57,9 +58,15 @@ namespace Bitmanager.ImportPipeline
          XmlHelper xml = new XmlHelper(fileName);
          Load(xml);
       }
+
       public void Load(XmlHelper xml)
       {
          Xml = xml;
+         String dir = xml.FileName;
+         if (!String.IsNullOrEmpty(dir)) dir = Path.GetDirectoryName(xml.FileName);
+         Environment.SetEnvironmentVariable("IMPORT_DIR", dir);
+         fillTikaVars();
+
          PipelineContext ctx = new PipelineContext(this);
          ImportFlags = xml.OptReadEnum("@importflags", ImportFlags);
          LogAdds = xml.OptReadInt("@logadds", LogAdds);
@@ -106,6 +113,33 @@ namespace Bitmanager.ImportPipeline
             true);
       
          ImportLog.Log(_LogType.ltTimerStop, "loading: finished");
+      }
+
+      private void fillTikaVars()
+      {
+         String dir = IOUtils.FindDirectoryToRoot(Assembly.GetExecutingAssembly().Location, "TikaService", FindToTootFlags.ReturnNull);
+         if (String.IsNullOrEmpty(dir)) return;
+         Environment.SetEnvironmentVariable("IMPORT_TIKA_SERVICE", dir);
+
+         String jetty = findLargest(dir, "jetty-runner-*.jar");
+         if (jetty == null) return;
+
+         String war = findLargest(Path.Combine(dir, "target"), "tikaservice-*.war");
+         if (war == null) return;
+
+         Environment.SetEnvironmentVariable("IMPORT_TIKA_CMD", String.Format("\"{0}\"  \"{1}\"", jetty, war));
+      }
+
+      private String findLargest(String dir, String spec)
+      {
+         String max = null;
+         String[] files = Directory.GetFiles(dir, spec);
+         foreach (var f in files)
+         {
+            if (String.Compare(f, max, true) <= 0) continue;
+            max = f;
+         }
+         return max;
       }
 
       static bool isActive(String[] enabledDSses, DatasourceAdmin da)

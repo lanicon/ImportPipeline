@@ -96,7 +96,16 @@ namespace Bitmanager.ImportPipeline
 
          if (!base.logCloseAndCheckForNormalClose(ctx)) return;
          ctx.ImportLog.Log("-- Optional optimize indexes");
-         Indexes.OptionalOptimize(Connection);
+         try
+         {
+            Indexes.OptionalOptimize(Connection);
+         }
+         catch (Exception err)
+         {
+            ctx.ImportLog.Log(_LogType.ltWarning, "-- Optimize failed: " + err.Message);
+            ctx.ErrorLog.Log("-- Optimize failed: " + err.Message);
+            ctx.ErrorLog.Log(err);
+         }
          ctx.ImportLog.Log("-- Optional rename indexes");
          Indexes.OptionalRename(Connection);
          logCloseDone(ctx);

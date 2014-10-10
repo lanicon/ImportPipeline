@@ -2,7 +2,7 @@
 <root importflags="fullimport">
    <script file="script.cs" />
    <endpoints>
-      <endpoint name="giro" type="ESEndpoint" url="http://bm:9200/" cache="100" maxparallel="1">
+      <endpoint name="giro" type="ESEndpoint" url="http://localhost:9200/" cache="100" maxparallel="1">
          <index name="giro" indexname="gpeter" config="index.config.js" >
             <type name="doc" _keyfield="_id" />  
          </index>

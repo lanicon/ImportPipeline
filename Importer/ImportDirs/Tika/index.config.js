@@ -37,38 +37,22 @@
              }
           },
           "filter" : {
-             diacrit: {
-                type: "asciifolding"
-             },
              "date_removetime": {
                    type: "pattern_replace",
                    "pattern": "[tT].*[zZ]",
                    "replacement": ""
-             },
-             "letter_digit": {
-                   type: "pattern_replace",
-                   "pattern": "[^\\p{L}\\p{N}]",
-                   "replacement": ""
-             },
-             "stop" : {
-                "type" : "stop",
-                "stopwords" : ["test-stop"]
-             },
-              "stop2" : {
-                 "type" : "stop",
-                 "stopwords" : ["stop2-1", "stop2-2"]
-              }
+             }
           },
           "analyzer" : {
              "lc_keyword" : {
                 "tokenizer" : "keyword",
-                filter: ["diacrit", "lowercase"],
+                filter: ["asciifolding", "lowercase"],
                 alias: ["default_search", "default_index"]
              },
               "lc_text" : {
                  "char_filter" : ["html_strip", "repl_dot"],
                  "tokenizer" : "standard",
-                 filter: ["diacrit", "lowercase"]
+                 filter: ["asciifolding", "lowercase"]
               },
              "lc_date_text" : {
                 "char_filter" : ["date_totext"],
@@ -79,9 +63,9 @@
       }
    },
    mappings: {
-      doc: {
-         _id: {path: "virtualFilename"},
+      bosdoc: {
          _meta: { lastmod:""}, 
+         "_all" : { "type" : "string", "analyzer" : "lc_text" },
          "dynamic_templates" : [ 
             { 
                "template_1" : { 
@@ -98,14 +82,13 @@
          properties: { 
             content_type: {"type": "string", "index": "no"},   
             content_type2: {"type": "string", "index": "no"},   
-            fileDate: {"type": "date", "index": "no"},   
-            filename: { 
-               "type": "string",
-               "index": "no"
-            },
+            fileDate: {"type": "date", "index": "no", "store":"no"},   
+            id: {"type": "string", "analyzer": "lc_keyword"},
+            filename: {"type": "string", "analyzer": "lc_keyword"},
             virtualFilename: { 
                "type": "string",
-               "analyzer": "lc_text"
+               "analyzer": "lc_text",
+               "copy_to": "id"
             },
             "message-to": {
                "type": "string",
@@ -152,9 +135,9 @@
                   facet: {type: "string", analyzer: "lc_keyword"}
                }
             },
-            "page_count": {
-               "type": "long"
-            }
+            "page_count": {"type": "long", "index": "no"},
+            "date_created": {"type": "date", "index": "no"},
+            "date_modified": {"type": "date"}
          }
       },
       admin_: {

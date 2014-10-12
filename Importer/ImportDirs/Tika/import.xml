@@ -17,7 +17,7 @@
       <converter name="urlEncode"/>
       <converter name="int32"/>
       <converter name="double" decimalsep="," groupsep="."/>
-      <converter name="date"   utc="true" formats="yyyyMMdd"/>
+      <converter name="date"   utc="true" _formats="yyyyMMdd"/>
       <converter name="lower" />
       <converter name="upper" />
       <converter name="trim" />
@@ -31,8 +31,8 @@
          <replace value="application/vnd.ms-powerpoint" repl="Powerpoint" />
          <replace value="application/vnd.openxmlformats-officedocument.presentationml.presentation" repl="Powerpoint" />
          <replace value="ConversionError" repl="Error" />
-         <replace expr=".*text.*" repl="Text" />
-         <replace expr=".*message.*" repl="Mail" />
+         <replace expr="message" repl="Mail" />
+         <replace expr="text" repl="Text" />
       </converter>
 
    </converters>
@@ -47,12 +47,13 @@
 
    <pipelines>
       <pipeline name="tika" trace="true" converters="trim" endpoint="es.bosdoc" >
+         <action key="record" fromfield="date_created" field="date_modified" flags="keepFirst"/>
          <action key="record" add="*" />
          <action key="record/_start" field="filename" tovar="key"/>
          <action key="record/_start" field="errorFileName" endpoint="es.errors_" />
-         <action key="record/lastmodutc" field="filedate" convert="date" tovar="date"/>
+         <action key="record/lastmodutc" field="filedate" converters="date" tovar="date"/>
          <action key="record/virtualFilename" field="virtualFilename" />
-         <action key="record/page_count|record/xmptpg:npages" field="page_count" convert="int32"/>
+         <action key="record/page_count|record/xmptpg:npages" field="page_count" converters="int32"/>
          <action key="record/_checkexist" check="key|date"/>
          <action key="record/subject" field="subject" />
          <action key="record/keywords" field="keywords" />
@@ -62,9 +63,9 @@
          <action key="record/Message-To" field="message_to" />
          <action key="record/Message-CC" field="message_cc" />
          
-         <template expr="^record/.*(creation-date|created)$" field="date_created" convert="date" flags="keepSmallest"/>
+         <template expr="^record/.*(creation-date|created)$" field="date_created" converters="date" flags="keepSmallest"/>
          <template expr="^record/.*(save-date|modified|save-date)$" field="date_modified" convert="date" flags="keepSmallest"/>
-         <template expr="^record/.*(creation-date|created)$" field="date_created" convert="date" flags="keepSmallest"/>
+         <template expr="^record/.*(creation-date|created)$" field="date_created" converters="date" flags="keepSmallest"/>
          <template expr="^record/.*title$" field="title" flags="unique" />
          <template expr="^record/.*(author|creator)$" field="author" flags="unique" />
          
@@ -73,7 +74,7 @@
          <action key="record/_error/date" field="errorDate" endpoint="es.errors_" />
          <action key="record/_error" add="*" endpoint="es.errors_" />
 
-         <template expr="^record/content.type$" field="doctype" convert="doctype"/>
+         <template expr="^record/content.type$" field="doctype" converters="doctype"/>
          <template expr="^record/content.type$" field="content_type"/>
          <template expr="(^record/(_|X-Parsed-By|Content-Length|resourceName))" nop='true' />
          <template expr="^record/(.*)" field="__$1" />
@@ -83,6 +84,8 @@
    <datasources>
       <datasource name="tika" type="TikaDS" trim="true" history="false" tikaurl='http://localhost:8080/html/filesystem/' tikaprocess='tika' pingurl='http://localhost:8080/ping' pingtimeout='30000'>
          <dbgstore>dbgstore2</dbgstore>
+         <provider type="FileNameFeeder" root="e:\ma" filter="message-1-45450\.eml$" virtualroot="ma" />
+         <provider type="FileNameFeeder" root="e:\ma" filter="\.eml$" virtualroot="ma" />
          <provider type="FileNameFeeder" root="e:\ma" filter="message-1-42755\.eml$" virtualroot="ma" />
          <_provider type="FileNameFeeder" root="C:\Users\pweerd\Documents" filter="Alma\\Documents\\updateCatalogueRecordResponse\.docx$" virtualroot="docs" />
          <_provider type="FileNameFeeder" root="C:\Users\pweerd\Documents" filter="\.pdf$|\.eml$|\.docx$" virtualroot="docs" />

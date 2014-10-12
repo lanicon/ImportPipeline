@@ -199,6 +199,7 @@ namespace Bitmanager.ImportPipeline
       protected String toFieldFromVar;
       protected String toVar;
       protected String fromVar;
+      protected String fromField;
       protected FieldFlags fieldFlags;
       protected String sep;
 
@@ -207,6 +208,10 @@ namespace Bitmanager.ImportPipeline
       {
          toVar = node.OptReadStr("@tovar", null);
          fromVar = node.OptReadStr("@fromvar", null);
+         fromField = node.OptReadStr("@fromfield", null);
+         if (fromVar != null && fromField != null)
+            throw new BMNodeException(node, "Cannot specify both fromvar and fromfield.");
+ 
          toField = node.OptReadStr("@field", null);
          toFieldFromVar = node.OptReadStr("@fieldfromvar", null);
          sep = node.OptReadStr("@sep", null);
@@ -222,6 +227,7 @@ namespace Bitmanager.ImportPipeline
          this.toField = optReplace(regex, name, template.toField);
          this.toVar = optReplace(regex, name, template.toVar);
          this.fromVar = optReplace(regex, name, template.fromVar);
+         this.fromField = optReplace(regex, name, template.fromField);
          this.toFieldFromVar = optReplace(regex, name, template.toFieldFromVar);
          this.sep = template.sep;
          this.fieldFlags = template.fieldFlags;
@@ -230,6 +236,7 @@ namespace Bitmanager.ImportPipeline
       public override Object HandleValue(PipelineContext ctx, String key, Object value)
       {
          if (fromVar != null) value = ctx.Pipeline.GetVariable(fromVar);
+         if (fromField != null) value = endPoint.GetField(fromField);
 
          value = ConvertAndCallScript(ctx, key, value);
          if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) return null;
@@ -255,6 +262,8 @@ namespace Bitmanager.ImportPipeline
             sb.AppendFormat(", fieldfromvar={0}", toFieldFromVar);
          if (fromVar != null)
             sb.AppendFormat(", fromvar={0}", fromVar);
+         if (fromVar != null)
+            sb.AppendFormat(", fromfield={0}", fromField);
          if (toVar != null)
             sb.AppendFormat(", tovar={0}", toVar);
       }

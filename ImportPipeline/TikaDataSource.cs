@@ -283,12 +283,22 @@ namespace Bitmanager.ImportPipeline
       {
          if (BodyNode == null) return;
          HtmlNodeCollection nodes = BodyNode.SelectNodes("div[@class='email-entry']");
-         if (nodes==null || nodes.Count != 2) return;
+         if (nodes == null || nodes.Count< 2) return;
 
-         BodyNode.RemoveChild (nodes[0], false);
-         //nodes = nodes[1].SelectNodes("p/text()");
-         //String arg = "\r\n&nbsp;\r\n";
-         //for (int i=0; i<nodes.
+         int maxIdx = -1;
+         int maxLen = 0;
+         for (int i = 0; i < nodes.Count; i++)
+         {
+            String html = nodes[i].InnerHtml;
+            if (html.Length <= maxLen) continue;
+            maxLen = html.Length;
+            maxIdx = i;
+         }
+         for (int i = 0; i < nodes.Count; i++)
+         {
+            if (maxIdx==i) continue;
+            BodyNode.RemoveChild(nodes[i], false);
+         }
       }
 
 
@@ -463,7 +473,6 @@ namespace Bitmanager.ImportPipeline
       //String s = HttpUtility.HtmlDecode(node.InnerText);
       private void removeEmptyTextNodes(HtmlNodeCollection textNodes)
       {
-         logger.Log ("textNodes={0}", textNodes==null ? -1 : textNodes.Count);
          if (textNodes == null) return;
          List<HtmlNode> list = toList(textNodes);
          for (int i = 0; i < list.Count; i++)
@@ -471,7 +480,7 @@ namespace Bitmanager.ImportPipeline
             HtmlTextNode txtNode = list[i] as HtmlTextNode;
 
             if (txtNode == null) continue;
-            logger.Log("textNode[{0}]={1} [{2}]", i, onlyWhiteSpace(txtNode.Text), txtNode.Text);
+//            logger.Log("textNode[{0}]={1} [{2}]", i, onlyWhiteSpace(txtNode.Text), txtNode.Text);
             if (onlyWhiteSpace(txtNode.Text))
                txtNode.Remove();
          }
@@ -499,7 +508,7 @@ namespace Bitmanager.ImportPipeline
                case '\n':
                case '\t': continue;
             }
-            logger.Log("Non empty char={0:X}", (int)txt[i]);
+//            logger.Log("Non empty char={0:X}", (int)txt[i]);
             return false;
          }
          return true;

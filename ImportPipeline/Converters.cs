@@ -112,8 +112,9 @@ namespace Bitmanager.ImportPipeline
             case "htmldecode": return new HtmlDecodeConverter(node);
             case "urlencode": return new UrlEncodeConverter(node);
             case "urldecode": return new UrlDecodeConverter(node);
-            case "datetime": return new ToDateConverter(node, type);
-            case "date": return new ToDateConverter(node, type);
+            case "dateonly":
+            case "datetime":
+            case "date": 
             case "time": return new ToDateConverter(node, type);
             case "trim": return new TrimConverter(node);
             case "trimwhite": return new TrimWhiteConverter(node);
@@ -139,7 +140,7 @@ namespace Bitmanager.ImportPipeline
       {
          formats = node.OptReadStr("@formats", null).SplitStandard();
          utc = node.OptReadBool("@utc", false);
-         if (type == "date") utc = false;
+         if (type == "dateonly") utc = false;
       }
 
       public override Object ConvertScalar(PipelineContext ctx, Object value)

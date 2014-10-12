@@ -105,17 +105,26 @@ namespace Bitmanager.ImportPipeline
    public class ReplacerElt
    {
       private Regex regex;
-      private string replacement;
+      private string repl;
       private string value;
+      private bool isReplExpr;
 
       public ReplacerElt(XmlNode node)
       {
-         replacement = XmlUtils.ReadStrRaw(node, "@repl", _XmlRawMode.EmptyToNull);
+
+         repl = XmlUtils.OptReadStr(node, "@replexpr", null);
+         if (repl != null)
+            isReplExpr = true;
+         else
+            repl = XmlUtils.ReadStrRaw(node, "@repl", _XmlRawMode.EmptyToNull);
          String tmp = XmlUtils.OptReadStr(node, "@expr", null);
          if (tmp != null)
             regex = new Regex(tmp, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
          else
+         {
             value = XmlUtils.ReadStr(node, "@value");
+            if (isReplExpr) throw new BMNodeException(node, "Cannot specify replexpr with a value.");
+         }
       }
 
       public bool TryReplace(ref String val)
@@ -125,21 +134,20 @@ namespace Bitmanager.ImportPipeline
          if (regex != null)
          {
             if (!regex.IsMatch(val)) return false;
-            val = (replacement == null) ? null : regex.Replace(val, replacement);
+            val = (isReplExpr) ? regex.Replace(val, repl) : repl;
             return true;
          }
 
          if (!String.Equals(val, value, StringComparison.InvariantCultureIgnoreCase)) return false;
-         val = replacement;
+         val = repl;
          return true;
       }
 
       public override string ToString()
       {
          if (regex == null)
-            return String.Format("Replacer (str={0})=>{1})", value, replacement);
-
-         return String.Format("Replacer (regex={0})=>{1})", regex, replacement);
+            return String.Format("Replacer (str={0})=>{1})", value, repl);
+         return String.Format("Replacer (regex={0})=>{1} [{2}])", regex, repl, isReplExpr ? "expr" : "val");
       }
    }
 

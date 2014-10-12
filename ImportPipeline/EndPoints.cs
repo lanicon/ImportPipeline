@@ -450,7 +450,7 @@ namespace Bitmanager.ImportPipeline
          if (value is String || t1==JTokenType.String)
             return value.ToString().Length - token.ToString().Length;
 
-         JToken valToken = (JToken)value;
+         JToken valToken = JToken.FromObject(value);
          var t2 = valToken.Type;
          if (t1 == t2)
          {

@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <root>
+   <script file="scriptextensions.cs" />
    <tempdir dir="temp" clearonstart="true" />
    <endpoints>
       <endpoint name="es" type="ESEndpoint" url="http://localhost:9200/">
@@ -15,6 +16,7 @@
 
    <converters>
       <converter name="urlEncode"/>
+      <converter name="htmlDecode"/>
       <converter name="int32"/>
       <converter name="double" decimalsep="," groupsep="."/>
       <converter name="date"   utc="true" _formats="yyyyMMdd"/>
@@ -46,17 +48,16 @@
    </processes>
 
    <pipelines>
-      <pipeline name="tika" trace="true" converters="trim" endpoint="es.bosdoc" >
-         <action key="record" fromfield="date_created" field="date_modified" flags="keepFirst"/>
-         <action key="record" add="*" />
+      <pipeline name="tika" trace="true" converters="trim" endpoint="es.bosdoc" script="ScriptExtensions" >
+         <action key="record" add="*" script="OnAdd"/>
          <action key="record/_start" field="filename" tovar="key"/>
          <action key="record/_start" field="errorFileName" endpoint="es.errors_" />
          <action key="record/lastmodutc" field="filedate" converters="date" tovar="date"/>
          <action key="record/virtualFilename" field="virtualFilename" />
          <action key="record/page_count|record/xmptpg:npages" field="page_count" converters="int32"/>
          <action key="record/_checkexist" check="key|date"/>
-         <action key="record/subject" field="subject" />
-         <action key="record/keywords" field="keywords" />
+         <action key="record/subject" field="subject" converters="htmlDecode" />
+         <action key="record/keywords" field="keywords" converters="htmlDecode"/>
          <action key="record/content" field="content" />
          <action key="record/shortcontent" field="shortcontent" />
          <action key="record/Message-From" field="message_from" />
@@ -66,7 +67,7 @@
          <template expr="^record/.*(creation-date|created)$" field="date_created" converters="date" flags="keepSmallest"/>
          <template expr="^record/.*(save-date|modified|save-date)$" field="date_modified" convert="date" flags="keepSmallest"/>
          <template expr="^record/.*(creation-date|created)$" field="date_created" converters="date" flags="keepSmallest"/>
-         <template expr="^record/.*title$" field="title" flags="unique" />
+         <template expr="^record/.*title$" field="title" flags="unique" converters="htmlDecode"/>
          <template expr="^record/.*(author|creator)$" field="author" flags="unique" />
          
          <action key="record/_error/msg" field="errorText" endpoint="es.errors_" />
@@ -84,7 +85,7 @@
    <datasources>
       <datasource name="tika" type="TikaDS" trim="true" history="false" tikaurl='http://localhost:8080/html/filesystem/' tikaprocess='tika' pingurl='http://localhost:8080/ping' pingtimeout='30000'>
          <dbgstore>dbgstore2</dbgstore>
-         <provider type="FileNameFeeder" root="e:\ma" filter="message-1-45450\.eml$" virtualroot="ma" />
+         <_provider type="FileNameFeeder" root="e:\ma" filter="message-1-45450\.eml$" virtualroot="ma" />
          <provider type="FileNameFeeder" root="e:\ma" filter="\.eml$" virtualroot="ma" />
          <provider type="FileNameFeeder" root="e:\ma" filter="message-1-42755\.eml$" virtualroot="ma" />
          <_provider type="FileNameFeeder" root="C:\Users\pweerd\Documents" filter="Alma\\Documents\\updateCatalogueRecordResponse\.docx$" virtualroot="docs" />

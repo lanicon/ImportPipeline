@@ -159,7 +159,7 @@ namespace Bitmanager.ImportPipeline
             if (asyncQ == null)
                Connection.Post(DocType.UrlPart, accumulator).ThrowIfError();
             else
-               asyncQ.Add(new AsyncRequestElement(accumulator, asyncAdd));
+               asyncQ.PushAndOptionalPop(new AsyncRequestElement(accumulator, asyncAdd));
          }
          else
          {
@@ -171,13 +171,13 @@ namespace Bitmanager.ImportPipeline
 
       private void asyncAdd(AsyncRequestElement ctx)
       {
-         JObject accu = ctx.WhatToAdd as JObject;
+         JObject accu = ctx.Context as JObject;
          if (accu != null)
          {
             Connection.Post(DocType.UrlPart, accu).ThrowIfError();
             return;
          }
-         flushCache((List<ESBulkEntry>)ctx.WhatToAdd);
+         flushCache((List<ESBulkEntry>)ctx.Context);
       }
 
       public void FlushCache()
@@ -186,7 +186,7 @@ namespace Bitmanager.ImportPipeline
          if (asyncQ == null)
             flushCache(cache);
          else
-            asyncQ.Add(new AsyncRequestElement(cache, asyncAdd));
+            asyncQ.PushAndOptionalPop(new AsyncRequestElement(cache, asyncAdd));
 
          cache = new List<ESBulkEntry>();
       }
@@ -213,7 +213,7 @@ namespace Bitmanager.ImportPipeline
             FlushCache();
             cache = null;
          }
-         if (asyncQ != null) asyncQ.EndInvokeAll();
+         if (asyncQ != null) asyncQ.PopAll();
       }
 
       public override ExistState Exists(PipelineContext ctx, string key, DateTime? timeStamp)

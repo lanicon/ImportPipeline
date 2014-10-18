@@ -11,16 +11,17 @@ namespace Bitmanager.ImportPipeline
    /// </summary>
    public class AsyncRequestElement
    {
-      public readonly Object WhatToAdd;
+      public readonly Object Context;
       private IAsyncResult asyncResult;
       private Action<AsyncRequestElement> action;
       internal uint queuedOrder;  //Used by the Q
       private volatile bool endInvokeCalled;
+      private volatile bool completed;
 
       public AsyncRequestElement(Object whatToAdd, Action<AsyncRequestElement> action)
       {
          this.action = action;
-         WhatToAdd = whatToAdd;
+         Context = whatToAdd;
       }
 
       public bool IsCompleted
@@ -28,7 +29,7 @@ namespace Bitmanager.ImportPipeline
          get
          {
             {
-               return asyncResult != null && asyncResult.IsCompleted;
+               return completed || (asyncResult != null && asyncResult.IsCompleted);
             }
          }
       }
@@ -40,11 +41,19 @@ namespace Bitmanager.ImportPipeline
          action.EndInvoke(asyncResult);
       }
 
-      internal void Start()
+      internal void Run()
       {
+         completed = true;
+         action(this);
+      }
+
+      internal AsyncRequestElement Start(uint order)
+      {
+         queuedOrder = order;
          Logs.DebugLog.Log("async start()");
          asyncResult = action.BeginInvoke(this, null, null);
          Logs.DebugLog.Log("async start()==>{0}", asyncResult);
+         return this;
       }
 
       public override string ToString()
@@ -60,25 +69,35 @@ namespace Bitmanager.ImportPipeline
    /// </summary>
    public abstract class AsyncRequestQueue
    {
+      protected static readonly List<AsyncRequestElement> EMPTY = new List<AsyncRequestElement>();
       protected AsyncRequestQueue() { }
       /// <summary>
       /// If a request is added, it takes the place of an empty or ready request.
       /// If not found, the request takes the place of the oldest request in the Q, but before that, a wait is issued on the request to be removed.
       /// Adding an element to the Q implies calling BeginInvoke on the element that is added
+      /// The removed item is returned (or null if there was nothing to remove)
       /// </summary>
-      public abstract AsyncRequestElement Add(AsyncRequestElement req);
+      public abstract AsyncRequestElement PushAndOptionalPop(AsyncRequestElement req);
 
       /// <summary>
-      /// Waits for all pending requests to complete
+      /// Waits for an item to complete and returns the completed item
+      /// If the queue was empty, null is returned.
       /// </summary>
-      public abstract void EndInvokeAll();
+      public abstract AsyncRequestElement Pop();
+
+      /// <summary>
+      /// Waits for all pending requests to complete, pops them, and return them in a list
+      /// </summary>
+      public abstract List<AsyncRequestElement> PopAll();
 
       /// <summary>
       /// Creates an optimized Q, depending on the size
       /// </summary>
       public static AsyncRequestQueue Create(int size)
       {
-         return size > 1 ? (AsyncRequestQueue)new AsyncRequestQueueMulti(size) : new AsyncRequestQueueSingle();
+         if (size==0) return new AsyncRequestQueueZero();
+         if (size>1) return new AsyncRequestQueueMulti(size);
+         return new AsyncRequestQueueSingle();
       }
    }
 
@@ -92,90 +111,128 @@ namespace Bitmanager.ImportPipeline
          q = new AsyncRequestElement[size];
       }
 
-      public override AsyncRequestElement Add(AsyncRequestElement req)
+      public override AsyncRequestElement PushAndOptionalPop(AsyncRequestElement req)
       {
-         AsyncRequestElement elt;
-         uint lowestOrder =uint.MaxValue;
-            int lowestIdx=0;
+         AsyncRequestElement popped = null;
+         uint lowestRunningOrder = uint.MaxValue;
+         int lowestRunningIdx = -1;
+         uint lowestCompletedOrder = uint.MaxValue;
+         int lowestCompletedIdx = -1;
+         int popIdx;
          for (int i = 0; i < q.Length; i++)
          {
-            elt = q[i];
-            if (elt == null)
+            popped = q[i];
+            if (popped == null)
             {
-               q[i] = req;
-               goto OPTIONAL_START;
+               popIdx = i;
+               goto START;
             }
-            if (elt.IsCompleted)
+            if (popped.IsCompleted)
             {
-               elt.EndInvoke();
-               q[i] = req;
-               goto OPTIONAL_START;
+               if (popped.queuedOrder >= lowestCompletedOrder) continue;
+               lowestCompletedIdx = i;
+               continue;
             }
-            if (elt.queuedOrder < lowestOrder)
-            {
-               lowestOrder = elt.queuedOrder;
-               lowestIdx = i;
-            }
+            if (popped.queuedOrder >= lowestRunningOrder) continue;
+            lowestRunningIdx = i;
          }
 
-         q[lowestIdx].EndInvoke();
-         q[lowestIdx] = req;
+         //Pop and replace still running item
+         popIdx = lowestCompletedIdx;
+         if (popIdx < 0) popIdx = lowestRunningIdx;
+         popped = q[popIdx];
+         q[popIdx] = null;
+         popped.EndInvoke();
+
          
-      OPTIONAL_START:
-         req.queuedOrder = order++;
-         req.Start();
-         return req;
+      START:
+         q[popIdx] = req.Start(order++);
+         return popped;
       }
 
-      public override void EndInvokeAll()
+      public override AsyncRequestElement Pop()
       {
+         AsyncRequestElement popped = null;
+         uint lowestRunningOrder = uint.MaxValue;
+         int lowestRunningIdx = -1;
+         uint lowestCompletedOrder = uint.MaxValue;
+         int lowestCompletedIdx = -1;
          for (int i = 0; i < q.Length; i++)
          {
-            var elt = q[i];
-            q[i] = null;
-            if (elt != null) elt.EndInvoke();
+            popped = q[i];
+            if (popped == null) continue;
+            if (popped.IsCompleted)
+            {
+               if (popped.queuedOrder >= lowestCompletedOrder) continue;
+               lowestCompletedIdx = i;
+               continue;
+            }
+            if (popped.queuedOrder >= lowestRunningOrder) continue;
+            lowestRunningIdx = i;
          }
+         int popIdx = lowestCompletedIdx;
+         if (lowestCompletedIdx >= 0) goto POP;
+         popIdx = lowestRunningIdx;
+         if (popIdx < 0) return null;
+
+         POP:
+         popped = q[popIdx];
+         q[popIdx] = null;
+         popped.EndInvoke();
+         return popped;
       }
+
+      public override List<AsyncRequestElement> PopAll()
+      {
+         List<AsyncRequestElement> ret = null;
+         for (int i = 0; i < q.Length; i++)
+         {
+            AsyncRequestElement popped = q[i];
+            if (popped == null) continue;
+            q[i] = null;
+            if (ret == null) ret = new List<AsyncRequestElement>();
+            popped.EndInvoke();
+            ret.Add (popped);
+         }
+         return ret == null ? EMPTY : ret;
+      }
+
    }
 
    public class AsyncRequestQueueSingle : AsyncRequestQueue
    {
       private AsyncRequestElement q;
 
-      public AsyncRequestQueueSingle()
+      public override AsyncRequestElement PushAndOptionalPop (AsyncRequestElement req)
       {
-      }
-
-      public override AsyncRequestElement Add(AsyncRequestElement req)
-      {
-         //dumpQ("before");
-         if (q == null)
-         {
-            q = req;
-            goto OPTIONAL_START;
-         }
-         if (q.IsCompleted)
-         {
-            q.EndInvoke();
-            q = req;
-            goto OPTIONAL_START;
-         }
-
-         q.EndInvoke();
-         q = req;
-
-      OPTIONAL_START:
-         req.Start();
-         //dumpQ("after");
-         return req;
-      }
-
-      public override void EndInvokeAll()
-      {
-         var elt = q;
+         AsyncRequestElement popped = q;
          q = null;
-         if (elt != null) elt.EndInvoke();
+         //dumpQ("before");
+         if (popped != null)
+            popped.EndInvoke();
+
+         q = req.Start(0); 
+         //dumpQ("after");
+         return popped;
       }
+
+      public override AsyncRequestElement Pop()
+      {
+         var popped = q;
+         q = null;
+         if (popped != null) popped.EndInvoke();
+         return popped;
+      }
+
+      public override List<AsyncRequestElement> PopAll()
+      {
+         var popped = q;
+         q = null;
+         if (popped == null) return EMPTY;
+         popped.EndInvoke();
+         return new List<AsyncRequestElement>(1) { popped };
+      }
+
 
       private void dumpQ(String when)
       {
@@ -186,4 +243,24 @@ namespace Bitmanager.ImportPipeline
             Logs.DebugLog.Log("-- {0}", q);
       }
    }
+
+   public class AsyncRequestQueueZero : AsyncRequestQueue
+   {
+      public override AsyncRequestElement PushAndOptionalPop(AsyncRequestElement req)
+      {
+         req.Run();
+         return req;
+      }
+
+      public override AsyncRequestElement Pop()
+      {
+         return null;
+      }
+
+      public override List<AsyncRequestElement> PopAll()
+      {
+         return EMPTY;
+      }
+   }
+
 }

@@ -17,7 +17,7 @@ Thumbs.db
 **/testresults/
 **/target/
 
-
+**/logs/
 *.swp
 *.disabled
 *.old

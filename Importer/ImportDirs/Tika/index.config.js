@@ -90,18 +90,10 @@
                "analyzer": "lc_text",
                "copy_to": "id"
             },
-            "message-to": {
-               "type": "string",
-               "analyzer": "lc_text"
-            },
-            "message-cc": {
-               "type": "string",
-               "analyzer": "lc_text"
-            },
-            "message-from": {
-               "type": "string",
-               "analyzer": "lc_text"
-            },
+            "recip": {"type": "string", "analyzer": "lc_text"},
+            "recip_cc": {"type": "string", "analyzer": "lc_text"},
+            "msg_id": {"type": "string", "analyzer": "lc_keyword"},
+            "msg_ref": {"type": "string", "analyzer": "lc_keyword"},
             filefacets: {
                type: "string", 
                analyzer: "lc_keyword"
@@ -109,14 +101,12 @@
             shortcontent: {
                "type": "string", index:"no", "store": "yes" , "analyzer": "lc_text"    
             },
-            content: {
-               "type": "string",
-               "analyzer": "lc_text"
-            },
-            title: {
-               "type": "string",
-               "analyzer": "lc_text"
-            },
+            numparts: {"type": "integer"},
+            head: {"type": "string", "index": "no"},
+            content: {"type": "string", "analyzer": "lc_text"},
+            title: {"type": "string", "analyzer": "lc_text"},
+            subject: {"type": "string", "analyzer": "lc_text"},
+            sort_subject: {"type": "string", "analyzer": "lc_keyword"},
             author: {
                "type": "multi_field",
                fields: {

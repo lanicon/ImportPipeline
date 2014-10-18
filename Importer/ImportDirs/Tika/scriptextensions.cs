@@ -63,12 +63,12 @@ namespace Tika
          String words = arr[0];
          for (int j=1; j<i; j++) words = words + " " + arr[j];
          for (int j=i+1; j<arr.Length; j++) sortSubject = sortSubject + ": " + arr[j];
-         ep.SetField("sort-subject-prefixes", words);
+         ep.SetField("sort_subject_prefixes", words);
 
       EXIT_RTN:
          if (String.IsNullOrEmpty(sortSubject))
             sortSubject = " ";
-         ep.SetField("sort-subject", sortSubject);
+         ep.SetField("sort_subject", sortSubject);
       }
 
       private static bool onlyAlpha(String txt)

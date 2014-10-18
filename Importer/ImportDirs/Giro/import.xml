@@ -21,7 +21,7 @@
 
    <converters>
       <converter name="double" decimalsep="," groupsep="."/>
-      <converter name="date"   utc="true" formats="yyyyMMdd"/>
+      <converter name="dateonly" utc="true" formats="yyyyMMdd"/>
       <converter name="lower" />
       <converter name="upper" />
       <converter name="trim" />

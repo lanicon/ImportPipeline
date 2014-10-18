@@ -31,7 +31,7 @@ namespace Giro {
          var e = ep.Connection.CreateEnumerator (ep.DocType.UrlPart);
          foreach (var rec in e)
          {
-            var date = rec.GetField("date");
+            var date = rec.GetFieldAsStr("date");
             if (String.IsNullOrEmpty(date)) continue;
             presentKeys[date] = true;
          }

@@ -30,6 +30,7 @@ namespace Bitmanager.ImportPipeline
       private int pingTimeout;
       private int abstractLength, abstractDelta;
       private String dbgStoreDir;
+      private String lastStored;
       private static int storeNum;
       public void Init(PipelineContext ctx, XmlNode node)
       {
@@ -112,12 +113,13 @@ namespace Bitmanager.ImportPipeline
 
       private void storeHtml(string fn, byte[] bytes, int len)
       {
-         String name = String.Format ("{0}{1}_{2}.html", dbgStoreDir, Interlocked.Increment(ref storeNum), Path.GetFileName(fn));
+         String name = String.Format("{0}{1}_{2}.html", dbgStoreDir, Path.GetFileName(fn), Interlocked.Increment(ref storeNum));
          Logs.CreateLogger("import", "dbg").Log("store f={0}", name);
          using (var fs = new FileStream(name, FileMode.Create, FileAccess.Write, FileShare.Read))
          {
             fs.Write(bytes, 0, len);
          }
+         lastStored = name;
       }
 
 
@@ -169,6 +171,7 @@ namespace Bitmanager.ImportPipeline
          {
 
             var htmlProcessor = loadUrl(fileName);
+            if (lastStored != null) sink.HandleValue(ctx, "record/converted_file", lastStored);
 
             //Write html properties
             foreach (var kvp in htmlProcessor.Properties)
@@ -179,9 +182,13 @@ namespace Bitmanager.ImportPipeline
             //Add dummy type to recognize the errors
             //if (error)
             //   doc.AddField("content_type", "ConversionError");
-
+            //if (htmlProcessor.IsTextMail)
+            sink.HandleValue(ctx, "record/_istextmail", htmlProcessor.IsTextMail);
+            sink.HandleValue(ctx, "record/_numparts", htmlProcessor.numParts);
             sink.HandleValue(ctx, "record/shortcontent", htmlProcessor.GetAbstract(abstractLength, abstractDelta));
-            sink.HandleValue(ctx, "record/content", htmlProcessor.GetNewHtml());
+
+            sink.HandleValue(ctx, "record/head", htmlProcessor.GetInnerHead());
+            sink.HandleValue(ctx, "record/content", htmlProcessor.GetInnerBody());
 
             sink.HandleValue(ctx, "record/_end", fileName);
             sink.HandleValue(ctx, "record", null);
@@ -248,16 +255,20 @@ namespace Bitmanager.ImportPipeline
 
    public class HtmlProcessor
    {
-      private Logger logger;
+      public int numParts;
+      public bool IsTextMail;
+      private readonly bool removeTitleNodes = false;
+      private readonly bool removeMetaNodes = false;
+      private static Logger logger = Logs.CreateLogger("tika", "htmlprocessor");
       private String _newHtml;
       public readonly List<KeyValuePair<String,String>> Properties;
       public readonly HtmlDocument Document;
       public HtmlNode HtmlNode {get; private set;}
       public HtmlNode BodyNode { get; private set; }
+      public HtmlNode HeadNode { get; private set; }
 
       public HtmlProcessor(HtmlDocument doc)
       {
-         logger = Logs.CreateLogger("tika", "htmlprocessor");
          Properties = new List<KeyValuePair<string, string>>();
          var docNode = doc.DocumentNode;
          BodyNode = docNode.SelectSingleNode("//body");
@@ -267,33 +278,56 @@ namespace Bitmanager.ImportPipeline
             HtmlNode = BodyNode = docNode;
 
          if (HtmlNode == null) goto EXIT_RTN;
-         var headNode = HtmlNode.SelectSingleNode("head");
-         if (headNode == null) goto EXIT_RTN; ;
+         HeadNode = HtmlNode.SelectSingleNode("head");
+         if (HeadNode == null) goto EXIT_RTN; ;
 
-         processMetaNodes(headNode.SelectNodes("meta"));
-         processTitleNodes(headNode.SelectNodes("title"));
-         removeEmptyTextNodes(headNode.ChildNodes);
+         processMetaNodes(HeadNode.SelectNodes("meta"));
+         processTitleNodes(HeadNode.SelectNodes("title"));
+         removeEmptyTextNodes(HeadNode.ChildNodes);
          undupMailNodes();
          removeEmptyTextNodes(BodyNode.SelectNodes("//text()"));
       EXIT_RTN:
          Document = doc;
       }
 
+      private bool isTextNode(HtmlNode mailNode)
+      {
+         HtmlNode child = mailNode.SelectSingleNode("*");
+         if (child == null) return false;
+         if (String.Equals("pre", child.Name, StringComparison.OrdinalIgnoreCase)) return true;
+         if (!String.Equals("p", child.Name, StringComparison.OrdinalIgnoreCase)) return false;
+         child = child.SelectSingleNode("*");
+         if (child == null) return false;
+         return String.Equals("pre", child.Name, StringComparison.OrdinalIgnoreCase);
+      }
+
       public void undupMailNodes()
       {
          if (BodyNode == null) return;
          HtmlNodeCollection nodes = BodyNode.SelectNodes("div[@class='email-entry']");
-         if (nodes == null || nodes.Count< 2) return;
+         int N = nodes==null ? 0 : nodes.Count;
+         numParts = N;
+         switch (N)
+         {
+            case 0: 
+               IsTextMail = isTextNode (BodyNode);
+               return;
+            case 1:
+               IsTextMail = isTextNode (nodes[0]);
+               return;
+         }
 
          int maxIdx = -1;
-         int maxLen = 0;
+         int maxCnt = 0;
          for (int i = 0; i < nodes.Count; i++)
          {
-            String html = nodes[i].InnerHtml;
-            if (html.Length <= maxLen) continue;
-            maxLen = html.Length;
+            int cnt = nodes[i].Descendants().Count();
+            if (cnt <= maxCnt) continue;
+            maxCnt = cnt;
             maxIdx = i;
          }
+
+         IsTextMail = isTextNode (nodes[maxIdx]);
          for (int i = 0; i < nodes.Count; i++)
          {
             if (maxIdx==i) continue;
@@ -301,7 +335,14 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
-
+      public String GetInnerBody()
+      {
+         return (BodyNode == null) ? String.Empty : BodyNode.InnerHtml;
+      }
+      public String GetInnerHead()
+      {
+         return (HeadNode == null) ? String.Empty : HeadNode.InnerHtml;
+      }
       public String GetNewHtml()
       {
          if (_newHtml != null) return _newHtml;
@@ -467,7 +508,7 @@ namespace Bitmanager.ImportPipeline
          {
             HtmlNode node = list[i];
             addMetaData(node.GetAttributeValue("name", null), node.GetAttributeValue("content", null));
-            node.Remove();
+            if (removeMetaNodes) node.Remove(); 
          }
       }
       //String s = HttpUtility.HtmlDecode(node.InnerText);
@@ -521,7 +562,7 @@ namespace Bitmanager.ImportPipeline
          {
             HtmlNode node = list[i];
             addMetaData("title", node.InnerText);
-            node.Remove();
+            if (removeTitleNodes) node.Remove();
          }
       }
 

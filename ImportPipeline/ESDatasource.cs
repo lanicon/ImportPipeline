@@ -108,17 +108,15 @@ namespace Bitmanager.ImportPipeline
                ctx.ImportLog.Log("Starting scan of {0} records. Index={1}, connection={2}, async={3}, buffersize={4} requestbody={5}, splituntil={6}, scan={7}.", e.Count, index, url, e.Async, numRecords, req != null, splitUntil, scan);
                foreach (var doc in e)
                {
-                  String[] fields = doc.GetLoadedFields();
-                  for (int i = 0; i < fields.Length; i++)
+                  foreach (var kvp in doc)
                   {
-                     String field = fields[i];
-                     String pfx = "record/" + field;
+                     String pfx = "record/" + kvp.Key;
                      if (splitUntil <= 1)
                      {
-                        sink.HandleValue(ctx, pfx, doc.GetFieldAsToken(field));
+                        sink.HandleValue(ctx, pfx, kvp.Value);
                         continue;
                      }
-                     Pipeline.EmitToken(ctx, sink, doc.GetFieldAsToken(field), pfx, splitUntil - 1);
+                     Pipeline.EmitToken(ctx, sink, kvp.Value, pfx, splitUntil - 1);
                   }
                   sink.HandleValue(ctx, "record", null);
                }

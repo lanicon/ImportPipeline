@@ -83,12 +83,10 @@
             content_type: {"type": "string", "index": "no"},   
             content_type2: {"type": "string", "index": "no"},   
             fileDate: {"type": "date", "index": "no", "store":"no"},   
-            id: {"type": "string", "analyzer": "lc_keyword"},
             filename: {"type": "string", "analyzer": "lc_keyword"},
             virtualFilename: { 
                "type": "string",
-               "analyzer": "lc_text",
-               "copy_to": "id"
+               "analyzer": "lc_text"
             },
             "recip": {"type": "string", "analyzer": "lc_text"},
             "recip_cc": {"type": "string", "analyzer": "lc_text"},
@@ -102,6 +100,7 @@
                "type": "string", index:"no", "store": "yes" , "analyzer": "lc_text"    
             },
             numparts: {"type": "integer"},
+            filesize: {"type": "integer"},
             head: {"type": "string", "index": "no"},
             content: {"type": "string", "analyzer": "lc_text"},
             title: {"type": "string", "analyzer": "lc_text"},

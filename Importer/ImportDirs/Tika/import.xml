@@ -6,7 +6,7 @@
       <endpoint name="es" type="ESEndpoint" url="http://localhost:9200/" cache="100" maxparallel="1">
          <waitfor status="yellow"></waitfor>
          <indexes>
-            <index name="bosgoed" config="index.config.js"  >
+            <index name="bosgoed2" config="index.config.js"  >
               <type name="bosdoc" keyfield="filename" datefield="filedate" />  
               <type name="errors_"  />  
             </index>
@@ -39,7 +39,7 @@
 
    </converters>
    <processes>
-      <process name='tika' maxrestarts="25" log="tika" errlog="" logfrom="tika" clearlogs="false">
+      <process name='tika' maxrestarts="25" log="tika" errlog="tika_err" logfrom="tika" clearlogs="false">
          <exe>%JAVA_HOME%\bin\java</exe>
          <arguments>-jar %IMPORT_TIKA_CMD%</arguments>
          <_shutdown method="POST" url="http://localhost:9200/_shutdown" />
@@ -54,6 +54,7 @@
          <action key="record/_start" field="errorFileName" endpoint="es.errors_" />
          <action key="record/_istextmail" field="isTextMail" />
          <action key="record/_numparts" field="numparts" />
+         <action key="record/_filesize" field="filesize" />
          <action key="record/lastmodutc" field="filedate" converters="date" tovar="date"/>
          <action key="record/virtualFilename" field="virtualFilename" />
          <action key="record/converted_file" field="convertedFilename" />
@@ -91,15 +92,15 @@
    </pipelines>
 
    <datasources>
-      <datasource name="tika" type="TikaDS" trim="true" history="false" tikaurl='http://localhost:8080/html/filesystem/' tikaprocess='tika' pingurl='http://localhost:8080/ping' pingtimeout='30000' logadds="500">
+      <datasource name="tika" type="TikaDS" trim="true" maxparallel="2" tikaurl='http://localhost:8080/html/filesystem/' tikaprocess='tika' pingurl='http://localhost:8080/ping' pingtimeout='30000' logadds="500">
          <dbgstore>dbgstore3</dbgstore>
-         <provider type="FileNameFeeder" root="e:\ma" filter="message-1-27368\.eml$" virtualroot="ma" />
          <provider type="FileNameFeeder" root="\\bm\c\mailArchive\Peter" filter="\.eml$" virtualroot="ma" />
+         <provider type="FileNameFeeder" root="e:\ma" filter="\.eml$" virtualroot="ma" />
+         <provider type="FileNameFeeder" root="e:\ma" filter="message-1-27368\.eml$" virtualroot="ma" />
          <provider type="FileNameFeeder" root="e:\ma" filter="message-1-46653\.eml$" virtualroot="ma" />
          <provider type="FileNameFeeder" root="e:\ma" filter="message-1-50709\.eml$" virtualroot="ma" />
          <provider type="FileNameFeeder" root="e:\ma" filter="message-1-26126\.eml$" virtualroot="ma" />
          <provider type="FileNameFeeder" root="\\bm\c\mailArchive\Peter" filter="message-1-26126\.eml$" virtualroot="ma" />
-         <provider type="FileNameFeeder" root="e:\ma" filter="\.eml$" virtualroot="ma" />
          <_provider type="FileNameFeeder" root="C:\Users\pweerd\Documents" filter="Alma\\Documents\\updateCatalogueRecordResponse\.docx$" virtualroot="docs" />
          <_provider type="FileNameFeeder" root="C:\Users\pweerd\Documents" filter="\.pdf$|\.eml$|\.docx$" virtualroot="docs" />
          <provider type="FileNameFeeder" root="C:\Users\pweerd\Documents" filter="\.eml$" virtualroot="docs" />

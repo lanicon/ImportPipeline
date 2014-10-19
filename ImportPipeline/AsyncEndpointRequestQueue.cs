@@ -14,6 +14,7 @@ namespace Bitmanager.ImportPipeline
       public readonly Object Context;
       private IAsyncResult asyncResult;
       protected Action<AsyncRequestElement> action;
+      public Exception Exception { get; private set; }
       internal uint queuedOrder;  //Used by the Q
       private volatile bool endInvokeCalled;
       private volatile bool completed;
@@ -124,14 +125,14 @@ namespace Bitmanager.ImportPipeline
          int lowestRunningIdx = -1;
          uint lowestCompletedOrder = uint.MaxValue;
          int lowestCompletedIdx = -1;
-         int popIdx;
+
          for (int i = 0; i < q.Length; i++)
          {
             popped = q[i];
             if (popped == null)
             {
-               popIdx = i;
-               goto START;
+               q[i] = req.Start(order++);
+               return null;
             }
             if (popped.IsCompleted)
             {
@@ -144,15 +145,19 @@ namespace Bitmanager.ImportPipeline
          }
 
          //Pop and replace still running item
-         popIdx = lowestCompletedIdx;
+         int popIdx = lowestCompletedIdx;
          if (popIdx < 0) popIdx = lowestRunningIdx;
          popped = q[popIdx];
          q[popIdx] = null;
-         popped.EndInvoke();
 
-         
-      START:
-         q[popIdx] = req.Start(order++);
+         try
+         {
+            popped.EndInvoke();
+         }
+         finally
+         {
+            if (req != null)  q[popIdx] = req.Start(order++);
+         }
          return popped;
       }
 
@@ -214,10 +219,15 @@ namespace Bitmanager.ImportPipeline
          AsyncRequestElement popped = q;
          q = null;
          //dumpQ("before");
-         if (popped != null)
-            popped.EndInvoke();
-
-         q = req.Start(0); 
+         try
+         {
+            if (popped != null)
+               popped.EndInvoke();
+         }
+         finally
+         {
+            if (req != null) q = req.Start(0);
+         }
          //dumpQ("after");
          return popped;
       }

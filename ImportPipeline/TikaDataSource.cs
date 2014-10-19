@@ -65,10 +65,8 @@ namespace Bitmanager.ImportPipeline
             ServicePointManager.DefaultConnectionLimit = maxParallel;
          }
          ensureTikaServiceStarted(ctx);
-         int cnt = 0;
          foreach (var elt in feeder)
          {
-            if (++cnt > 3000) break;
             try
             {
                importUrl(ctx, sink, elt);

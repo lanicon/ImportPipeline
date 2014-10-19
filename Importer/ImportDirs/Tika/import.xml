@@ -6,7 +6,7 @@
       <endpoint name="es" type="ESEndpoint" url="http://localhost:9200/" cache="100" maxparallel="1">
          <waitfor status="yellow"></waitfor>
          <indexes>
-            <index name="bosgoed2" config="index.config.js"  >
+            <index name="bosgoed" config="index.config.js"  >
               <type name="bosdoc" keyfield="filename" datefield="filedate" />  
               <type name="errors_"  />  
             </index>
@@ -93,7 +93,7 @@
 
    <datasources>
       <datasource name="tika" type="TikaDS" trim="true" maxparallel="2" tikaurl='http://localhost:8080/html/filesystem/' tikaprocess='tika' pingurl='http://localhost:8080/ping' pingtimeout='30000' logadds="500">
-         <dbgstore>dbgstore3</dbgstore>
+         <dbgstore></dbgstore>
          <provider type="FileNameFeeder" root="\\bm\c\mailArchive\Peter" filter="\.eml$" virtualroot="ma" />
          <provider type="FileNameFeeder" root="e:\ma" filter="\.eml$" virtualroot="ma" />
          <provider type="FileNameFeeder" root="e:\ma" filter="message-1-27368\.eml$" virtualroot="ma" />

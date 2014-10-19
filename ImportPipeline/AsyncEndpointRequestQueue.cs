@@ -13,7 +13,7 @@ namespace Bitmanager.ImportPipeline
    {
       public readonly Object Context;
       private IAsyncResult asyncResult;
-      private Action<AsyncRequestElement> action;
+      protected Action<AsyncRequestElement> action;
       internal uint queuedOrder;  //Used by the Q
       private volatile bool endInvokeCalled;
       private volatile bool completed;
@@ -23,6 +23,8 @@ namespace Bitmanager.ImportPipeline
          this.action = action;
          Context = whatToAdd;
       }
+      protected AsyncRequestElement()
+      { }
 
       public bool IsCompleted
       {
@@ -50,9 +52,9 @@ namespace Bitmanager.ImportPipeline
       internal AsyncRequestElement Start(uint order)
       {
          queuedOrder = order;
-         Logs.DebugLog.Log("async start()");
+         //Logs.DebugLog.Log("async start()");
          asyncResult = action.BeginInvoke(this, null, null);
-         Logs.DebugLog.Log("async start()==>{0}", asyncResult);
+         //Logs.DebugLog.Log("async start()==>{0}", asyncResult);
          return this;
       }
 
@@ -111,6 +113,10 @@ namespace Bitmanager.ImportPipeline
          q = new AsyncRequestElement[size];
       }
 
+      public override string ToString()
+      {
+         return base.ToString() + "[size=" + q.Length + "]";
+      }
       public override AsyncRequestElement PushAndOptionalPop(AsyncRequestElement req)
       {
          AsyncRequestElement popped = null;

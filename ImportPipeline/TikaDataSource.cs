@@ -24,118 +24,68 @@ namespace Bitmanager.ImportPipeline
    public class TikaDS: Datasource
    {
       private String processName;
-      private String uriBase;
+      public String UriBase {get; private set;}
+      public String DbgStoreDir { get; private set; }
       private IDatasourceFeeder feeder;
       private String pingUrl;
       private int pingTimeout;
       private int abstractLength, abstractDelta;
-      private String dbgStoreDir;
-      private String lastStored;
-      private static int storeNum;
+      private int maxParallel;
+
+      private AsyncRequestQueue workerQueue;
+
       public void Init(PipelineContext ctx, XmlNode node)
       {
          processName = node.ReadStr("@tikaprocess");
-         uriBase = node.ReadStr("@tikaurl");
-         if (!uriBase.EndsWith("/")) uriBase += "/";
+         UriBase = node.ReadStr("@tikaurl");
+         if (!UriBase.EndsWith("/")) UriBase += "/";
          feeder = ctx.CreateFeeder (node);
          abstractLength = node.OptReadInt("abstract/@maxlength", 256);
          abstractDelta = node.OptReadInt("abstract/@delta", 20);
-         dbgStoreDir = node.OptReadStr("dbgstore", null);
-         if (dbgStoreDir != null)
+         DbgStoreDir = node.OptReadStr("dbgstore", null);
+         if (DbgStoreDir != null)
          {
-            dbgStoreDir = IOUtils.AddSlash(ctx.ImportEngine.Xml.CombinePath(dbgStoreDir));
-            IOUtils.ForceDirectories(dbgStoreDir, true);
+            DbgStoreDir = IOUtils.AddSlash(ctx.ImportEngine.Xml.CombinePath(DbgStoreDir));
+            IOUtils.ForceDirectories(DbgStoreDir, true);
          }
-         ctx.ImportLog.Log("dbgstore dir={0}", dbgStoreDir ?? "NULL");
+         ctx.ImportLog.Log("dbgstore dir={0}", DbgStoreDir ?? "NULL");
 
          pingUrl = node.OptReadStr("@pingurl", null);
-         pingTimeout = node.OptReadInt("@pingtimeout", 30000);
+         pingTimeout = node.OptReadInt("@pingtimeout", 10000);
+         maxParallel = node.OptReadInt("@maxparallel", 1);
       }
 
-      private HtmlProcessor loadUrl(String fn)
+      public void Import(PipelineContext ctx, IDatasourceSink sink)
       {
-         Uri uri = new Uri(uriBase + HttpUtility.UrlEncode (fn));
-         HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create(uri);
-         req.KeepAlive = true;
-         HttpWebResponse resp;
-         try
+         workerQueue = AsyncRequestQueue.Create(maxParallel);
+         ctx.ImportLog.Log("TikaDS starting. maxparallel={0}, dbgstore={1}, Q={2}", maxParallel, DbgStoreDir, workerQueue);
+         if (maxParallel >= 2 && ServicePointManager.DefaultConnectionLimit < maxParallel)
          {
-            resp = (HttpWebResponse)req.GetResponse();
+            ctx.ImportLog.Log("Updating connectionLimit for {0} to {1}", ServicePointManager.DefaultConnectionLimit, maxParallel);
+            ServicePointManager.DefaultConnectionLimit = maxParallel;
          }
-         catch (WebException we)
+         ensureTikaServiceStarted(ctx);
+         int cnt = 0;
+         foreach (var elt in feeder)
          {
-            resp = (HttpWebResponse)we.Response;
-            Logs.ErrorLog.Log("error");
-            if (resp == null || resp.StatusCode != HttpStatusCode.InternalServerError) throw;
-            Logs.ErrorLog.Log("error: reading");
-            StreamReader x = new StreamReader(resp.GetResponseStream(), Encoding.UTF8);
-            String strResp = x.ReadToEnd();
-            Logs.ErrorLog.Log("error={0}", strResp);
-
-            throw new BMException(we, strResp); 
+            if (++cnt > 3000) break;
+            try
+            {
+               importUrl(ctx, sink, elt);
+            }
+            catch (Exception e)
+            {
+               throw new BMException(e, e.Message + "\r\nUrl=" + elt.Element + ".");
+            }
          }
-         HtmlDocument doc = new HtmlDocument();
 
-         if (dbgStoreDir == null) 
-            doc.Load(resp.GetResponseStream(), Encoding.UTF8);
-         else
+         //Handle still queued workers
+         while (true)
          {
-            MemoryStream m = new MemoryStream(4096);
-            CopyStream(m, resp.GetResponseStream(), 4096);
-            storeHtml (fn, m.GetBuffer(), (int)m.Length);
-            m.Position = 0;
-            doc.Load(m, Encoding.UTF8);
+            TikaAsyncWorker popped = pushPop(ctx, sink, null);
+            if (popped == null) break;
+            importUrl(ctx, sink, popped);
          }
-         return new HtmlProcessor(doc);
-
-
-
-
-         //using (WebClient client = new WebClient())
-         //{
-         //   byte[] bytes = client.DownloadData(uri);
-         //   if (dbgStoreDir != null) storeHtml(fn, bytes);
-         //   MemoryStream m = new MemoryStream(bytes);
-         //   m.Position = 0;
-         //   HtmlDocument doc = new HtmlDocument();
-         //   doc.Load(m, Encoding.UTF8);
-         //   return new HtmlProcessor (doc);
-         //}
-      }
-
-      private static void CopyStream(Stream dst, Stream src, int bufferSize)
-      {
-         byte[] buffer = new byte[bufferSize];
-         int count;
-         while ((count = src.Read(buffer, 0, buffer.Length)) != 0)
-            dst.Write(buffer, 0, count);
-      }
-
-      private void storeHtml(string fn, byte[] bytes, int len)
-      {
-         String name = String.Format("{0}{1}_{2}.html", dbgStoreDir, Path.GetFileName(fn), Interlocked.Increment(ref storeNum));
-         Logs.CreateLogger("import", "dbg").Log("store f={0}", name);
-         using (var fs = new FileStream(name, FileMode.Create, FileAccess.Write, FileShare.Read))
-         {
-            fs.Write(bytes, 0, len);
-         }
-         lastStored = name;
-      }
-
-
-
-      private StringDict getAttributes(XmlNode node)
-      {
-         StringDict ret = new StringDict();
-         var coll = node.Attributes;
-         for (int i=0; i<coll.Count; i++)
-         {
-            var att = coll[i];
-            if (att.LocalName.Equals ("url", StringComparison.InvariantCultureIgnoreCase)) continue;
-            if (att.LocalName.Equals ("baseurl", StringComparison.InvariantCultureIgnoreCase)) continue;
-            ret[att.LocalName] = att.Value;
-         }
-         return ret;
       }
 
       private static ExistState toExistState (Object result)
@@ -143,15 +93,26 @@ namespace Bitmanager.ImportPipeline
          if (result == null || !(result is ExistState)) return ExistState.NotExist;
          return (ExistState)result;
       }
+
+      private TikaAsyncWorker pushPop(PipelineContext ctx, IDatasourceSink sink, TikaAsyncWorker newElt)
+      {
+         try
+         {
+            return (TikaAsyncWorker)((newElt == null) ? workerQueue.Pop() : workerQueue.PushAndOptionalPop(newElt));
+         }
+         catch (Exception e)
+         {
+            handleException(ctx, sink, e);
+            return null;
+         }
+      }
       private void importUrl(PipelineContext ctx, IDatasourceSink sink, IDatasourceFeederElement elt)
       {
-         StringDict attribs = getAttributes(elt.Context);
-         var fullElt = (FileNameFeederElement)elt;
-         String fileName = fullElt.FileName;
+         TikaAsyncWorker worker = new TikaAsyncWorker (this, elt);
+         String fileName = worker.FullElt.FileName;
          sink.HandleValue (ctx, "record/_start", fileName);
-         DateTime dtFile = File.GetLastWriteTimeUtc(fileName);
-         sink.HandleValue(ctx, "record/lastmodutc", dtFile);
-         sink.HandleValue(ctx, "record/virtualFilename", fullElt.VirtualFileName);
+         sink.HandleValue(ctx, "record/lastmodutc", worker.LastModifiedUtc);
+         sink.HandleValue(ctx, "record/virtualFilename", worker.FullElt.VirtualFileName);
 
          ExistState existState = ExistState.NotExist;
          if ((ctx.ImportFlags & _ImportFlags.ImportFull) == 0) //Not a full import
@@ -163,15 +124,27 @@ namespace Bitmanager.ImportPipeline
          if ((existState & (ExistState.ExistSame | ExistState.ExistNewer | ExistState.Exist)) != 0)
          {
             ctx.Skipped++;
-            ctx.ImportLog.Log("Skipped: {0}. Date={1}", fullElt.VirtualFileName, dtFile);
+            ctx.ImportLog.Log("Skipped: {0}. Date={1}", worker.FullElt.VirtualFileName, worker.LastModifiedUtc);
             return;
          }
+
+         TikaAsyncWorker popped = pushPop (ctx, sink, worker);
+         if (popped != null)
+            importUrl(ctx, sink, popped);
+      }
+
+      private void importUrl(PipelineContext ctx, IDatasourceSink sink, TikaAsyncWorker worker)
+      {
+         String fileName = worker.FullElt.FileName;
+         sink.HandleValue(ctx, "record/_start", fileName);
+         sink.HandleValue(ctx, "record/lastmodutc", worker.LastModifiedUtc);
+         sink.HandleValue(ctx, "record/virtualFilename", worker.FullElt.VirtualFileName);
 
          try
          {
 
-            var htmlProcessor = loadUrl(fileName);
-            if (lastStored != null) sink.HandleValue(ctx, "record/converted_file", lastStored);
+            var htmlProcessor = worker.HtmlProcessor;
+            if (worker.StoredAs != null) sink.HandleValue(ctx, "record/converted_file", worker.StoredAs);
 
             //Write html properties
             foreach (var kvp in htmlProcessor.Properties)
@@ -185,6 +158,7 @@ namespace Bitmanager.ImportPipeline
             //if (htmlProcessor.IsTextMail)
             sink.HandleValue(ctx, "record/_istextmail", htmlProcessor.IsTextMail);
             sink.HandleValue(ctx, "record/_numparts", htmlProcessor.numParts);
+            sink.HandleValue(ctx, "record/_filesize", worker.FileSize);
             sink.HandleValue(ctx, "record/shortcontent", htmlProcessor.GetAbstract(abstractLength, abstractDelta));
 
             sink.HandleValue(ctx, "record/head", htmlProcessor.GetInnerHead());
@@ -195,28 +169,17 @@ namespace Bitmanager.ImportPipeline
          }
          catch (Exception e)
          {
-            var added = ctx.Added; 
-            if (!sink.HandleException(ctx, "record", e))
-               throw;
-            ctx.Added = added;
-            ctx.Errors++;
+            handleException(ctx, sink, e);
          }
       }
 
-      public void Import(PipelineContext ctx, IDatasourceSink sink)
+      private void handleException(PipelineContext ctx, IDatasourceSink sink, Exception err)
       {
-         ensureTikaServiceStarted (ctx);
-         foreach (var elt in feeder)
-         {
-            try
-            {
-               importUrl(ctx, sink, elt);
-            }
-            catch (Exception e)
-            {
-               throw new BMException(e, e.Message + "\r\nUrl=" + elt.Element + ".");
-            }
-         }
+         var added = ctx.Added;
+         if (!sink.HandleException(ctx, "record", err))
+            throw new BMException (err, err.Message);
+         ctx.Added = added;
+         ctx.Errors++;
       }
 
       private void ensureTikaServiceStarted(PipelineContext ctx)

@@ -86,6 +86,7 @@
     <Compile Include="ScriptHost.cs" />
     <Compile Include="SpecialCharsReplacer.cs" />
     <Compile Include="TestDatasource.cs" />
+    <Compile Include="TikaWorker.cs" />
     <Compile Include="TikaDataSource.cs" />
     <Compile Include="UrlProvider.cs" />
     <Compile Include="ValueFilter.cs" />

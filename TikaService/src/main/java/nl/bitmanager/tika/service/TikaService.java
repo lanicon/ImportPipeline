@@ -104,15 +104,15 @@ public class TikaService {
 			@PathParam("pathkey") final String pathkey,
 			@PathParam("resourceid") final String resourceId,
 			@Context HttpHeaders httpHeaders) throws Exception {
-		System.out.println("pathkey=" + pathkey);
-		System.out.println("resourceId=" + resourceId);
+		//System.out.println("pathkey=" + pathkey);
+		//System.out.println("resourceId=" + resourceId);
 
 		// get the resource segment, this may have query params
 		// we are ok with it as long as we can get something at that location
 		String[] segments = uriInfo.getRequestUri().toString()
 				.split("/html/" + pathkey + "/");
 		final String filename = URLDecoder.decode(segments[segments.length - 1], UTF8);
-		logger.info("resource :" + segments[segments.length - 1]);
+		//logger.info("resource :" + segments[segments.length - 1]);
 
 		final org.apache.tika.metadata.Metadata metadata = new org.apache.tika.metadata.Metadata();
 		final AutoDetectParser parser = new AutoDetectParser(new DefaultDetector());
@@ -123,21 +123,21 @@ public class TikaService {
 		try {
 			String path = getFilePath(pathkey);
 			String filepath = path + filename;
-			System.out.println("fp=" + filepath);
+			//System.out.println("fp=" + filepath);
 			File file = new File(filepath);
 			if (file.isFile()) {
-				System.out.println("isfile");
+				//System.out.println("isfile");
 				url = file.toURI().toURL();
 			} else {
-				System.out.println("isnotfile");
+				//System.out.println("isnotfile");
 				url = new URL(filepath);
 			}
 		} catch (MalformedURLException mex) {
 			throw new WebApplicationException(mex, Response.Status.NOT_FOUND);
 		}
 		
-		System.out.println("");
-		System.out.println("Url=" + url);
+//		System.out.println("");
+		System.out.println("Processing " + url);
 		final URL Url = url;
 		return new StreamingOutput() {
 			public void write(OutputStream outputStream) throws IOException, WebApplicationException {
@@ -145,17 +145,19 @@ public class TikaService {
 	            InputStream input = TikaInputStream.get(Url, metadata);
 	            try {
 					ContentHandler contentHandler = getTransformerHandler(outputStream, "html", UTF8, true);
-					System.out.println("outputstrem=" + outputStream);
-					System.out.println("input=" + input);
-					System.out.println("contentHandler=" + contentHandler);
-					System.out.println("metadata=" + metadata);
-					System.out.println("context=" + context);
-					System.out.println("outputstrem=" + outputStream);
-					System.out.println("outputstrem=" + outputStream);
+//					System.out.println("outputstrem=" + outputStream);
+//					System.out.println("input=" + input);
+//					System.out.println("contentHandler=" + contentHandler);
+//					System.out.println("metadata=" + metadata);
+//					System.out.println("context=" + context);
+//					System.out.println("outputstrem=" + outputStream);
+//					System.out.println("outputstrem=" + outputStream);
 					
 	            	parser.parse(input, contentHandler, metadata, context);
 	            }
 	            catch (Exception err) {
+                    System.err.println();
+                    System.err.println("Error while processing " + Url);
 	    			err.printStackTrace();
                     //throw new WebApplicationException(err.getMessage(), err, Response.Status.INTERNAL_SERVER_ERROR);
                     throw new WebApplicationException(err, Response.Status.INTERNAL_SERVER_ERROR);

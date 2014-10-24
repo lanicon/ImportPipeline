@@ -1,11 +1,5 @@
 ﻿{
    settings: { 
-      "similarity": {
-         "default": {
-            "type": "nl.bitmanager.elasticsearch.similarity.BoundedSimilarity$Provider",
-            "maxIdf": 0.2    
-         }
-      },
       "number_of_shards" : 1,
       "number_of_replicas" : 0,
       "refresh_interval": "60",
@@ -51,10 +45,9 @@
                    "pattern": "[tT].*[zZ]",
                    "replacement": ""
              },
-             "letter_digit": {
-                   type: "pattern_replace",
-                   "pattern": "[^\\p{L}\\p{N}]",
-                   "replacement": ""
+             "trim0": {
+                   type: "pattern_capture",
+                   "patterns": ["^0*(.*)$"]
              }
           },
           "analyzer" : {
@@ -67,6 +60,11 @@
                  "char_filter" : ["html_strip", "repl_dot"],
                  "tokenizer" : "standard",
                  "filter": ["lowercase", "asciifolding"]
+              },
+              "lc_account_text" : {
+                 "char_filter" : ["repl_dot"],
+                 "tokenizer" : "standard",
+                 "filter": ["trim0", "lowercase", "asciifolding"]
               },
              "lc_date_text" : {
                 "char_filter" : ["date_totext"],
@@ -86,8 +84,8 @@
                "day": {"type": "integer", "index": "not_analyzed", "store": "no"}, 
                "name": {"type": "string", "analyzer": "lc_text", "include_in_all": false},
                "name_facet": {"type": "string", "analyzer": "lc_keyword", "store": "no"},
-               "account": {"type": "string", "analyzer": "lc_text", "include_in_all": false},
-               "account_other": {"type": "string", "analyzer": "lc_text", "include_in_all": false},
+               "account": {"type": "string", "analyzer": "lc_account_text", "include_in_all": false},
+               "account_other": {"type": "string", "analyzer": "lc_account_text", "include_in_all": false},
                "account_other_facet": {"type": "string", "index": "not_analyzed", "store": "no"},
                "type": {"type": "string", "analyzer": "lc_text", "include_in_all": false},
                "mutation_code": {"type": "string", "analyzer": "lc_keyword", "include_in_all": false},

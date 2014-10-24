@@ -60,7 +60,6 @@
     <Compile Include="JsonDatasource.cs" />
     <Compile Include="Credentials.cs" />
     <Compile Include="CsvEndpoint.cs" />
-    <Compile Include="CsvReader.cs" />
     <Compile Include="ESDatasource.cs" />
     <Compile Include="JsonEndPoint.cs" />
     <Compile Include="ProcessHost.cs" />
@@ -97,11 +96,6 @@
     <Content Include="XMLFile1.xml">
       <SubType>Designer</SubType>
     </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config">
-      <SubType>Designer</SubType>
-    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

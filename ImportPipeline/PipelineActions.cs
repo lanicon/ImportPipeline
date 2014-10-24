@@ -37,6 +37,7 @@ namespace Bitmanager.ImportPipeline
       protected Converter[] converters;
       protected IDataEndpoint endPoint;
       protected String endpointName, convertersName, scriptName;
+      protected String forwardTo;
       protected String clrvarName;
       internal String[] VarsToClear;
       protected KeyCheckMode checkMode;
@@ -53,6 +54,7 @@ namespace Bitmanager.ImportPipeline
          if (endpointName == null) node.ReadStr("@endpoint");
 
          scriptName = node.OptReadStr("@script", null);
+         forwardTo = node.OptReadStr("@forward", null);
 
          clrvarName = node.OptReadStr("@clrvar", null);
          VarsToClear = clrvarName.SplitStandard();
@@ -74,8 +76,9 @@ namespace Bitmanager.ImportPipeline
          this.pipeline = template.pipeline;
          this.node = template.node;
          this.endpointName = optReplace (regex, name, template.endpointName);
-         this.convertersName = optReplace (regex, name, template.convertersName); 
-         this.scriptName = optReplace (regex, name, template.scriptName);
+         this.convertersName = optReplace (regex, name, template.convertersName);
+         this.scriptName = optReplace(regex, name, template.scriptName);
+         this.forwardTo = optReplace(regex, name, template.forwardTo);
          this.clrvarName = optReplace(regex, name, template.clrvarName);
          if (this.clrvarName == template.clrvarName)
             this.VarsToClear = template.VarsToClear;
@@ -111,7 +114,7 @@ namespace Bitmanager.ImportPipeline
       /// Handles the key/date check if checkMode <> 0
       /// </summary>
       /// <returns>null or an ExistState enumeration</returns>
-      protected Object handleCheck (PipelineContext ctx)
+      protected Object handleCheck (PipelineContext ctx, Object value)
       {
          if (checkMode != 0)
          {
@@ -121,10 +124,12 @@ namespace Bitmanager.ImportPipeline
                Object date = null;
                if ((checkMode & KeyCheckMode.date) != 0)
                   date = ctx.Pipeline.GetVariable("date");
-               return endPoint.Exists(ctx, (String)k, (DateTime?)date);
+               ExistState es = endPoint.Exists(ctx, (String)k, (DateTime?)date);
+               PostProcess(ctx, value);
+               return es;
             }
          }
-         return null;
+         return PostProcess(ctx, value);
       }
 
       /// <summary>
@@ -142,6 +147,15 @@ namespace Bitmanager.ImportPipeline
          for (int i = 0; i < converters.Length; i++)
             value = converters[i].Convert(ctx, value);
          return value;
+      }
+
+
+      /// <summary>
+      /// Optional forward the value to another action
+      /// </summary>
+      protected Object PostProcess(PipelineContext ctx, Object value)
+      {
+         return (forwardTo == null) ? null : ctx.Pipeline.HandleValue(ctx, forwardTo, value);
       }
 
       public override string ToString()
@@ -250,7 +264,7 @@ namespace Bitmanager.ImportPipeline
                if (fn != null) endPoint.SetField(fn, value, fieldFlags, sep);
             }
          if (toVar != null) ctx.Pipeline.SetVariable(toVar, value);
-         return base.handleCheck(ctx);
+         return base.handleCheck(ctx, value);
       }
 
       protected override void _ToString(StringBuilder sb)
@@ -288,17 +302,17 @@ namespace Bitmanager.ImportPipeline
       public override Object HandleValue(PipelineContext ctx, String key, Object value)
       {
          value = ConvertAndCallScript(ctx, key, value);
-         if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) { ctx.Skipped++; return null; }
+         if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) { ctx.Skipped++; goto EXIT_RTN; }
          if (checkMode != 0)
          {
-            Object res = base.handleCheck(ctx);
+            Object res = base.handleCheck(ctx, value);
             if (res != null)
             {
                var existState = (ExistState)res;
                if ((existState & (ExistState.ExistSame | ExistState.ExistNewer | ExistState.Exist)) != 0)
                {
                   ctx.Skipped++;
-                  return null;
+                  goto EXIT_RTN;
                }
             }
          }
@@ -306,7 +320,9 @@ namespace Bitmanager.ImportPipeline
          endPoint.Add(ctx);
          endPoint.Clear();
          pipeline.ClearVariables();
-         return null;
+
+         EXIT_RTN:
+         return PostProcess(ctx, value);
       }
    }
 
@@ -363,7 +379,7 @@ namespace Bitmanager.ImportPipeline
          if (reckey==null) return null;
 
          this.endPoint.EmitRecord(ctx, reckey, recField, sink, eventKey, maxLevel);
-         return null;
+         return PostProcess (ctx, value);
       }
 
       protected override void _ToString(StringBuilder sb)

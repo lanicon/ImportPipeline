@@ -116,6 +116,7 @@ namespace Bitmanager.ImportPipeline
             case "datetime":
             case "date": 
             case "time": return new ToDateConverter(node, type);
+            case "datepart": return new ToDatePartConverter(node, type);
             case "trim": return new TrimConverter(node);
             case "trimwhite": return new TrimWhiteConverter(node);
             case "lower": return new ToLowerConverter(node);
@@ -131,16 +132,98 @@ namespace Bitmanager.ImportPipeline
       }
    }
 
+   public enum DateMode {none, ToUtc, ToLocal};
    public class ToDateConverter : Converter
    {
-      private string[] formats;
-      private bool utc;
+      protected class _TZ
+      {
+         public readonly String Name;
+         public readonly String Offset;
+
+         public _TZ(XmlNode x)
+         {
+            Name = x.ReadStr("@name");
+            Offset = x.ReadStr("@offset");
+         }
+      }
+      static String[] stdFormats = new String[] {
+        "yyyy-MM-ddTHH:mm:ss.FFFFFFFzzzzzz",
+        "yyyy-MM-ddTHH:mm:ss.FFFFFFF",
+        "yyyy-MM-ddTHH:mm:ss.FFFFFFFZ",
+        "ddd, d MMM yyyy HH:mm:ss zzz",
+        "ddd d MMM yyyy HH:mm:ss zzz",
+        "d MMM yyyy HH:mm:ss zzz",
+        "ddd, MMM d HH:mm:ss zzz yyyy",
+        "ddd MMM d HH:mm:ss zzz yyyy",
+        "HH:mm:ss.FFFFFFF",
+        "HH:mm:ss.FFFFFFFZ",
+        "HH:mm:ss.FFFFFFFzzzzzz",
+        "yyyy-MM-dd",
+        "yyyy-MM-ddZ",
+        "yyyy-MM-ddzzzzzz",
+        "yyyy-MM",
+        "yyyy-MMZ",
+        "yyyy-MMzzzzzz",
+        "yyyy",
+        "yyyyZ",
+        "yyyyzzzzzz",
+        "--MM-dd",
+        "--MM-ddZ",
+        "--MM-ddzzzzzz",
+        "---dd",
+        "---ddZ",
+        "---ddzzzzzz",
+        "--MM--",
+        "--MM--Z",
+        "--MM--zzzzzz"
+      };
+      protected string[] formats;
+      protected _TZ[] timezones;
+      protected DateMode mode;
       public ToDateConverter(XmlNode node, String type)
          : base(node)
       {
-         formats = node.OptReadStr("@formats", null).SplitStandard();
-         utc = node.OptReadBool("@utc", false);
-         if (type == "dateonly") utc = false;
+         XmlNodeList nodes;
+         this.formats = stdFormats;
+         bool includeStd = node.OptReadBool("includestandard", true);
+         String[] formats = node.OptReadStr("@formats", null).SplitStandard();
+         if (formats != null)
+         {
+            this.formats = includeStd ? formats.ToList().Concat(stdFormats).ToArray() : formats;
+         }
+         else
+         {
+            nodes = node.SelectNodes("format");
+            if (nodes.Count > 0)
+            {
+               var tmp = new List<String>();
+               foreach (XmlNode fn in nodes) tmp.Add(fn.Value);
+               if (includeStd) tmp.Concat(stdFormats);
+               this.formats = tmp.ToArray();
+            }
+         }
+
+         nodes = node.SelectNodes("timezone");
+         if (nodes.Count > 0)
+         {
+            var tmp = new List<_TZ>();
+            foreach (XmlNode x in nodes) tmp.Add (new _TZ(x));
+            timezones = tmp.ToArray();
+         }
+
+
+         if (type == "dateonly") mode = DateMode.none;
+         else
+         {
+            if (node.SelectSingleNode("@mode") == null)
+               mode = node.OptReadBool("@utc", false) ? DateMode.ToUtc : DateMode.none;
+            else
+               mode = node.OptReadEnum("@mode", DateMode.ToUtc); 
+         }
+
+         //var logger = Logs.DebugLog;
+         //logger.Log ("{0}: Dumping formats...", this.GetType().Name);
+         //foreach (var s in this.formats) logger.Log("-- " + s);
       }
 
       public override Object ConvertScalar(PipelineContext ctx, Object value)
@@ -149,9 +232,10 @@ namespace Bitmanager.ImportPipeline
          String str = value as String;
          if (str != null)
          {
+            str = replaceTimeZone(str);
             if (formats != null)
             {
-               if (DateTime.TryParseExact(str, formats, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AdjustToUniversal, out ret)) goto EXIT_RTN;
+               if (DateTime.TryParseExact(str, formats, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out ret)) goto EXIT_RTN;
             }
             ret = Invariant.ToDateTime(str);
             goto EXIT_RTN;
@@ -160,7 +244,56 @@ namespace Bitmanager.ImportPipeline
          ret = (DateTime)value;
 
       EXIT_RTN:
-         return utc ? ret.ToUniversalTime() : ret;
+         switch (mode)
+         {
+            case DateMode.ToLocal: return ret.ToLocalTime();
+            case DateMode.ToUtc: return ret.ToUniversalTime();
+         }
+         return ret;
+      }
+
+      protected String replaceTimeZone(String str)
+      {
+         if (timezones == null) return str;
+         foreach (var tz in timezones)
+         {
+            int ix = str.IndexOf(tz.Name);
+            if (ix < 0) continue;
+            return str.Substring(0, ix) + tz.Offset + str.Substring(ix + tz.Name.Length);
+         }
+         return str;
+      }
+   }
+
+
+   public class ToDatePartConverter : ToDateConverter
+   {
+      private enum SelectMode {y, m, d, format};
+      private string select;
+      private SelectMode selectMode;
+      public ToDatePartConverter(XmlNode node, String type)
+         : base(node, type)
+      {
+         select = node.ReadStr ("@select");
+         switch (select.ToLowerInvariant())
+         {
+            case "y": selectMode = SelectMode.y; break;
+            case "m": selectMode = SelectMode.m; break;
+            case "d": selectMode = SelectMode.d; break;
+            default: selectMode = SelectMode.format; break;
+         }
+      }
+
+      public override Object ConvertScalar(PipelineContext ctx, Object value)
+      {
+         DateTime ret = (DateTime)base.ConvertScalar(ctx, value);
+         switch (selectMode)
+         {
+            case SelectMode.y: return ret.Year;
+            case SelectMode.m: return ret.Month;
+            case SelectMode.d: return ret.Day;
+            default: return ret.ToString(select);
+         }
       }
    }
 

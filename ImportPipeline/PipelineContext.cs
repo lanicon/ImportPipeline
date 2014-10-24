@@ -73,7 +73,9 @@ namespace Bitmanager.ImportPipeline
 
       internal PipelineAction SetAction(PipelineAction act)
       {
-         ActionFlags |= _ActionFlags.Handled;
+         //PW handled zou ook globaal uitgezet moeten kunnen worden
+         if (!(act is PipelineNopAction))
+            ActionFlags |= _ActionFlags.Handled;
          Action = act;
          return act;
       }

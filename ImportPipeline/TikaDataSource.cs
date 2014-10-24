@@ -156,6 +156,7 @@ namespace Bitmanager.ImportPipeline
             //if (htmlProcessor.IsTextMail)
             sink.HandleValue(ctx, "record/_istextmail", htmlProcessor.IsTextMail);
             sink.HandleValue(ctx, "record/_numparts", htmlProcessor.numParts);
+            sink.HandleValue(ctx, "record/_numattachments", htmlProcessor.numAttachments);
             sink.HandleValue(ctx, "record/_filesize", worker.FileSize);
             sink.HandleValue(ctx, "record/shortcontent", htmlProcessor.GetAbstract(abstractLength, abstractDelta));
 
@@ -217,6 +218,7 @@ namespace Bitmanager.ImportPipeline
    public class HtmlProcessor
    {
       public int numParts;
+      public int numAttachments;
       public bool IsTextMail;
       private readonly bool removeTitleNodes = false;
       private readonly bool removeMetaNodes = false;
@@ -247,6 +249,7 @@ namespace Bitmanager.ImportPipeline
          removeEmptyTextNodes(HeadNode.ChildNodes);
          undupMailNodes();
          removeEmptyTextNodes(BodyNode.SelectNodes("//text()"));
+         computeNumAttachments();
       EXIT_RTN:
          Document = doc;
       }
@@ -294,6 +297,13 @@ namespace Bitmanager.ImportPipeline
             if (maxIdx==i) continue;
             BodyNode.RemoveChild(nodes[i], false);
          }
+      }
+
+      private void computeNumAttachments()
+      {
+         if (BodyNode == null) return;
+         HtmlNodeCollection nodes = BodyNode.SelectNodes("//p[@class='email-attachment-name']");
+         numAttachments = nodes == null ? 0 : nodes.Count;
       }
 
       public String GetInnerBody()

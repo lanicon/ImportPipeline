@@ -50,6 +50,9 @@
          this.label3 = new System.Windows.Forms.Label();
          this.txtMaxRecords = new System.Windows.Forms.TextBox();
          this.button1 = new System.Windows.Forms.Button();
+         this.textBox1 = new System.Windows.Forms.TextBox();
+         this.textBox2 = new System.Windows.Forms.TextBox();
+         this.checkBox1 = new System.Windows.Forms.CheckBox();
          this.grpFlags.SuspendLayout();
          this.SuspendLayout();
          // 
@@ -247,14 +250,40 @@
          // 
          // button1
          // 
-         this.button1.Location = new System.Drawing.Point(248, 92);
+         this.button1.Location = new System.Drawing.Point(277, 227);
          this.button1.Name = "button1";
          this.button1.Size = new System.Drawing.Size(79, 33);
          this.button1.TabIndex = 15;
-         this.button1.Text = "button1";
+         this.button1.Text = "Date";
          this.button1.UseVisualStyleBackColor = true;
          this.button1.Visible = false;
          this.button1.Click += new System.EventHandler(this.button1_Click_1);
+         // 
+         // textBox1
+         // 
+         this.textBox1.Location = new System.Drawing.Point(277, 168);
+         this.textBox1.Name = "textBox1";
+         this.textBox1.Size = new System.Drawing.Size(375, 23);
+         this.textBox1.TabIndex = 16;
+         this.textBox1.Visible = false;
+         // 
+         // textBox2
+         // 
+         this.textBox2.Location = new System.Drawing.Point(277, 198);
+         this.textBox2.Name = "textBox2";
+         this.textBox2.Size = new System.Drawing.Size(375, 23);
+         this.textBox2.TabIndex = 17;
+         this.textBox2.Visible = false;
+         // 
+         // checkBox1
+         // 
+         this.checkBox1.AutoSize = true;
+         this.checkBox1.Location = new System.Drawing.Point(1109, 375);
+         this.checkBox1.Name = "checkBox1";
+         this.checkBox1.Size = new System.Drawing.Size(15, 14);
+         this.checkBox1.TabIndex = 18;
+         this.checkBox1.UseVisualStyleBackColor = true;
+         this.checkBox1.CheckedChanged += new System.EventHandler(this.checkBox1_CheckedChanged);
          // 
          // Form1
          // 
@@ -263,6 +292,9 @@
          this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
          this.CancelButton = this.btnCancel;
          this.ClientSize = new System.Drawing.Size(1143, 401);
+         this.Controls.Add(this.checkBox1);
+         this.Controls.Add(this.textBox2);
+         this.Controls.Add(this.textBox1);
          this.Controls.Add(this.button1);
          this.Controls.Add(this.txtMaxRecords);
          this.Controls.Add(this.label3);
@@ -312,6 +344,9 @@
       private System.Windows.Forms.Label label3;
       private System.Windows.Forms.TextBox txtMaxRecords;
       private System.Windows.Forms.Button button1;
+      private System.Windows.Forms.TextBox textBox1;
+      private System.Windows.Forms.TextBox textBox2;
+      private System.Windows.Forms.CheckBox checkBox1;
    }
 }
 

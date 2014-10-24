@@ -99,6 +99,7 @@
             shortcontent: {
                "type": "string", index:"no", "store": "yes" , "analyzer": "lc_text"    
             },
+            numattachments: {"type": "integer"},
             numparts: {"type": "integer"},
             filesize: {"type": "integer"},
             head: {"type": "string", "index": "no"},
@@ -124,9 +125,10 @@
                   facet: {type: "string", analyzer: "lc_keyword"}
                }
             },
-            "page_count": {"type": "long", "index": "no"},
+            "page_count": {"type": "integer"},
             "date_created": {"type": "date", "index": "no"},
-            "date_modified": {"type": "date"}
+            "date_modified": {"type": "date"},
+            "year_modified": {"type": "integer"}
          }
       },
       admin_: {

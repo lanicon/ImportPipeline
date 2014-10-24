@@ -19,7 +19,11 @@
       <converter name="htmlDecode"/>
       <converter name="int32"/>
       <converter name="double" decimalsep="," groupsep="."/>
-      <converter name="date"   utc="true" _formats="yyyyMMdd"/>
+      <converter name="date"   mode="toUtc" _formats="yyyyMMdd">
+         <timezone name="CEST" offset="+0200" />
+         <timezone name="CET" offset="+0100" />
+      </converter>
+      <converter name="year"   mode="toLocal" select="y" type="datepart"/>
       <converter name="lower" />
       <converter name="upper" />
       <converter name="trim" />
@@ -54,6 +58,7 @@
          <action key="record/_start" field="errorFileName" endpoint="es.errors_" />
          <action key="record/_istextmail" field="isTextMail" />
          <action key="record/_numparts" field="numparts" />
+         <action key="record/_numattachments" field="numattachments" />
          <action key="record/_filesize" field="filesize" />
          <action key="record/lastmodutc" field="filedate" converters="date" tovar="date"/>
          <action key="record/virtualFilename" field="virtualFilename" />
@@ -72,8 +77,7 @@
          <action key="record/Message-ID" field="msg_ref" flags="unique|toarray" />
          <action key="record/In-Reply-To" field="msg_ref" flags="unique|toarray"/>
          <action key="record/References" field="msg_ref" flags="unique|toarray"/>
-         
-         <template expr="^record/.*(creation-date|created)$" field="date_created" converters="date" flags="keepSmallest"/>
+
          <template expr="^record/.*(save-date|modified|save-date)$" field="date_modified" convert="date" flags="keepSmallest"/>
          <template expr="^record/.*(creation-date|created)$" field="date_created" converters="date" flags="keepSmallest"/>
          <template expr="^record/.*title$" field="title" converters="htmlDecode"/>
@@ -94,16 +98,23 @@
    <datasources>
       <datasource name="tika" type="TikaDS" trim="true" maxparallel="2" tikaurl='http://localhost:8080/html/filesystem/' tikaprocess='tika' pingurl='http://localhost:8080/ping' pingtimeout='30000' logadds="500">
          <dbgstore></dbgstore>
-         <provider type="FileNameFeeder" root="\\bm\c\mailArchive\Peter" filter="\.eml$" virtualroot="ma" />
+         <provider type="FileNameFeeder" root="e:\ma" filter="message-1-36829\.eml$" virtualroot="ma" />
          <provider type="FileNameFeeder" root="e:\ma" filter="\.eml$" virtualroot="ma" />
+         <provider type="FileNameFeeder" root="\\bm\c\mailArchive\Peter" filter="\.eml$" virtualroot="ma" />
+         <provider type="FileNameFeeder" root="e:\ma" filter="message-1-50709\.eml$" virtualroot="ma" />
          <provider type="FileNameFeeder" root="e:\ma" filter="message-1-27368\.eml$" virtualroot="ma" />
          <provider type="FileNameFeeder" root="e:\ma" filter="message-1-46653\.eml$" virtualroot="ma" />
          <provider type="FileNameFeeder" root="e:\ma" filter="message-1-50709\.eml$" virtualroot="ma" />
          <provider type="FileNameFeeder" root="e:\ma" filter="message-1-26126\.eml$" virtualroot="ma" />
          <provider type="FileNameFeeder" root="\\bm\c\mailArchive\Peter" filter="message-1-26126\.eml$" virtualroot="ma" />
          <_provider type="FileNameFeeder" root="C:\Users\pweerd\Documents" filter="Alma\\Documents\\updateCatalogueRecordResponse\.docx$" virtualroot="docs" />
-         <_provider type="FileNameFeeder" root="C:\Users\pweerd\Documents" filter="\.pdf$|\.eml$|\.docx$" virtualroot="docs" />
+         <provider type="FileNameFeeder" root="C:\Users\pweerd\Documents" filter="\.pdf$|\.eml$|\.docx$" virtualroot="docs" />
          <provider type="FileNameFeeder" root="C:\Users\pweerd\Documents" filter="\.eml$" virtualroot="docs" />
+      </datasource>
+      <datasource name="tikadoc" type="TikaDS" pipeline="tika" trim="true" maxparallel="2" tikaurl='http://localhost:8080/html/filesystem/' tikaprocess='tika' pingurl='http://localhost:8080/ping' pingtimeout='30000' logadds="500">
+         <dbgstore>pdf</dbgstore>
+         <provider type="FileNameFeeder" root="C:\Users\pweerd\Documents" filter="n\.pdf$" virtualroot="docs" />
+         <provider type="FileNameFeeder" root="C:\Users\pweerd\Documents" filter="\.pdf$|\.eml$|\.docx$" virtualroot="docs" />
       </datasource>
    </datasources>updateCatalogueRecordResponse
    

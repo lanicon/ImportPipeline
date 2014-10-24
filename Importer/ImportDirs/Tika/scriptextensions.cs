@@ -35,9 +35,14 @@ namespace Tika
          JToken lastMod = ep.GetFieldAsToken("date_modified");
          if (lastMod == null)
          {
-            JToken created = ep.GetFieldAsToken("date_created");
-            if (created != null)  ep.SetField ("date_modified", created);
+            String otherField = ep.GetFieldAsStr("doctype") == "Mail" ? "date_created" : "filedate";
+            lastMod = ep.GetFieldAsToken(otherField);
+            if (lastMod != null)  ep.SetField ("date_modified", lastMod);
          }
+
+         if (lastMod != null && ep.GetFieldAsToken("year_modified")==null)
+            ep.SetField ("year_modified", ((DateTime)lastMod).ToLocalTime().Year);
+
          return value;
       }
        

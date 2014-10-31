@@ -276,7 +276,7 @@ namespace Bitmanager.ImportPipeline
                ret = (DateTime)value;
                goto EXIT_RTN;
             case TypeCode.String:
-               sValue = (String)jv;
+               sValue = (String)value;
                goto FROM_STR;
             case TypeCode.Double:
                dblDate = (double)value;

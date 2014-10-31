@@ -22,11 +22,11 @@ namespace Bitmanager.ImportPipeline
       public readonly int MaxGenerations;
 
       private FileGenerations generations;
-      private FileStream fs;
-      private StreamWriter wtr;
+      private CsvWriter csvWtr;
+      private StringDict<int> lenientIndexes;
 
       char delimChar, quoteChar, commentChar;
-      bool trim;
+      bool trim, lenient;
 
       public CsvEndpoint(ImportEngine engine, XmlNode node)
          : base(node, ActiveMode.Lazy | ActiveMode.Local)
@@ -35,12 +35,21 @@ namespace Bitmanager.ImportPipeline
          if (MaxGenerations != int.MinValue)
             generations = new FileGenerations();
          String tmp = MaxGenerations == int.MinValue ? node.ReadStr("@file") : node.OptReadStr("@file", null);
-         FileNameBase = engine.Xml.CombinePath(tmp==null ? "csvOutput" : tmp);
+         FileNameBase = engine.Xml.CombinePath(tmp == null ? "csvOutput" : tmp);
          fileName = FileNameBase;
          trim = node.OptReadBool("@trim", true);
+         lenient = node.OptReadBool("@lenient", false);
          delimChar = CsvDatasource.readChar(node, "@dlm", ',');
          quoteChar = CsvDatasource.readChar(node, "@quote", '"');
          commentChar = CsvDatasource.readChar(node, "@comment", '#');
+
+         //Predefine field orders if requested (implies linient mode)
+         String[] fieldOrder = node.OptReadStr("@fieldorder", null).SplitStandard();
+         if (fieldOrder != null)
+         {
+            lenient = true;
+            foreach (var fld in fieldOrder) keyToIndex(fld);
+         }
       }
 
       protected override void Open(PipelineContext ctx)
@@ -54,24 +63,20 @@ namespace Bitmanager.ImportPipeline
             fileName = FileNameBase;
 
          base.Open(ctx);
-         fs = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.Read);
-         wtr = new StreamWriter(fs, Encoding.UTF8, 32*1024);
+         csvWtr = new CsvWriter(fileName);
+         csvWtr.QuoteOrd = quoteChar;
+         csvWtr.SepOrd = delimChar;
       }
+
       protected override void Close(PipelineContext ctx)
       {
          logCloseAndCheckForNormalClose(ctx);
-         if (wtr != null)
-         {
-            wtr.Flush();
-            wtr = null;
-         }
-         if (fs != null)
-         {
-            fs.Close();
-            fs = null;
-         }
+         Utils.FreeAndNil(ref csvWtr);
          base.Close(ctx);
-
+         if (lenient)
+         {
+            ctx.ImportLog.Log("Lenient indexes: '{0}'", getLenientIndexes());
+         }
          if (generations != null) generations.RemoveSuperflouisGenerations(MaxGenerations);
       }
 
@@ -80,8 +85,33 @@ namespace Bitmanager.ImportPipeline
          return new CsvDataEndpoint(this);
       }
 
-      private static int keyToIndex(string key)
+      private String getLenientIndexes()
       {
+         if (lenientIndexes == null) return null;
+         StringBuilder sb = new StringBuilder();
+         List<KeyValuePair<String, int>> list = new List<KeyValuePair<string,int>>();
+         foreach (var kvp in lenientIndexes) list.Add(kvp);
+         list.Sort((x, y) => Comparer<int>.Default.Compare(x.Value, y.Value));
+
+         for (int i = 0; i < list.Count; i++)
+         {
+            if (i > 0) sb.Append(this.delimChar);
+            sb.Append(list[i].Key);
+         }
+         return sb.ToString();
+      }
+
+      private int keyToIndex(string key)
+      {
+         int ret;
+         if (lenient)
+         {
+            if (lenientIndexes == null) lenientIndexes = new StringDict<int>(false);
+            if (lenientIndexes.TryGetValue(key, out ret)) return ret;
+            ret = lenientIndexes.Count;
+            lenientIndexes.Add(key, ret);
+            return ret;
+         }
          String key2 = key;
          switch (key[0])
          {
@@ -90,62 +120,31 @@ namespace Bitmanager.ImportPipeline
                key2 = key.Substring(1); break;
          }
 
-         int ret;
          if (int.TryParse(key2, NumberStyles.Integer, Invariant.Culture, out ret)) return ret;
          throw new BMException("Fieldname '{0}' should be a number or an 'F' with a number, to make sure that the field is written on the correct place in the CSV file.", key);
       }
 
-      private void writeQuotedString(String txt)
-      {
-         if (trim) txt = txt.Trim();
-         if (quoteChar == 0) wtr.Write(txt);
-
-         wtr.Write(quoteChar);
-         for (int i = 0; i < txt.Length; i++)
-         {
-            if (txt[i] == quoteChar) wtr.Write(quoteChar);
-            wtr.Write(txt[i]);
-         }
-         wtr.Write(quoteChar);
-      }
-
       internal void WriteAccumulator(JObject accu)
       {
-         int maxDataElts = 0;
-         JToken[] data = new JToken[2 * accu.Count];
-
          foreach (var kvp in accu)
          {
             int ix = keyToIndex(kvp.Key);
-            if (ix >= data.Length)
-            {
-               JToken[] newArr = new JToken[2 * ix + 4];
-               Array.Copy(data, newArr, data.Length);
-               data = newArr;
-            }
-            if (ix >= maxDataElts) maxDataElts = ix + 1;
-            data[ix] = kvp.Value;
-         }
+            JToken v = kvp.Value;
+            if (v == null) continue;
 
-         for (int i = 0; i < maxDataElts; i++)
-         {
-            if (i > 0) wtr.Write(this.delimChar);
-            if (data[i] == null) continue;
-            switch (data[i].Type)
+            switch (v.Type)
             {
-               case JTokenType.Boolean: wtr.Write((bool)data[i]); break;
-               case JTokenType.Date: wtr.Write(Invariant.ToString((DateTime)data[i])); break;
-               case JTokenType.Float: wtr.Write(Invariant.ToString((double)data[i])); break;
-               case JTokenType.Integer: wtr.Write(Invariant.ToString((long)data[i])); break;
+               case JTokenType.Boolean: csvWtr.SetField(ix, (bool)v); break;
+               case JTokenType.Date: csvWtr.SetField(ix, (DateTime)v); break;
+               case JTokenType.Float: csvWtr.SetField(ix, (double)v); break;
+               case JTokenType.Integer: csvWtr.SetField(ix, (long)v); break;
                case JTokenType.None:
                case JTokenType.Null:
                case JTokenType.Undefined: continue;
-               default:
-                  writeQuotedString((String)data[i]);
-                  break;
+               default: csvWtr.SetField(ix, v.ToString()); break;
             }
          }
-         wtr.WriteLine();
+         csvWtr.WriteRecord();
       }
    }
 

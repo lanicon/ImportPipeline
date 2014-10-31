@@ -131,8 +131,8 @@ namespace Bitmanager.ImportPipeline
          return Objects.CreateObject<Converter>(type, node);
       }
    }
-
-   public enum DateMode {none, ToUtc, ToLocal};
+   [Flags]
+   public enum DateMode {none=0, ToUtc=1, ToLocal=2, ToUnspec=0x100};
    public class ToDateConverter : Converter
    {
       protected class _TZ
@@ -226,28 +226,90 @@ namespace Bitmanager.ImportPipeline
          //foreach (var s in this.formats) logger.Log("-- " + s);
       }
 
+      protected void throwConvert(String toWhat, Object value)
+      {
+         String t;
+         if (value==null)
+         {
+            t = "null";
+         }
+         else
+         {
+            JValue jv = value as JValue;
+            t = jv==null ? value.GetType().Name : jv.Type.ToString();
+         }
+         throw new BMException ("Cannot convert a value with type [{0}] into a [{1}].", t, toWhat);
+      }
+
+      static System.DateTime dtEpoch = new DateTime(1970,1,1,0,0,0,0,System.DateTimeKind.Utc);
       public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
          DateTime ret;
-         String str = value as String;
-         if (str != null)
+         String sValue = null;
+         double dblDate = 0.0;
+         if (value == null) goto CANNOT_CONVERT;
+
+         JValue jv = value as JValue;
+         if (jv != null)
          {
-            str = replaceTimeZone(str);
-            if (formats != null)
+            switch (jv.Type)
             {
-               if (DateTime.TryParseExact(str, formats, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out ret)) goto EXIT_RTN;
+               default:
+                  goto CANNOT_CONVERT;
+               case JTokenType.Date:
+                  ret = (DateTime)jv;
+                  goto EXIT_RTN;
+               case JTokenType.Float:
+                  dblDate = (double)jv;
+                  goto FROM_DBL;
+               case JTokenType.String:
+                  sValue = (String)jv;
+                  goto FROM_STR;
             }
-            ret = Invariant.ToDateTime(str);
-            goto EXIT_RTN;
          }
 
-         ret = (DateTime)value;
+         switch (Type.GetTypeCode(value.GetType()))
+         {
+            default:
+               goto CANNOT_CONVERT;
+            case TypeCode.DateTime:
+               ret = (DateTime)value;
+               goto EXIT_RTN;
+            case TypeCode.String:
+               sValue = (String)jv;
+               goto FROM_STR;
+            case TypeCode.Double:
+               dblDate = (double)value;
+               goto FROM_DBL;
+         }
+
+      CANNOT_CONVERT:
+         throwConvert("DateTime", value);
+
+      FROM_STR:
+         sValue = replaceTimeZone(sValue);
+         if (formats != null)
+         {
+            if (DateTime.TryParseExact(sValue, formats, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out ret)) goto EXIT_RTN;
+         }
+         ret = Invariant.ToDateTime(sValue);
+         goto EXIT_RTN;
+
+      FROM_DBL:
+         //1000000 days is beyond 2100 when it is a COM date, but its in the 2nd day since epoch for linux. So lets decide on that limit.
+         ret = (dblDate < 1000000.0) ? DateTime.FromOADate(dblDate) : dtEpoch.AddSeconds(dblDate);
+         goto EXIT_RTN;
+
 
       EXIT_RTN:
-         switch (mode)
+         switch (mode & (DateMode.ToLocal | DateMode.ToUtc))
          {
-            case DateMode.ToLocal: return ret.ToLocalTime();
-            case DateMode.ToUtc: return ret.ToUniversalTime();
+            case DateMode.ToLocal: ret = ret.ToLocalTime(); break;
+            case DateMode.ToUtc: ret = ret.ToUniversalTime(); break;
+         }
+         if ((mode & DateMode.ToUnspec) != 0)
+         {
+            ret = new DateTime (ret.Ticks, DateTimeKind.Unspecified);
          }
          return ret;
       }
@@ -263,6 +325,7 @@ namespace Bitmanager.ImportPipeline
          }
          return str;
       }
+
    }
 
 
@@ -314,6 +377,8 @@ namespace Bitmanager.ImportPipeline
          }
       }
    }
+
+
    public class ToDoubleConverter : ToNumConverter
    {
       public ToDoubleConverter(XmlNode node) : base(node)  {}

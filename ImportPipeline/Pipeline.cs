@@ -61,8 +61,6 @@ namespace Bitmanager.ImportPipeline
       internal Logger logger;
 
       StringDict missed;
-      private Object lastAction;
-      public Object LastAction { get { return lastAction;}}
 
       public Pipeline(ImportEngine engine, XmlNode node): base(node)
       {
@@ -174,10 +172,12 @@ namespace Bitmanager.ImportPipeline
                kvp.Value.Start(ctx);
 
          started = true;
+         HandleValue(ctx, "_datasource/_start", ctx.DatasourceAdmin.Name);
       }
 
       public void Stop(PipelineContext ctx)
       {
+         HandleValue(ctx, "_datasource/_stop", ctx.DatasourceAdmin.Name);
          ctx.MissedLog.Log("Stopped datasource [{0}]. {1} missed keys.", ctx.DatasourceAdmin.Name, missed.Count);
          foreach (var kvp in missed)
          {
@@ -212,10 +212,11 @@ namespace Bitmanager.ImportPipeline
 
       public Object HandleValue(PipelineContext ctx, String key, Object value)
       {
+         Object orgValue = value;
+         Object ret = null;
+         Object lastAction = null;
          try
          {
-            Object ret = null;
-            lastAction = null;
             ctx.ActionFlags = 0;
 
             if ((ctx.ImportFlags & _ImportFlags.TraceValues) != 0) logger.Log("HandleValue ({0}, {1} [{2}]", key, value, value == null ? "null" : value.GetType().Name);
@@ -235,7 +236,7 @@ namespace Bitmanager.ImportPipeline
             int ixStart = findAction(lcKey);
             if (ixStart < 0)
             {
-               if (templates.Count == 0 || !checkTemplates(ctx, key)) //templates==0: otherwise checkTemplates() inserts a NOP action...
+               if (templates.Count == 0 || !checkTemplates(ctx, key, ref lastAction)) //templates==0: otherwise checkTemplates() inserts a NOP action...
                {
                   missed[lcKey] = null;
                   goto EXIT_RTN;
@@ -261,7 +262,17 @@ namespace Bitmanager.ImportPipeline
          }
          catch (Exception e)
          {
-            ctx.ErrorLog.Log(e, "Exception while handling event. Key={0}", key);
+            String type;
+            if (orgValue == value)
+               type = String.Format("[{0}]", getType(orgValue));
+            else
+               type = String.Format("[{0}] (was [{1}])", getType(value), getType(orgValue));
+            ctx.ErrorLog.Log("Exception while handling event. Key={0}, value type={1}, action={2}", key, type, lastAction);
+            ctx.ErrorLog.Log("-- value={0}", value);
+            if (orgValue != value)
+               ctx.ErrorLog.Log("-- orgvalue={0}", orgValue);
+
+            ctx.ErrorLog.Log(e);
             PipelineAction act = lastAction as PipelineAction;
             if (act == null)
                ctx.ErrorLog.Log("Cannot dump accu: no current action found.");
@@ -271,8 +282,16 @@ namespace Bitmanager.ImportPipeline
                ctx.ErrorLog.Log("Dumping content of current accu: fieldcount={0}", accu.Count);
                ctx.ErrorLog.Log(act.Endpoint.GetFieldAsToken(null).ToString());
             }
-            throw;
+
+            throw new BMException (e, "{0}\r\nKey={1}, valueType={2}.", e.Message, key, type);
          }
+      }
+
+      private static String getType(Object obj)
+      {
+         if (obj == null) return "null";
+         JValue jv = obj as JValue;
+         return jv == null ? obj.GetType().Name : jv.Type.ToString();
       }
 
       Dictionary<String, ActionAdmin> actionDict; 
@@ -300,14 +319,14 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
-      private bool checkTemplates(PipelineContext ctx, String key)
+      private bool checkTemplates(PipelineContext ctx, String key, ref Object lastTemplate)
       {
          PipelineAction a = null;
          String templateExpr = null;
          int i;
          for (i = 0; i < templates.Count; i++)
          {
-            lastAction = templates[i];
+            lastTemplate = templates[i];
             a = templates[i].OptCreateAction(ctx, key);
             if (a != null) goto ADD_TEMPLATE;
          }

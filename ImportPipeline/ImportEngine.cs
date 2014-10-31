@@ -176,10 +176,13 @@ namespace Bitmanager.ImportPipeline
                }
 
                PipelineContext ctx = new PipelineContext(this, admin);
-               ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStart, "[{0}]: starting import with pipeline {1}, default endpoint={2}, maxadds={3} ", admin.Name, admin.Pipeline.Name, admin.Pipeline.DefaultEndpoint, ctx.MaxAdds);
+               var pipeline = admin.Pipeline;
+               ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStart, "[{0}]: starting import with pipeline {1}, default endpoint={2}, maxadds={3} ", admin.Name, pipeline.Name, pipeline.DefaultEndpoint, ctx.MaxAdds);
+
                try
                {
-                  admin.Import(ctx);
+                  pipeline.Start(ctx);
+                  admin.Datasource.Import(ctx, pipeline);
                   ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStop, "[{0}]: import ended. {1}.", admin.Name, ctx.GetStats());
                }
                catch (Exception err)
@@ -199,7 +202,7 @@ namespace Bitmanager.ImportPipeline
                      ctx.ErrorState |= _ErrorState.Error;
                      ImportLog.Log(_LogType.ltError | _LogType.ltTimerStop, "[{0}]: crashed err={1}", admin.Name, err.Message);
                      ImportLog.Log("-- " + ctx.GetStats());
-                     Exception toThrow = new BMException(err, "{0}\r\nDatasource={1}\r\nLastAction={2}.", err.Message, admin.Name, admin.Pipeline.LastAction);
+                     Exception toThrow = new BMException(err, "{0}\r\nDatasource={1}.", err.Message, admin.Name);
                      ErrorLog.Log(toThrow);
                      if ((ImportFlags & _ImportFlags.IgnoreErrors) != 0)
                         ImportLog.Log(_LogType.ltWarning, "Error ignored due to importFlags [{0}].", ImportFlags);
@@ -210,6 +213,7 @@ namespace Bitmanager.ImportPipeline
                      }
                   }
                }
+               pipeline.Stop(ctx);
                Endpoints.OptClosePerDatasource(ctx);
 
                foreach (var c in Converters) c.DumpMissed(ctx);

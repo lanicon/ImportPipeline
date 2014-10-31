@@ -26,7 +26,6 @@ namespace Bitmanager.ImportPipeline
       public Pipeline Pipeline { get; private set; }
       public int LogAdds { get; set; }
       public int MaxAdds { get; set; }
-      public PipelineContext LastContext { get; set; }
       public bool Active { get; private set; }
 
       public DatasourceAdmin(PipelineContext ctx, XmlNode node)
@@ -42,22 +41,6 @@ namespace Bitmanager.ImportPipeline
          //if (!Active) return; Zie notes: ws moet een datasource definitief kunnen worden uitgeschakeld. iets als active=true/false/disabled
          Datasource = ImportEngine.CreateObject<Datasource> (Type);
          Datasource.Init(ctx, node);
-      }
-
-      public void Import(PipelineContext ctx)
-      {
-         LastContext = ctx;
-         Pipeline.Start(ctx);
-         try
-         {
-            Pipeline.HandleValue(ctx, "_datasource/_start", Name);
-            Datasource.Import(ctx, Pipeline);
-            Pipeline.HandleValue(ctx, "_datasource/_stop", Name);
-         }
-         finally
-         {
-            Pipeline.Stop(ctx);
-         }
       }
    }
 

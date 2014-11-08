@@ -300,6 +300,7 @@ namespace Bitmanager.ImportPipeline
          JObject errObj = new JObject();
          errObj["err_key"] = key == null ? String.Empty : key.ToString();
          errObj["err_date"] = DateTime.UtcNow;
+         errObj["err_ds"] = ctx.DatasourceAdmin.Name;
          errObj["err_text"] = err.Message;
          errObj["err_stack"] = err.StackTrace;
          Connection.Post(DocType.UrlPart, errObj).ThrowIfError();

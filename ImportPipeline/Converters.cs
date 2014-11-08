@@ -259,6 +259,9 @@ namespace Bitmanager.ImportPipeline
                case JTokenType.Date:
                   ret = (DateTime)jv;
                   goto EXIT_RTN;
+               case JTokenType.Integer:
+                  dblDate = (long)jv;
+                  goto FROM_DBL;
                case JTokenType.Float:
                   dblDate = (double)jv;
                   goto FROM_DBL;
@@ -280,6 +283,12 @@ namespace Bitmanager.ImportPipeline
                goto FROM_STR;
             case TypeCode.Double:
                dblDate = (double)value;
+               goto FROM_DBL;
+            case TypeCode.Int32:
+               dblDate = (int)value;
+               goto FROM_DBL;
+            case TypeCode.Int64:
+               dblDate = (long)value;
                goto FROM_DBL;
          }
 

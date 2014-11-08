@@ -16,7 +16,6 @@ namespace Bitmanager.ImportPipeline
    public interface IDatasourceSink
    {
       Object HandleValue(PipelineContext ctx, String key, Object value);
-      bool   HandleException(PipelineContext ctx, String prefix, Exception err);
    }
 
    public class DatasourceAdmin : NamedItem

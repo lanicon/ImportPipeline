@@ -55,6 +55,7 @@ namespace Bitmanager.ImportPipeline
          maxParallel = node.OptReadInt("@maxparallel", 1);
       }
 
+      private DateTime previousRun;
       public void Import(PipelineContext ctx, IDatasourceSink sink)
       {
          workerQueue = AsyncRequestQueue.Create(maxParallel);
@@ -65,6 +66,8 @@ namespace Bitmanager.ImportPipeline
             ServicePointManager.DefaultConnectionLimit = maxParallel;
          }
          ensureTikaServiceStarted(ctx);
+         previousRun = ctx.RunAdministrations.GetLastOKRunDate(ctx.DatasourceAdmin.Name);
+         ctx.ImportLog.Log("Previous run was {0}.", previousRun);
          foreach (var elt in feeder)
          {
             try
@@ -100,7 +103,7 @@ namespace Bitmanager.ImportPipeline
          }
          catch (Exception e)
          {
-            handleException(ctx, sink, e);
+            ctx.HandleException(e);
             return null;
          }
       }
@@ -112,19 +115,23 @@ namespace Bitmanager.ImportPipeline
          sink.HandleValue(ctx, "record/lastmodutc", worker.LastModifiedUtc);
          sink.HandleValue(ctx, "record/virtualFilename", worker.FullElt.VirtualFileName);
 
-         ExistState existState = ExistState.NotExist;
+         //Check if we need to convert this file
          if ((ctx.ImportFlags & _ImportFlags.ImportFull) == 0) //Not a full import
          {
-             existState = toExistState (sink.HandleValue(ctx, "record/_checkexist", null));
+            if ((ctx.ImportFlags & _ImportFlags.RetryErrors)==0 && worker.LastModifiedUtc < previousRun)
+            {
+               ctx.Skipped++;
+               return;
+            }
+            ExistState existState = toExistState (sink.HandleValue(ctx, "record/_checkexist", null));
+            if ((existState & (ExistState.ExistSame | ExistState.ExistNewer | ExistState.Exist)) != 0)
+            {
+               ctx.Skipped++;
+               //ctx.ImportLog.Log("Skipped: {0}. Date={1}", worker.FullElt.VirtualFileName, worker.LastModifiedUtc);
+               return;
+            }
          }
 
-         //Check if we need to convert this file
-         if ((existState & (ExistState.ExistSame | ExistState.ExistNewer | ExistState.Exist)) != 0)
-         {
-            ctx.Skipped++;
-            ctx.ImportLog.Log("Skipped: {0}. Date={1}", worker.FullElt.VirtualFileName, worker.LastModifiedUtc);
-            return;
-         }
 
          TikaAsyncWorker popped = pushPop (ctx, sink, worker);
          if (popped != null)
@@ -168,17 +175,8 @@ namespace Bitmanager.ImportPipeline
          }
          catch (Exception e)
          {
-            handleException(ctx, sink, e);
+            ctx.HandleException(e);
          }
-      }
-
-      private void handleException(PipelineContext ctx, IDatasourceSink sink, Exception err)
-      {
-         var added = ctx.Added;
-         if (!sink.HandleException(ctx, "record", err))
-            throw new BMException (err, err.Message);
-         ctx.Added = added;
-         ctx.Errors++;
       }
 
       private void ensureTikaServiceStarted(PipelineContext ctx)

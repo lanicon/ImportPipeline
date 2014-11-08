@@ -128,8 +128,7 @@ namespace Bitmanager.ImportPipeline
          }
          catch (Exception e)
          {
-            if (!sink.HandleException(ctx, "record", e))
-               throw;
+            ctx.HandleException(e);
          }
       }
    }

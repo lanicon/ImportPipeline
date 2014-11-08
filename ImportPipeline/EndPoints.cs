@@ -225,6 +225,17 @@ namespace Bitmanager.ImportPipeline
       {
          return new JsonEndpointBase<Endpoint>(this);
       }
+
+      public virtual IErrorEndpoint GetErrorEndpoint(PipelineContext ctx)
+      {
+         return null;
+      }
+
+      public virtual IAdminEndpoint GetAdminEndpoint(PipelineContext ctx)
+      {
+         return null;
+      }
+
    }
 
 
@@ -240,6 +251,17 @@ namespace Bitmanager.ImportPipeline
       KeepLargest = 1 << 7,
       CaseSensitive = 1<<8,
       Unique = 1<<9,
+   }
+
+   public interface IAdminEndpoint
+   {
+      void SaveAdministration(PipelineContext ctx, List<RunAdministration> admins);
+      List<RunAdministration> LoadAdministration(PipelineContext ctx);
+   }
+
+   public interface IErrorEndpoint
+   {
+      void SaveError (PipelineContext ctx, Exception err);
    }
 
    /// <summary>
@@ -290,10 +312,15 @@ namespace Bitmanager.ImportPipeline
       /// Breaks a record into pieces and emits the pieces to the pipeline
       /// </summary>
       void EmitRecord(PipelineContext ctx, String recordKey, String recordField, IDatasourceSink sink, String eventKey, int maxLevel);
-
    }
 
-   public class JsonEndpointBase<T> : IDataEndpoint where T: Endpoint
+   public interface IEndpointResolver
+   {
+      IErrorEndpoint GetErrorEndpoint(PipelineContext ctx);
+      IAdminEndpoint GetAdminEndpoint(PipelineContext ctx);
+   }
+
+   public class JsonEndpointBase<T> : IDataEndpoint, IEndpointResolver where T : Endpoint
    {
       public readonly T Endpoint;
       protected Logger addLogger;
@@ -497,5 +524,15 @@ namespace Bitmanager.ImportPipeline
       }
 
 
+
+      public virtual IErrorEndpoint GetErrorEndpoint(PipelineContext ctx)
+      {
+         return Endpoint.GetErrorEndpoint(ctx);
+      }
+
+      public virtual IAdminEndpoint GetAdminEndpoint(PipelineContext ctx)
+      {
+         return Endpoint.GetAdminEndpoint(ctx);
+      }
    }
 }

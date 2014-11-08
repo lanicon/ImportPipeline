@@ -53,6 +53,7 @@
          this.textBox1 = new System.Windows.Forms.TextBox();
          this.textBox2 = new System.Windows.Forms.TextBox();
          this.checkBox1 = new System.Windows.Forms.CheckBox();
+         this.cbRetryErrors = new System.Windows.Forms.CheckBox();
          this.grpFlags.SuspendLayout();
          this.SuspendLayout();
          // 
@@ -112,6 +113,7 @@
          // 
          // grpFlags
          // 
+         this.grpFlags.Controls.Add(this.cbRetryErrors);
          this.grpFlags.Controls.Add(this.cbIgnoreErrors);
          this.grpFlags.Controls.Add(this.cbIgnoreLimited);
          this.grpFlags.Controls.Add(this.cbTraceValues);
@@ -119,7 +121,7 @@
          this.grpFlags.Controls.Add(this.CbFullImport);
          this.grpFlags.Location = new System.Drawing.Point(30, 155);
          this.grpFlags.Name = "grpFlags";
-         this.grpFlags.Size = new System.Drawing.Size(165, 160);
+         this.grpFlags.Size = new System.Drawing.Size(165, 170);
          this.grpFlags.TabIndex = 7;
          this.grpFlags.TabStop = false;
          this.grpFlags.Text = "Flags";
@@ -234,7 +236,7 @@
          // label3
          // 
          this.label3.AutoSize = true;
-         this.label3.Location = new System.Drawing.Point(27, 328);
+         this.label3.Location = new System.Drawing.Point(26, 343);
          this.label3.Name = "label3";
          this.label3.Size = new System.Drawing.Size(71, 15);
          this.label3.TabIndex = 13;
@@ -242,7 +244,7 @@
          // 
          // txtMaxRecords
          // 
-         this.txtMaxRecords.Location = new System.Drawing.Point(104, 325);
+         this.txtMaxRecords.Location = new System.Drawing.Point(103, 340);
          this.txtMaxRecords.Name = "txtMaxRecords";
          this.txtMaxRecords.Size = new System.Drawing.Size(94, 23);
          this.txtMaxRecords.TabIndex = 14;
@@ -284,6 +286,16 @@
          this.checkBox1.TabIndex = 18;
          this.checkBox1.UseVisualStyleBackColor = true;
          this.checkBox1.CheckedChanged += new System.EventHandler(this.checkBox1_CheckedChanged);
+         // 
+         // cbRetryErrors
+         // 
+         this.cbRetryErrors.AutoSize = true;
+         this.cbRetryErrors.Location = new System.Drawing.Point(17, 147);
+         this.cbRetryErrors.Name = "cbRetryErrors";
+         this.cbRetryErrors.Size = new System.Drawing.Size(83, 19);
+         this.cbRetryErrors.TabIndex = 15;
+         this.cbRetryErrors.Text = "RetryErrors";
+         this.cbRetryErrors.UseVisualStyleBackColor = true;
          // 
          // Form1
          // 
@@ -347,6 +359,7 @@
       private System.Windows.Forms.TextBox textBox1;
       private System.Windows.Forms.TextBox textBox2;
       private System.Windows.Forms.CheckBox checkBox1;
+      private System.Windows.Forms.CheckBox cbRetryErrors;
    }
 }
 

@@ -23,7 +23,8 @@ namespace Bitmanager.ImportPipeline
       IgnoreLimited = 1<<4,
       IgnoreAll = IgnoreErrors | IgnoreLimited,
       UseFlagsFromXml = 1 << 5,
-      Silent = 1<<6,
+      Silent = 1 << 6,
+      RetryErrors = 1 << 7,
    }
    public class ImportEngine
    {
@@ -38,7 +39,8 @@ namespace Bitmanager.ImportPipeline
       public readonly Logger DebugLog;
       public readonly Logger ErrorLog;
       public readonly Logger MissedLog;
-      public int LogAdds {get; set;}
+      public DateTime StartTimeUtc { get; private set; }
+      public int LogAdds { get; set; }
       public int MaxAdds { get; set; }
       public _ImportFlags ImportFlags { get; set; }
 
@@ -159,6 +161,8 @@ namespace Bitmanager.ImportPipeline
       }
       public void Import(String[] enabledDSses=null)
       {
+         StartTimeUtc = DateTime.UtcNow;
+
          ImportLog.Log();
          ImportLog.Log(_LogType.ltProgress, "Starting import. Flags={0}, MaxAdds={1}, ActiveDS's='{2}'.", ImportFlags, MaxAdds, enabledDSses==null ? null : String.Join (", ", enabledDSses));
          PipelineContext mainCtx = new PipelineContext(this);

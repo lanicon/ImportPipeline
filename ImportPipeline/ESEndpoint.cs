@@ -9,6 +9,7 @@ using Newtonsoft.Json.Linq;
 using Bitmanager.Json;
 using Bitmanager.Core;
 using System.Xml;
+using System.Collections;
 
 namespace Bitmanager.ImportPipeline
 {
@@ -94,7 +95,20 @@ namespace Bitmanager.ImportPipeline
       {
          if (ReadOnly) return;
 
-         if (!base.logCloseAndCheckForNormalClose(ctx)) return;
+         if (!base.logCloseAndCheckForNormalClose(ctx)) goto CLOSE_BASE;
+         switch (Indexes.Count)
+         {
+            case 0: goto CLOSE_BASE;
+            case 1: ctx.ImportLog.Log("-- Closing index " + Indexes[0].Name); break;
+            default:
+               ctx.ImportLog.Log("-- Closing indexes");
+               foreach (var x in Indexes) ctx.ImportLog.Log("-- -- " + x.Name); 
+               break;
+         }
+
+         ctx.ImportLog.Log("-- IndexesOptional optimize indexes");
+         foreach (var ix in Indexes)
+
          ctx.ImportLog.Log("-- Optional optimize indexes");
          try
          {
@@ -106,9 +120,11 @@ namespace Bitmanager.ImportPipeline
             ctx.ErrorLog.Log("-- Optimize failed: " + err.Message);
             ctx.ErrorLog.Log(err);
          }
+
          ctx.ImportLog.Log("-- Optional rename indexes");
          Indexes.OptionalRename(Connection);
          logCloseDone(ctx);
+      CLOSE_BASE:
          base.Close(ctx);
       }
 
@@ -126,10 +142,22 @@ namespace Bitmanager.ImportPipeline
             return new ESDataEndpoint(this, IndexDocTypes[0]);
          return new ESDataEndpoint(this, IndexDocTypes.GetDocType(dataName, true));
       }
+
+      public override IAdminEndpoint GetAdminEndpoint(PipelineContext ctx)
+      {
+         var type = IndexDocTypes.GetDocType("admin_", false);
+         return type==null ? null : new ESDataEndpoint(this, type);
+      }
+
+      public override IErrorEndpoint GetErrorEndpoint(PipelineContext ctx)
+      {
+         var type = IndexDocTypes.GetDocType("errors_", false);
+         return type == null ? null : new ESDataEndpoint(this, type);
+      }
    }
 
 
-   public class ESDataEndpoint : JsonEndpointBase<ESEndpoint>
+   public class ESDataEndpoint : JsonEndpointBase<ESEndpoint>, IAdminEndpoint, IErrorEndpoint
    {
       public readonly ESConnection Connection;
       public readonly IndexDocType DocType;
@@ -237,6 +265,46 @@ namespace Bitmanager.ImportPipeline
       }
 
 
+      #region IAdminEndpoint
+      public void SaveAdministration(PipelineContext ctx, List<RunAdministration> admins)
+      {
+         if (admins == null || admins.Count == 0) return;
+         String urlPart = DocType.UrlPart + "/";
+         foreach (var a in admins)
+         {
+            String key = a.DataSource + "_" + a.RunDateUtc.ToString("yyyyMMdd_HHmmss"); 
+            Connection.Post(urlPart + key, a.ToJson()).ThrowIfError();
+         }
+      }
+
+      public List<RunAdministration> LoadAdministration(PipelineContext ctx)
+      {
+         List<RunAdministration> ret = new List<RunAdministration>();
+         var e = Connection.CreateEnumerator(this.DocType.UrlPart);
+         foreach (var doc in e)
+         {
+            ret.Add(new RunAdministration(doc));
+         }
+         return ret;
+      }
+      #endregion
+
+      #region IAdminEndpoint
+      public void SaveError(PipelineContext ctx, Exception err)
+      {
+         Object key = null;
+         IDictionary dict = err.Data;
+         if (dict != null) key = dict["key"];
+         if (key == null && ctx.Pipeline != null) key = ctx.Pipeline.GetVariable("key");
+
+         JObject errObj = new JObject();
+         errObj["err_key"] = key == null ? String.Empty : key.ToString();
+         errObj["err_date"] = DateTime.UtcNow;
+         errObj["err_text"] = err.Message;
+         errObj["err_stack"] = err.StackTrace;
+         Connection.Post(DocType.UrlPart, errObj).ThrowIfError();
+      }
+      #endregion
    }
 
 }

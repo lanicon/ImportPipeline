@@ -19,6 +19,7 @@ namespace Bitmanager.ImportPipeline
       Field = 2,
       Add = 3,
       Emit = 4,
+      ErrorHandler = 5
    }
    public enum _InternalActionType
    {
@@ -26,6 +27,7 @@ namespace Bitmanager.ImportPipeline
       Field = 2,
       Add = 3,
       Emit = 4,
+      ErrorHandler = 5
    }
    public delegate Object ScriptDelegate(PipelineContext ctx, String key, Object value); 
    public abstract class PipelineAction : NamedItem
@@ -186,6 +188,7 @@ namespace Bitmanager.ImportPipeline
             case _ActionType.Field: return _InternalActionType.Field;
             case _ActionType.Add: return _InternalActionType.Add;
             case _ActionType.Nop: return _InternalActionType.Nop;
+            case _ActionType.ErrorHandler: return _InternalActionType.ErrorHandler;
          }
          if (node.SelectSingleNode("@add") != null) return _InternalActionType.Add;
          if (node.SelectSingleNode("@nop") != null) return _InternalActionType.Nop;
@@ -202,6 +205,7 @@ namespace Bitmanager.ImportPipeline
             case _InternalActionType.Nop: return new PipelineNopAction(pipeline, node);
             case _InternalActionType.Field: return new PipelineFieldAction(pipeline, node);
             case _InternalActionType.Emit: return new PipelineEmitAction(pipeline, node);
+            case _InternalActionType.ErrorHandler: return new PipelineErrorAction(pipeline, node);
          }
          throw new Exception ("Unexpected _InternalActionType: " + act);
       }
@@ -322,6 +326,53 @@ namespace Bitmanager.ImportPipeline
          pipeline.ClearVariables();
 
          EXIT_RTN:
+         return PostProcess(ctx, value);
+      }
+   }
+
+   public class PipelineErrorAction : PipelineAction
+   {
+      public PipelineErrorAction(Pipeline pipeline, XmlNode node)
+         : base(pipeline, node)
+      {
+      }
+
+      internal PipelineErrorAction(PipelineAddAction template, String name, Regex regex)
+         : base(template, name, regex)
+      {
+      }
+
+      public override void Start(PipelineContext ctx)
+      {
+         base.Start(ctx);
+         IErrorEndpoint ep = Endpoint as IErrorEndpoint;
+         if (ep == null) throw new BMException("Endpoint does not support IErrorEndpoint. Action={0}", this);
+      }
+      
+      public override Object HandleValue(PipelineContext ctx, String key, Object value)
+      {
+         value = ConvertAndCallScript(ctx, key, value);
+         if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) { ctx.Skipped++; goto EXIT_RTN; }
+
+         Exception err = value as Exception;
+         if (err == null)
+         {
+            try
+            {
+               String msg = value==null ? "null" : value.ToString();
+               throw new BMException(msg);
+            }
+            catch (Exception e)
+            {
+               err = e;
+            }
+         }
+
+         ((IErrorEndpoint)Endpoint).SaveError (ctx, err);
+         endPoint.Clear();
+         pipeline.ClearVariables();
+
+      EXIT_RTN:
          return PostProcess(ctx, value);
       }
    }

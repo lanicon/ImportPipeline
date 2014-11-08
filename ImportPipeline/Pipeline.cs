@@ -168,8 +168,22 @@ namespace Bitmanager.ImportPipeline
          prepareActions();
 
          if (endPointCache != null)
-            foreach (var kvp in this.endPointCache)
+            foreach (var kvp in this.endPointCache) {
                kvp.Value.Start(ctx);
+               var resolver = kvp.Value as IEndpointResolver;
+               if (ctx.AdminEndpoint==null) ctx.AdminEndpoint = resolver.GetAdminEndpoint(ctx);
+               if (ctx.ErrorEndpoint==null) ctx.ErrorEndpoint = resolver.GetErrorEndpoint(ctx);
+            }
+
+         if (ctx.AdminEndpoint == null)
+         {
+            ctx.ImportLog.Log(_LogType.ltWarning, "Did not find an admin enpoint. This doesn't need to be an error.");
+            ctx.RunAdministrations = null;
+         }
+         else
+         {
+            ctx.RunAdministrations = ctx.AdminEndpoint.LoadAdministration(ctx);
+         }
 
          started = true;
          HandleValue(ctx, "_datasource/_start", ctx.DatasourceAdmin.Name);
@@ -184,6 +198,15 @@ namespace Bitmanager.ImportPipeline
             ctx.MissedLog.Log("-- {0}", kvp.Key);
          }
          missed = new StringDict();
+
+         //Optional save the administration records 
+         if (ctx.AdminEndpoint != null)
+         {
+            var list = ctx.RunAdministrations;
+            if (list == null) list = new List<RunAdministration>();
+            list.Add (new RunAdministration(ctx));
+            ctx.AdminEndpoint.SaveAdministration(ctx, list);
+         }
 
          started = false;
          if (endPointCache != null)
@@ -398,16 +421,6 @@ namespace Bitmanager.ImportPipeline
          {
             logger.Log("-- -- " + templates[i]);
          }
-      }
-
-      public bool HandleException(PipelineContext ctx, string prefix, Exception err)
-      {
-         String pfx = String.IsNullOrEmpty(prefix) ? "_error" : prefix + "/_error";
-         HandleValue(ctx, pfx + "/date", DateTime.UtcNow);
-         HandleValue(ctx, pfx + "/msg", err.Message);
-         HandleValue(ctx, pfx + "/trace", err.StackTrace);
-         HandleValue(ctx, pfx, err);
-         return (ctx.ActionFlags & _ActionFlags.Handled) != 0;
       }
 
       public static void EmitToken(PipelineContext ctx, IDatasourceSink sink, JToken token, String key, int maxLevel)

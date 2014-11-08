@@ -9,6 +9,7 @@
             <index name="bosgoed" config="index.config.js"  >
               <type name="bosdoc" keyfield="filename" datefield="filedate" />  
               <type name="errors_"  />  
+              <type name="admin_"  />  
             </index>
          </indexes>
       </endpoint>
@@ -53,7 +54,8 @@
 
    <pipelines>
       <pipeline name="tika" trace="false" converters="trim" endpoint="es.bosdoc" script="ScriptExtensions" >
-         <action key="record" add="*" script="OnAdd"/>
+         <action key="record" script="ErrorOn2"/>
+         <_action key="record" add="*" script="OnAdd"/>
          <action key="record/_start" field="filename" tovar="key"/>
          <action key="record/_start" field="errorFileName" endpoint="es.errors_" />
          <action key="record/_istextmail" field="isTextMail" />
@@ -83,10 +85,7 @@
          <template expr="^record/.*title$" field="title" converters="htmlDecode"/>
          <template expr="^record/.*(author|creator)$" field="author" flags="unique|toarray" converters="htmlDecode"/>
          
-         <action key="record/_error/msg" field="errorText" endpoint="es.errors_" />
-         <action key="record/_error/trace" field="errorStack" endpoint="es.errors_" />
-         <action key="record/_error/date" field="errorDate" endpoint="es.errors_" />
-         <action key="record/_error" add="*" endpoint="es.errors_" />
+         <action key="record/_error" type="errorhandler" endpoint="es.errors_" />
 
          <template expr="^record/content.type$" field="doctype" converters="doctype"/>
          <template expr="^record/content.type$" field="content_type"/>

@@ -17,6 +17,12 @@ namespace Tika
 {
    public class ScriptExtensions
    {
+      int xx;
+      public Object ErrorOn2(PipelineContext ctx, String key, Object value)
+      {
+         if (++xx > 2) throw new Exception ("ErrorOn2");
+         return null;
+      }
       public Object OnAdd(PipelineContext ctx, String key, Object value)
       {
          var ep = ctx.Action.Endpoint;

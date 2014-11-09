@@ -172,7 +172,6 @@ namespace Bitmanager.ImportPipeline
                kvp.Value.Start(ctx);
                var resolver = kvp.Value as IEndpointResolver;
                if (ctx.AdminEndpoint==null) ctx.AdminEndpoint = resolver.GetAdminEndpoint(ctx);
-               if (ctx.ErrorEndpoint==null) ctx.ErrorEndpoint = resolver.GetErrorEndpoint(ctx);
             }
 
          if (ctx.AdminEndpoint == null)

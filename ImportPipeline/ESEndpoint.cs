@@ -148,12 +148,6 @@ namespace Bitmanager.ImportPipeline
          var type = IndexDocTypes.GetDocType("admin_", false);
          return type==null ? null : new ESDataEndpoint(this, type);
       }
-
-      public override IErrorEndpoint GetErrorEndpoint(PipelineContext ctx)
-      {
-         var type = IndexDocTypes.GetDocType("errors_", false);
-         return type == null ? null : new ESDataEndpoint(this, type);
-      }
    }
 
 
@@ -289,7 +283,7 @@ namespace Bitmanager.ImportPipeline
       }
       #endregion
 
-      #region IAdminEndpoint
+      #region IErrorEndpoint
       public void SaveError(PipelineContext ctx, Exception err)
       {
          Object key = null;

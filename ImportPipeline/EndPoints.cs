@@ -226,11 +226,6 @@ namespace Bitmanager.ImportPipeline
          return new JsonEndpointBase<Endpoint>(this);
       }
 
-      public virtual IErrorEndpoint GetErrorEndpoint(PipelineContext ctx)
-      {
-         return null;
-      }
-
       public virtual IAdminEndpoint GetAdminEndpoint(PipelineContext ctx)
       {
          return null;
@@ -316,7 +311,6 @@ namespace Bitmanager.ImportPipeline
 
    public interface IEndpointResolver
    {
-      IErrorEndpoint GetErrorEndpoint(PipelineContext ctx);
       IAdminEndpoint GetAdminEndpoint(PipelineContext ctx);
    }
 
@@ -524,15 +518,11 @@ namespace Bitmanager.ImportPipeline
       }
 
 
-
-      public virtual IErrorEndpoint GetErrorEndpoint(PipelineContext ctx)
-      {
-         return Endpoint.GetErrorEndpoint(ctx);
-      }
-
+      #region IEndpointResolver
       public virtual IAdminEndpoint GetAdminEndpoint(PipelineContext ctx)
       {
          return Endpoint.GetAdminEndpoint(ctx);
       }
+      #endregion
    }
 }

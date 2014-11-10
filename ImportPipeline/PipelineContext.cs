@@ -121,7 +121,6 @@ namespace Bitmanager.ImportPipeline
 
       public void CountAndLogAdd()
       {
-         ImportLog.Log("cnt={0} max={3}, obj={1}\r\ntrace={2}", Added + 1, this.Action.Endpoint.GetField(null), Environment.StackTrace, MaxAdds);
          if (MaxAdds >= 0 && Added >= MaxAdds)
          {
             ImportLog.Log("MAX EXCEEDED");

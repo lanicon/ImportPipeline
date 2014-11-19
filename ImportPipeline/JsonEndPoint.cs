@@ -29,7 +29,7 @@ namespace Bitmanager.ImportPipeline
          : base(node)
       {
          FileName = engine.Xml.CombinePath(node.ReadStr("@file"));
-         LineSeparator = node.OptReadStr("@linesep", "\r\n");
+         LineSeparator = node.ReadStr("@linesep", "\r\n");
       }
 
       protected override void Open(PipelineContext ctx)
@@ -60,7 +60,7 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
-      protected override IDataEndpoint CreateDataEndpoint(PipelineContext ctx, string dataName)
+      protected override IDataEndpoint CreateDataEndpoint(PipelineContext ctx, string dataName, bool mustExcept)
       {
          return new JsonDataEndpoint(this);
       }

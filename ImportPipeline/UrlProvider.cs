@@ -21,11 +21,11 @@ namespace Bitmanager.ImportPipeline
       public UrlFeederElement(XmlNode ctxNode, XmlNode baseNode, String url)
          : base(ctxNode)
       {
-         String baseUrl = baseNode == null ? null : baseNode.OptReadStr("@baseurl", null);
+         String baseUrl = baseNode == null ? null : baseNode.ReadStr("@baseurl", null);
          Uri = (baseUrl == null) ? new Uri(url) : new Uri(new Uri(baseUrl), url);
          base.Element = Uri;
-         User = ctxNode.OptReadStr("@user", null);
-         Password = ctxNode.OptReadStr("@password", null);
+         User = ctxNode.ReadStr("@user", null);
+         Password = ctxNode.ReadStr("@password", null);
       }
 
       public void OptSetCredentials(PipelineContext ctx, WebRequest req)
@@ -53,7 +53,7 @@ namespace Bitmanager.ImportPipeline
       public void Init(PipelineContext ctx, XmlNode node)
       {
          var urls = new List<FeederElementBase>();
-         String url = node.OptReadStr("@url", null);
+         String url = node.ReadStr("@url", null);
          if (url != null)
             urls.Add(new UrlFeederElement (node, node, url));
          else

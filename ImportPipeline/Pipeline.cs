@@ -67,17 +67,17 @@ namespace Bitmanager.ImportPipeline
          ImportEngine = engine;
          logger = engine.DebugLog.Clone ("pipeline");
 
-         ScriptTypeName = node.OptReadStr("@script", null);
-         DefaultConverters = node.OptReadStr("@converters", null);
-         DefaultEndpoint = node.OptReadStr("@endpoint", null);
+         ScriptTypeName = node.ReadStr("@script", null);
+         DefaultConverters = node.ReadStr("@converters", null);
+         DefaultEndpoint = node.ReadStr("@endpoint", null);
          if (DefaultEndpoint == null)
          {
             if (engine.Endpoints.Count == 1)
                DefaultEndpoint = engine.Endpoints[0].Name;
-            else if (engine.Endpoints.OptGetByName(Name) != null)
+            else if (engine.Endpoints.GetByName(Name, false) != null)
                DefaultEndpoint = Name;
          }
-         trace = node.OptReadBool ("@trace", false);
+         trace = node.ReadBool ("@trace", false);
 
          AdminCollection<PipelineAction> rawActions = new AdminCollection<PipelineAction>(node, "action", (x) => PipelineAction.Create(this, x), false);
          definedActions = new List<ActionAdmin>();
@@ -218,17 +218,46 @@ namespace Bitmanager.ImportPipeline
          actions = null;
       }
 
+      private String getEndpointName(String name, DatasourceAdmin ds)
+      {
+         if (name != null) return name;
+         
+         name = ds.EndpointName;
+         if (name != null) return name;
+
+         if (DefaultEndpoint != null)
+         {
+            return DefaultEndpoint.Replace ("*", ds.Name);
+         }
+         return ds.Name;
+      }
+
       public IDataEndpoint GetDataEndpoint(PipelineContext ctx, String name)
       {
+         String endpointName = getEndpointName (name, ctx.DatasourceAdmin);
          IDataEndpoint ret;
-         if (name == null) name = String.Empty;
-         if (endPointCache == null) endPointCache = new StringDict<IDataEndpoint>();
-         if (endPointCache.TryGetValue(name, out ret)) return ret;
 
-         ret = this.ImportEngine.Endpoints.GetDataEndpoint(ctx, name);
-         endPointCache.Add(name, ret);
+         if (endPointCache == null) endPointCache = new StringDict<IDataEndpoint>();
+         if (endPointCache.TryGetValue(endpointName, out ret)) return ret;
+
+         ret = this.ImportEngine.Endpoints.GetDataEndpoint(ctx, endpointName);
+         endPointCache.Add(endpointName, ret);
          if (started) ret.Start(ctx); 
          return ret;
+      }
+
+
+      /// <summary>
+      /// Check if we don't have unresolved action endpoints
+      /// </summary>
+      public void CheckEndpoints(PipelineContext ctx, DatasourceAdmin ds)
+      {
+         if (ds.EndpointName != null) return;
+         if (DefaultEndpoint == null || DefaultEndpoint.IndexOf ('*') >= 0)
+         {
+            if (definedActions.Any (a=>!a.Action.HasEndpointName))
+               ctx.ImportEngine.Endpoints.CheckDataEndpoint(ctx, getEndpointName (null, ds), true); 
+         }
       }
 
 

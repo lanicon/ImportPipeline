@@ -18,7 +18,7 @@ namespace Bitmanager.ImportPipeline
       public readonly ESConnection Connection;
       public readonly IndexDefinitionTypes IndexTypes;
       public readonly IndexDefinitions Indexes;
-      public readonly IndexDocTypes IndexDocTypes;
+      //public readonly IndexDocTypes IndexDocTypes;
       public readonly int CacheSize;
       public readonly int MaxParallel;
 
@@ -33,34 +33,22 @@ namespace Bitmanager.ImportPipeline
          : base(node)
       {
          Connection = new ESConnection(node.ReadStr("@url"));
-         CacheSize = node.OptReadInt("@cache", -1);
-         MaxParallel = node.OptReadInt("@maxparallel", 0);
-         ReadOnly = node.OptReadBool("@readonly", false);
+         CacheSize = node.ReadInt("@cache", -1);
+         MaxParallel = node.ReadInt("@maxparallel", 0);
+         ReadOnly = node.ReadBool("@readonly", false);
          XmlNode typesNode = node.SelectSingleNode("indextypes");
          if (typesNode != null)
             IndexTypes = new IndexDefinitionTypes(engine.Xml, typesNode);
          XmlNode root = node.SelectSingleNode("indexes");
          if (root == null) root = node;
 
-         IndexDocTypes = new IndexDocTypes();
          Indexes = new IndexDefinitions(IndexTypes, engine.Xml, root, false);
-
-         //Add doctypes from indexes
-         for (int i = 0; i < Indexes.Count; i++)
-            for (int j = 0; j < Indexes[i].DocTypes.Count; j++)
-               IndexDocTypes.Add(Indexes[i].DocTypes[j]);
-
-         //Optional load other doctypes
-         root = node.SelectSingleNode("types");
-         if (root != null) IndexDocTypes.Load (Indexes, root);
-
-         //Error if nothing defined
-         if (IndexDocTypes.Count == 0)
+         if (Indexes.Count == 0)
             throw new BMNodeException(node, "At least 1 index+type is required!");
 
-         String[] arr = node.OptReadStr("waitfor/@status", "green|yellow").SplitStandard();
-         WaitForTimeout = node.OptReadInt("waitfor/@timeout", 30);
-         WaitForMustExcept = node.OptReadBool("waitfor/@except", false);
+         String[] arr = node.ReadStr("waitfor/@status", "yellow").SplitStandard();
+         WaitForTimeout = node.ReadInt("waitfor/@timeout", 30);
+         WaitForMustExcept = node.ReadBool("waitfor/@except", false);
          try
          {
             if (arr.Length == 1)
@@ -84,10 +72,15 @@ namespace Bitmanager.ImportPipeline
       {
          if (ReadOnly) return;
          base.Open(ctx);
+         ctx.ImportLog.Log("ESEndpoint '{0}' [cache={1}, maxparallel={2}, readonly={3}, url={4}]", Name, CacheSize, MaxParallel, ReadOnly, Connection.BaseUri);
+      }
+
+      internal void OpenIndex(PipelineContext ctx, IndexDefinition index)
+      {
+         if (index.IsOpen) return;
          ESIndexCmd._CheckIndexFlags flags = ESIndexCmd._CheckIndexFlags.AppendDate;
          if ((ctx.ImportFlags & _ImportFlags.ImportFull) != 0) flags |= ESIndexCmd._CheckIndexFlags.ForceCreate;
-         ctx.ImportLog.Log("ESEndpoint '{0}' [cache={1}, maxparallel={2}, readonly={3}, url={4}]", Name, CacheSize, MaxParallel, ReadOnly, Connection.BaseUri);
-         Indexes.CreateIndexes(Connection, flags);
+         index.Create (Connection, flags);
          WaitForStatus();
       }
 
@@ -99,15 +92,16 @@ namespace Bitmanager.ImportPipeline
          switch (Indexes.Count)
          {
             case 0: goto CLOSE_BASE;
-            case 1: ctx.ImportLog.Log("-- Closing index " + Indexes[0].Name); break;
+            case 1: if (Indexes[0].IsOpen) ctx.ImportLog.Log("-- Closing index " + Indexes[0].Name); break;
             default:
                ctx.ImportLog.Log("-- Closing indexes");
-               foreach (var x in Indexes) ctx.ImportLog.Log("-- -- " + x.Name); 
+               foreach (var x in Indexes)
+               {
+                  if (!x.IsOpen) continue;
+                  ctx.ImportLog.Log("-- -- " + x.Name);
+               }
                break;
          }
-
-         ctx.ImportLog.Log("-- IndexesOptional optimize indexes");
-         foreach (var ix in Indexes)
 
          ctx.ImportLog.Log("-- Optional optimize indexes");
          try
@@ -136,16 +130,87 @@ namespace Bitmanager.ImportPipeline
          return cmd.WaitForStatus(WaitFor, AltWaitFor, WaitForTimeout, WaitForMustExcept);
       }
 
-      protected override IDataEndpoint CreateDataEndpoint(PipelineContext ctx, string dataName)
+      protected IndexDocType getDocType(String name, bool mustExcept)
       {
-         if (String.IsNullOrEmpty(dataName))
-            return new ESDataEndpoint(this, IndexDocTypes[0]);
-         return new ESDataEndpoint(this, IndexDocTypes.GetDocType(dataName, true));
+         IndexDocType ret = null;
+         int ix=-1;
+         if (name != null && 0 <= (ix = name.IndexOf('.')))
+         {
+            ret = getDocType (name.Substring(0, ix), name.Substring (ix+1));
+            if (ret == null) goto EXIT_RTN;
+            return ret;
+         }
+
+         if (String.IsNullOrEmpty(name))
+         {
+            IndexDefinition def = null;
+            if (Indexes.Count == 1)
+            {
+               def = Indexes[0];
+               if (def.DocTypes.Count == 1)
+                  return def.DocTypes[0];
+            }
+            goto EXIT_RTN;
+         }
+
+         var doctype = getDocType(name, null);
+         if (doctype != null) return doctype;
+
+         int cnt = 0;
+         foreach (var index in Indexes)
+         {
+            foreach (var dt in index.DocTypes)
+            {
+               if (String.Equals(name, dt.Name))
+               {
+                  ret = dt;
+                  cnt++;
+               }
+            }
+         }
+         if (cnt == 1) return ret;
+
+      EXIT_RTN:
+         if (!mustExcept) return null;
+         throw new BMException("Cannot find endpoint [{0}]. It is not found or it is ambiguous.", name);
+      }
+      protected IndexDocType getDocType(String indexName, String typeName)
+      {
+         foreach (var index in Indexes)
+         {
+            if (String.Equals(indexName, index.Name))
+            {
+               if (String.IsNullOrEmpty(typeName))
+               {
+                  if (index.DocTypes.Count == 1)
+                     return index.DocTypes[0];
+                  else
+                     return null;
+               }
+               foreach (var doctype in index.DocTypes)
+               {
+                  if (String.Equals(typeName, doctype.Name)) return doctype;
+               }
+               return null;
+            }
+         }
+         return null;
+      }
+
+      protected override IDataEndpoint CreateDataEndpoint(PipelineContext ctx, string dataName, bool mustExcept)
+      {
+         var dt = getDocType(dataName, mustExcept);
+         return dt == null ? null : new ESDataEndpoint(this, dt);
+      }
+      protected override bool CheckDataEndpoint(PipelineContext ctx, string dataName, bool mustExcept)
+      {
+         var dt = getDocType(dataName, mustExcept);
+         return dt != null;
       }
 
       public override IAdminEndpoint GetAdminEndpoint(PipelineContext ctx)
       {
-         var type = IndexDocTypes.GetDocType("admin_", false);
+         var type = getDocType("admin_", false);
          return type==null ? null : new ESDataEndpoint(this, type);
       }
    }
@@ -220,10 +285,8 @@ namespace Bitmanager.ImportPipeline
       }
       public override void Start(PipelineContext ctx)
       {
-         if (cacheSize > 1)
-            cache = new List<ESBulkEntry>(cacheSize);
-         else
-            cache = null;
+         Endpoint.OpenIndex(ctx, this.DocType.Index);
+         cache = (cacheSize > 1) ? new List<ESBulkEntry>(cacheSize) : null;
          ctx.ImportLog.Log("start cache=" + cache);
       }
 

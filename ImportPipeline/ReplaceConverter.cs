@@ -26,13 +26,13 @@ namespace Bitmanager.ImportPipeline
       public ReplaceConverter(XmlNode node) : base (node)
       {
          ReplacerFlags def = ReplacerFlags.NoMatchReturnOriginal;
-         maxMissed = XmlUtils.OptReadInt(node, "@dumpmissed", -1);
+         maxMissed = XmlUtils.ReadInt(node, "@dumpmissed", -1);
          if (maxMissed > 0)
          {
             missed = new StringDict();
             def = ReplacerFlags.NoMatchReturnNull;
          }
-         flags = XmlUtils.OptReadEnum(node, "@flags", def);
+         flags = XmlUtils.ReadEnum(node, "@flags", def);
          replacers = new List<ReplacerElt>();
          XmlNodeList list = node.SelectNodes("replace");
          for (int i = 0; i < list.Count; i++)
@@ -112,12 +112,12 @@ namespace Bitmanager.ImportPipeline
       public ReplacerElt(XmlNode node)
       {
 
-         repl = XmlUtils.OptReadStr(node, "@replexpr", null);
+         repl = XmlUtils.ReadStr(node, "@replexpr", null);
          if (repl != null)
             isReplExpr = true;
          else
             repl = XmlUtils.ReadStrRaw(node, "@repl", _XmlRawMode.EmptyToNull);
-         String tmp = XmlUtils.OptReadStr(node, "@expr", null);
+         String tmp = XmlUtils.ReadStr(node, "@expr", null);
          if (tmp != null)
             regex = new Regex(tmp, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
          else

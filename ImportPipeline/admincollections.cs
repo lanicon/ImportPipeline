@@ -62,21 +62,15 @@ namespace Bitmanager.ImportPipeline
       }
 
       /// <summary>
-      /// Returns an element if it exists under that name . Otherwise return null.
-      /// </summary>
-      public T OptGetByName(String name)
-      {
-         return namedItems.OptGetItem(name);
-      }
-
-      /// <summary>
       /// Returns an element if it exists under that name, or raise an exception.
       /// </summary>
-      public T GetByName(String name)
+      public T GetByName(String name, bool mustExcept=true)
       {
          T item = namedItems.OptGetItem(name);
          if (item != null) return item;
-         throw new BMException("No element '{0}' found for type '{1}'.", name, typeof(T).FullName);
+         if (mustExcept)
+            throw new BMException("Name '{0}' not found for type '{1}'.", name, typeof(T).FullName);
+         return null;
       }
 
       /// <summary>

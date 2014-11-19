@@ -2,22 +2,16 @@
 <root importflags="fullimport">
    <script file="script.cs" />
    <endpoints>
-      <endpoint name="giro" type="ESEndpoint" url="http://bm:9200/" cache="100" maxparallel="1">
-         <index name="giro" indexname="gpeter" config="index.config.js" >
+      <endpoint name="es" type="ESEndpoint" url="http://bm:9200/" cache="100" maxparallel="1">
+         <index name="peter" indexname="gpeter" config="index.config.js" >
             <type name="doc" _keyfield="_id" />  
          </index>
-      </endpoint>
-      <endpoint name="francien" type="ESEndpoint" url="http://bm:9200/" cache="100" maxparallel="1">
          <index name="francien"   config="index.config.js" >
             <type name="doc" _keyfield="_id" />  
          </index>
-      </endpoint>
-      <endpoint name="wilma" type="ESEndpoint" url="http://bm:9200/" cache="100" maxparallel="1">
          <index name="wilma"  config="index.config.js" >
             <type name="doc" _keyfield="_id" />  
          </index>
-      </endpoint>
-      <endpoint name="bitmanager" type="ESEndpoint" url="http://bm:9200/" cache="100" maxparallel="1">
          <index name="bitmanager"  config="index.config.js" >
             <type name="doc" _keyfield="_id" />  
          </index>
@@ -38,22 +32,6 @@
    
    
    <pipelines>
-      <pipeline name="bitmanager" _converters="trim" script="ScriptExtension" >
-         <action key="_item/_start" script="OnDSStart"/>
-         <action key="record" add="*" script="OnAdd"/>
-         <action key="record/f0" field="date"/>
-         <action key="record/f1" field="name"  script="SaveName"/>
-         <action key="record/f2" field="account" flags="toarray|SkipEmpty"/>
-         <action key="record/f3" field="account_other"  flags="toarray|SkipEmpty"/>
-         <action key="record/ibanfromdesc" field="account_other"  flags="toarray|SkipEmpty"/>
-         <action key="record/f4" field="mutation_code"/>
-         <action key="record/f5" field="type"/>
-         <action key="record/f6" field="amount_str" />
-         <action key="record/f6" field="amount" converters="double" />
-         <action key="record/f7" field="mutation"/>
-         <action key="record/f8" field="comment" converters="descrepl" script="OnDescription"/>
-         <action key="record/f8" field="raw_comment" />
-      </pipeline>
       <pipeline name="giro" _converters="trim" script="ScriptExtension" >
          <action key="_item/_start" script="OnDSStart"/>
          <action key="record" add="*" script="OnAdd"/>
@@ -70,48 +48,13 @@
          <action key="record/f8" field="comment" converters="descrepl" script="OnDescription"/>
          <action key="record/f8" field="raw_comment" />
       </pipeline>
-      <pipeline name="francien" _converters="trim" script="ScriptExtension"  >
-         <action key="_item/_start" script="OnDSStart"/>
-         <action key="record" add="*" script="OnAdd"/>
-         <action key="record/f0" field="date"/>
-         <action key="record/f1" field="name"  script="SaveName"/>
-         <action key="record/f2" field="account" flags="toarray|SkipEmpty"/>
-         <action key="record/f3" field="account_other"  flags="toarray|SkipEmpty"/>
-         <action key="record/ibanfromdesc" field="account_other"  flags="toarray|SkipEmpty"/>
-         <action key="record/f4" field="mutation_code"/>
-         <action key="record/f5" field="type"/>
-         <action key="record/f6" field="amount_str" />
-         <action key="record/f6" field="amount" converters="double" />
-         <action key="record/f7" field="mutation"/>
-         <action key="record/f8" field="comment" converters="descrepl" script="OnDescription"/>
-         <action key="record/f8" field="raw_comment" />
-      </pipeline>
-      <pipeline name="wilma" _converters="trim" script="ScriptExtension"  >
-         <action key="_item/_start" script="OnDSStart"/>
-         <action key="record" add="*" script="OnAdd"/>
-         <action key="record/f0" field="date"/>
-         <action key="record/f1" field="name"  script="SaveName"/>
-         <action key="record/f2" field="account" flags="toarray|SkipEmpty"/>
-         <action key="record/f3" field="account_other"  flags="toarray|SkipEmpty"/>
-         <action key="record/ibanfromdesc" field="account_other"  flags="toarray|SkipEmpty"/>
-         <action key="record/f4" field="mutation_code"/>
-         <action key="record/f5" field="type"/>
-         <action key="record/f6" field="amount_str" />
-         <action key="record/f6" field="amount" converters="double" />
-         <action key="record/f7" field="mutation"/>
-         <action key="record/f8" field="comment" converters="descrepl" script="OnDescription"/>
-         <action key="record/f8" field="raw_comment" />
-      </pipeline>
-
    </pipelines>
 
-   <datasources>
+   <datasources endpoint="es.*">
       <datasource name="bitmanager"  type="csv" trim="All" active="false" file="bitmanager\*.csv"  headers="true" dlm="," quote='"'/>
-      <datasource name="giro"  type="csv" trim="All" active="false" file="peter\*.csv"  headers="true" dlm="," quote='"'/>
+      <datasource name="peter"  type="csv" trim="All" active="false" file="peter\*.csv"  headers="true" dlm="," quote='"'/>
       <datasource name="francien"  type="csv" trim="All" active="false" file="francien\*.csv"  headers="true" dlm="," quote='"'/>
       <datasource name="wilma"  type="csv" trim="All" active="false" file="wilma\*.csv"  headers="true" dlm="," quote='"'/>
-      <datasource name="giro1" pipeline="giro" type="csv" active="false" trim="All" file="test.csv" headers="true" dlm="," quote='"'/>
-      <datasource name="giro2" pipeline="giro" type="csv" active="false" trim="All" file="test.csv" headers="true" dlm="," quote='"'/>
    </datasources>
    
 </root>

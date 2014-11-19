@@ -45,6 +45,7 @@ namespace Bitmanager.ImportPipeline
       protected KeyCheckMode checkMode;
 
       public IDataEndpoint Endpoint { get { return endPoint; } }
+      public bool HasEndpointName { get { return endpointName != null; } }
 
       public PipelineAction(Pipeline pipeline, XmlNode node)
          : base(node, "@key")
@@ -52,19 +53,18 @@ namespace Bitmanager.ImportPipeline
          this.pipeline = pipeline;
          this.node = node;
          if (logger == null) logger = pipeline.ImportEngine.DebugLog.Clone("action");
-         endpointName = node.OptReadStr("@endpoint", pipeline.DefaultEndpoint);
-         if (endpointName == null) node.ReadStr("@endpoint");
+         endpointName = node.ReadStr("@endpoint", null);
 
-         scriptName = node.OptReadStr("@script", null);
-         forwardTo = node.OptReadStr("@forward", null);
+         scriptName = node.ReadStr("@script", null);
+         forwardTo = node.ReadStr("@forward", null);
 
-         clrvarName = node.OptReadStr("@clrvar", null);
+         clrvarName = node.ReadStr("@clrvar", null);
          VarsToClear = clrvarName.SplitStandard();
          
          convertersName = Converters.readConverters(node);
          if (convertersName == null) convertersName = pipeline.DefaultConverters;
 
-         checkMode = node.OptReadEnum<KeyCheckMode>("@check", 0);
+         checkMode = node.ReadEnum<KeyCheckMode>("@check", 0);
          if (checkMode == KeyCheckMode.date) checkMode |= KeyCheckMode.key;
       }
 
@@ -181,7 +181,7 @@ namespace Bitmanager.ImportPipeline
 
       public static _InternalActionType GetActionType(XmlNode node)
       {
-         _ActionType type = node.OptReadEnum("@type", (_ActionType)0);
+         _ActionType type = node.ReadEnum("@type", (_ActionType)0);
          switch (type)
          {
             case _ActionType.Emit: return _InternalActionType.Emit;
@@ -224,16 +224,16 @@ namespace Bitmanager.ImportPipeline
       public PipelineFieldAction(Pipeline pipeline, XmlNode node)
          : base(pipeline, node)
       {
-         toVar = node.OptReadStr("@tovar", null);
-         fromVar = node.OptReadStr("@fromvar", null);
-         fromField = node.OptReadStr("@fromfield", null);
+         toVar = node.ReadStr("@tovar", null);
+         fromVar = node.ReadStr("@fromvar", null);
+         fromField = node.ReadStr("@fromfield", null);
          if (fromVar != null && fromField != null)
             throw new BMNodeException(node, "Cannot specify both fromvar and fromfield.");
  
-         toField = node.OptReadStr("@field", null);
-         toFieldFromVar = node.OptReadStr("@fieldfromvar", null);
-         sep = node.OptReadStr("@sep", null);
-         fieldFlags = node.OptReadEnum("@flags", sep==null ? FieldFlags.OverWrite : FieldFlags.Append);
+         toField = node.ReadStr("@field", null);
+         toFieldFromVar = node.ReadStr("@fieldfromvar", null);
+         sep = node.ReadStr("@sep", null);
+         fieldFlags = node.ReadEnum("@flags", sep==null ? FieldFlags.OverWrite : FieldFlags.Append);
 
          if (checkMode == 0 && toField == null && toVar == null && base.scriptName == null && toFieldFromVar == null)
             throw new BMNodeException(node, "At least one of 'field', 'toFieldFromVar', 'tovar', 'script', 'check'-attributes is mandatory.");
@@ -408,9 +408,9 @@ namespace Bitmanager.ImportPipeline
          : base(pipeline, node)
       {
          eventKey = node.ReadStr("@emitexisting");
-         destination = node.OptReadEnum("@destination", Destination.PipeLine);
-         maxLevel = node.OptReadInt("@maxlevel", 1);
-         recField = node.OptReadStr("@emitfield", null);
+         destination = node.ReadEnum("@destination", Destination.PipeLine);
+         maxLevel = node.ReadInt("@maxlevel", 1);
+         recField = node.ReadStr("@emitfield", null);
       }
 
       internal PipelineEmitAction(PipelineEmitAction template, String name, Regex regex)

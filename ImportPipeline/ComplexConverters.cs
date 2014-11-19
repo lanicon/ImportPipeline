@@ -24,7 +24,7 @@ namespace Bitmanager.ImportPipeline
          : base(node)
       {
          ConvertMode = node.ReadEnum<Mode>("@mode");
-         Sep = node.OptReadStr("@sep", "; ");
+         Sep = node.ReadStr("@sep", "; ");
          switch (ConvertMode)
          {
             default: throw ConvertMode.UnexpectedException();

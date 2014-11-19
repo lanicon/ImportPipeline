@@ -33,17 +33,17 @@ namespace Bitmanager.ImportPipeline
       {
          feeder = ctx.CreateFeeder(node, typeof (FileNameFeeder));
          //DS file = ctx.ImportEngine.Xml.CombinePath(node.ReadStr("@file"));
-         hasHeaders = node.OptReadBool("@headers", false);
-         lenient = node.OptReadEnum("@lenient", CsvLenientMode.False);
-         trim = node.OptReadEnum("@trim", CsvTrimOptions.None);
-         escChar = node.OptReadStr("@escape", null);
+         hasHeaders = node.ReadBool("@headers", false);
+         lenient = node.ReadEnum("@lenient", CsvLenientMode.False);
+         trim = node.ReadEnum("@trim", CsvTrimOptions.None);
+         escChar = node.ReadStr("@escape", null);
 
          delimChar = readChar(node, "@dlm", ',');
          quoteChar = readChar(node, "@quote", '"');
          commentChar = readChar(node, "@comment", '#');
-         startAt = node.OptReadInt("@startat", -1);
+         startAt = node.ReadInt("@startat", -1);
 
-         String sort = node.OptReadStr("@sort", null);
+         String sort = node.ReadStr("@sort", null);
          sortKey = -1;
          if (sort != null)
          {
@@ -63,7 +63,7 @@ namespace Bitmanager.ImportPipeline
 
       internal static char readChar(XmlNode node, String attr, char def)
       {
-         String v = node.OptReadStr (attr, null);
+         String v = node.ReadStr (attr, null);
          if (v==null) return def;
 
          int x;

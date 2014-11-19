@@ -27,7 +27,7 @@ namespace Bitmanager.ImportPipeline
       }
       public void Init(PipelineContext ctx, XmlNode node)
       {
-         file = node.OptReadStr("@file", null);
+         file = node.ReadStr("@file", null);
          this.ctxNode = node;
          if (file != null)
             file = ctx.ImportEngine.Xml.CombinePath(file);
@@ -35,10 +35,10 @@ namespace Bitmanager.ImportPipeline
          {
             tree = new FileTree();
             root = XmlUtils.ReadStr(node, "@root");
-            virtualRoot = XmlUtils.OptReadStr(node, "@virtualroot", null);
-            recursive = XmlUtils.OptReadBool(node, "@recursive", true);
+            virtualRoot = XmlUtils.ReadStr(node, "@virtualroot", null);
+            recursive = XmlUtils.ReadBool(node, "@recursive", true);
 
-            String filter = XmlUtils.OptReadStr(node, "@filter", null);
+            String filter = XmlUtils.ReadStr(node, "@filter", null);
 
             tree.OnFileError += fileTree_OnFileError;
             if (filter != null) tree.AddFileFilter(filter, true);
@@ -51,8 +51,8 @@ namespace Bitmanager.ImportPipeline
       {
          foreach (XmlNode node in nodes)
          {
-            String incl = XmlUtils.OptReadStr(node, "@incl", null);
-            String excl = XmlUtils.OptReadStr(node, "@excl", null);
+            String incl = XmlUtils.ReadStr(node, "@incl", null);
+            String excl = XmlUtils.ReadStr(node, "@excl", null);
             if (incl == null && excl == null)
                throw new BMNodeException(node, "At least 1 of the attributes incl or excl must be present.");
 

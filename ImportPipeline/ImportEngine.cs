@@ -70,9 +70,9 @@ namespace Bitmanager.ImportPipeline
          fillTikaVars();
 
          PipelineContext ctx = new PipelineContext(this);
-         ImportFlags = xml.OptReadEnum("@importflags", ImportFlags);
-         LogAdds = xml.OptReadInt("@logadds", LogAdds);
-         MaxAdds = xml.OptReadInt("@maxadds", MaxAdds);
+         ImportFlags = xml.ReadEnum("@importflags", ImportFlags);
+         LogAdds = xml.ReadInt("@logadds", LogAdds);
+         MaxAdds = xml.ReadInt("@maxadds", MaxAdds);
          ImportLog.Log("Loading import xml: flags={0}, logadds={1}, maxadds={2}", ImportFlags, LogAdds, MaxAdds);
 
          //Load the supplied script

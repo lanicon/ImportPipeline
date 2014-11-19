@@ -20,10 +20,12 @@ namespace Giro {
       ESDataEndpoint ep;
       StringDict<bool> presentKeys;
       PipelineContext ctx;
+      Logger logger;
       public RecordChecker(PipelineContext ctx, IDataEndpoint endpoint)
       {
          this.ctx = ctx;
-         ctx.ImportLog.Log("Create RecordChecker with {0}", endpoint);
+         logger = ctx.DebugLog;
+         ctx.ImportLog.Log("Create RecordChecker with endpoint={0}", endpoint);
          presentKeys = new StringDict<bool>();
          ep = endpoint as ESDataEndpoint;
          if (ep == null) return;
@@ -35,20 +37,20 @@ namespace Giro {
             if (String.IsNullOrEmpty(date)) continue;
             presentKeys[date] = true;
          }
-         ctx.ImportLog.Log("-- loaded {0} keys", presentKeys.Count);
+         logger.Log("-- loaded {0} keys", presentKeys.Count);
       }
       public bool IsPresent(String key)
       {
          int entries = presentKeys.Count; 
          bool ret = _IsPresent(key);
-         ctx.ImportLog.Log("IsPresent ({0})-->{1} (entries={2})", key, ret, entries);
+         logger.Log("IsPresent ({0})-->{1} (entries={2})", key, ret, entries);
          return ret;
       }
       public bool IsPresent(String key, RecordChecker main)
       {
          int entries = presentKeys.Count;
          bool ret = _IsPresent(key, main);
-         ctx.ImportLog.Log("IsPresent ({0}, {3})-->{1}  (entries={2})", key, ret, entries, main);
+         logger.Log("IsPresent ({0}, {3})-->{1}  (entries={2})", key, ret, entries, main);
          return ret;
       }
 

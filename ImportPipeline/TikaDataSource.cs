@@ -40,9 +40,9 @@ namespace Bitmanager.ImportPipeline
          UriBase = node.ReadStr("@tikaurl");
          if (!UriBase.EndsWith("/")) UriBase += "/";
          feeder = ctx.CreateFeeder (node);
-         abstractLength = node.OptReadInt("abstract/@maxlength", 256);
-         abstractDelta = node.OptReadInt("abstract/@delta", 20);
-         DbgStoreDir = node.OptReadStr("dbgstore", null);
+         abstractLength = node.ReadInt("abstract/@maxlength", 256);
+         abstractDelta = node.ReadInt("abstract/@delta", 20);
+         DbgStoreDir = node.ReadStr("dbgstore", null);
          if (DbgStoreDir != null)
          {
             DbgStoreDir = IOUtils.AddSlash(ctx.ImportEngine.Xml.CombinePath(DbgStoreDir));
@@ -50,9 +50,9 @@ namespace Bitmanager.ImportPipeline
          }
          ctx.ImportLog.Log("dbgstore dir={0}", DbgStoreDir ?? "NULL");
 
-         pingUrl = node.OptReadStr("@pingurl", null);
-         pingTimeout = node.OptReadInt("@pingtimeout", 10000);
-         maxParallel = node.OptReadInt("@maxparallel", 1);
+         pingUrl = node.ReadStr("@pingurl", null);
+         pingTimeout = node.ReadInt("@pingtimeout", 10000);
+         maxParallel = node.ReadInt("@maxparallel", 1);
       }
 
       private DateTime previousRun;

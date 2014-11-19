@@ -27,7 +27,7 @@ namespace BeursGorilla
       {
          date = DateTime.UtcNow;
          feeder = ctx.CreateFeeder (node);
-         needHistory = node.OptReadBool("@history", true);
+         needHistory = node.ReadBool("@history", true);
       }
 
 
@@ -204,7 +204,7 @@ namespace BeursGorilla
          StringDict attribs = getAttributes(elt.Context);
          Uri url = (Uri)elt.Element;
 
-         int offset = elt.Context.OptReadInt("@offset", 0);
+         int offset = elt.Context.ReadInt("@offset", 0);
          ctx.DebugLog.Log("-- Node={0}", elt.Context.OuterXml);
 
          ctx.DebugLog.Log("-- Fetching url " + url + ", offset=" + offset);

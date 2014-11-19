@@ -26,13 +26,13 @@ namespace Bitmanager.ImportPipeline
       public void Init(PipelineContext ctx, XmlNode node)
       {
          feeder = ctx.CreateFeeder(node, typeof (UrlFeeder));
-         int size = node.OptReadInt("@buffersize", 0);
-         numRecords = size > 0 ? size : node.OptReadInt("@buffersize", ESRecordEnum.DEF_BUFFER_SIZE);
-         timeout = node.OptReadStr("@timeout", ESRecordEnum.DEF_TIMEOUT);
-         maxParallel = node.OptReadInt("@maxparallel", 1);
-         requestBody = node.OptReadStr("request", null);
-         splitUntil = node.OptReadInt("@splituntil", 1);
-         scan = node.OptReadBool("@scan", true);
+         int size = node.ReadInt("@buffersize", 0);
+         numRecords = size > 0 ? size : node.ReadInt("@buffersize", ESRecordEnum.DEF_BUFFER_SIZE);
+         timeout = node.ReadStr("@timeout", ESRecordEnum.DEF_TIMEOUT);
+         maxParallel = node.ReadInt("@maxparallel", 1);
+         requestBody = node.ReadStr("request", null);
+         splitUntil = node.ReadInt("@splituntil", 1);
+         scan = node.ReadBool("@scan", true);
       }
 
       public void Import(PipelineContext ctx, IDatasourceSink sink)
@@ -73,18 +73,18 @@ namespace Bitmanager.ImportPipeline
 
       private void importUrl(PipelineContext ctx, IDatasourceSink sink, IDatasourceFeederElement elt)
       {
-         int maxParallel = elt.Context.OptReadInt ("@maxparallel", this.maxParallel);
-         int splitUntil = elt.Context.OptReadInt("@splituntil", this.splitUntil);
+         int maxParallel = elt.Context.ReadInt ("@maxparallel", this.maxParallel);
+         int splitUntil = elt.Context.ReadInt("@splituntil", this.splitUntil);
          if (splitUntil < 0) splitUntil = int.MaxValue;
-         bool scan = elt.Context.OptReadBool("@scan", this.scan);
+         bool scan = elt.Context.ReadBool("@scan", this.scan);
 
          //StringDict attribs = getAttributes(elt.Context);
          //var fullElt = (FileNameFeederElement)elt;
          String url = elt.ToString();
          sink.HandleValue(ctx, Pipeline.ItemStart, elt);
-         String command = elt.Context.OptReadStr("@command", null);
+         String command = elt.Context.ReadStr("@command", null);
          String index = command != null ? null : elt.Context.ReadStr("@index"); //mutual exclusive with command
-         String reqBody = elt.Context.OptReadStr("request", this.requestBody);
+         String reqBody = elt.Context.ReadStr("request", this.requestBody);
          JObject req = null;
          if (reqBody != null)
             req = JObject.Parse(reqBody);

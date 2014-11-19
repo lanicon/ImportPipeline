@@ -28,17 +28,17 @@ namespace Bitmanager.Java
 
       public ProcessHostSettings(XmlNode node)
       {
-         MaxRestarts = node.OptReadInt("@restarts", 25);
-         ClearLogs = node.OptReadBool("@clearlogs", true);
-         LogName = node.OptReadStr("@log", "console");
-         ErrorLogName = node.OptReadStr("@errlog", LogName);
-         LogFrom = node.OptReadStr("@logfrom", "console");
+         MaxRestarts = node.ReadInt("@restarts", 25);
+         ClearLogs = node.ReadBool("@clearlogs", true);
+         LogName = node.ReadStr("@log", "console");
+         ErrorLogName = node.ReadStr("@errlog", LogName);
+         LogFrom = node.ReadStr("@logfrom", "console");
          ExeName = node.ReadStr("exe");
-         Arguments = node.OptReadStr("arguments", null);
-         StartDelay = node.OptReadInt("@startdelay", -1);
+         Arguments = node.ReadStr("arguments", null);
+         StartDelay = node.ReadInt("@startdelay", -1);
 
-         ShutdownUrl = node.OptReadStr("shutdown/@url", null);
-         if (ShutdownUrl != null) ShutdownMethod = node.OptReadStr("shutdown/@method", "POST");
+         ShutdownUrl = node.ReadStr("shutdown/@url", null);
+         if (ShutdownUrl != null) ShutdownMethod = node.ReadStr("shutdown/@method", "POST");
       }
 
    }

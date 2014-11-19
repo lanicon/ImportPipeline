@@ -28,7 +28,7 @@ namespace Bitmanager.ImportPipeline
       public void Init(PipelineContext ctx, XmlNode node)
       {
          feeder = ctx.CreateFeeder(node);
-         dumpReader = node.OptReadBool("@debug", false);
+         dumpReader = node.ReadBool("@debug", false);
       }
 
 

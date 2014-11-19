@@ -142,7 +142,7 @@ namespace Bitmanager.ImportPipeline
 
       public IDatasourceFeeder CreateFeeder(XmlNode node, String expr, Type defaultFeederType=null)
       {
-         String feederType = defaultFeederType == null ? node.ReadStr(expr) : node.OptReadStr (expr, defaultFeederType.FullName);
+         String feederType = defaultFeederType == null ? node.ReadStr(expr) : node.ReadStr (expr, defaultFeederType.FullName);
          IDatasourceFeeder feeder = ImportEngine.CreateObject<IDatasourceFeeder>(feederType);
          feeder.Init(this, node);
          return feeder;
@@ -150,7 +150,7 @@ namespace Bitmanager.ImportPipeline
 
       public IDatasourceFeeder CreateFeeder(XmlNode node, Type defaultFeederType = null)
       {
-         String type = node.OptReadStr("@provider", null);
+         String type = node.ReadStr("@provider", null);
          if (type == null)
          {
             XmlNode child = node.SelectSingleNode("provider");

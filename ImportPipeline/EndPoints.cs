@@ -19,34 +19,58 @@ namespace Bitmanager.ImportPipeline
          : base(collNode, "endpoint", (n) => ImportEngine.CreateObject<Endpoint>(n, engine, n), false)
       {
          this.engine = engine;
-         if (OptGetByName("nop") == null)
+         if (GetByName("nop", false) == null)
          {
             Add (new Endpoint("nop")); //always have a NOP endpoint for free
          }
       }
 
-      public IDataEndpoint GetDataEndpoint(PipelineContext ctx, String name)
+      public IDataEndpoint GetDataEndpoint(PipelineContext ctx, String name, bool mustExcept = true)
       {
          Endpoint ep;
          String dataName = null;
          if (String.IsNullOrEmpty(name))
          {
-            ep = base.GetByNamesOrFirst (null, null);
+            ep = base.GetByNamesOrFirst(null, null); //NAMES
             goto CREATE_DATA_ENDPOINT;
          }
 
          int ix = name.IndexOf('.');
-         if (ix < 0) 
+         if (ix < 0)
          {
-            ep = this.GetByName(name);
+            ep = this.GetByName(name, mustExcept);
             goto CREATE_DATA_ENDPOINT;
          }
 
-         ep = this.GetByName(name.Substring(0, ix));
+         ep = this.GetByName(name.Substring(0, ix), mustExcept);
          dataName = name.Substring(ix + 1);
 
       CREATE_DATA_ENDPOINT:
-         return ep._CheckOpen(ctx)._CreateDataEndpoint(ctx, dataName); 
+         return ep==null ? null : ep._CheckOpen(ctx)._CreateDataEndpoint(ctx, dataName, mustExcept);
+      }
+
+      public bool CheckDataEndpoint(PipelineContext ctx, String name, bool mustExcept = true)
+      {
+         Endpoint ep;
+         String dataName = null;
+         if (String.IsNullOrEmpty(name))
+         {
+            ep = base.GetByNamesOrFirst(null, null); //NAMES
+            goto CHECK_DATA_ENDPOINT;
+         }
+
+         int ix = name.IndexOf('.');
+         if (ix < 0)
+         {
+            ep = this.GetByName(name, mustExcept);
+            goto CHECK_DATA_ENDPOINT;
+         }
+
+         ep = this.GetByName(name.Substring(0, ix), mustExcept);
+         dataName = name.Substring(ix + 1);
+
+      CHECK_DATA_ENDPOINT:
+         return ep == null ? false : ep._CheckDataEndpoint(ctx, dataName, mustExcept);
       }
 
       public void Open(PipelineContext ctx)
@@ -134,9 +158,9 @@ namespace Bitmanager.ImportPipeline
          if (defActiveMode == 0) defActiveMode = ImportPipeline.ActiveMode.Lazy | ImportPipeline.ActiveMode.Global;
          if ((defActiveMode & (ImportPipeline.ActiveMode.Local | ImportPipeline.ActiveMode.Global)) != 0)
             defActiveMode |= ImportPipeline.ActiveMode.Global;
-         Flags = node.OptReadEnum<DebugFlags>("@flags", 0);
-         CloseMode = node.OptReadEnum("@closemode", CloseMode.Normal);
-         ActiveMode = node.OptReadEnum("@active", defActiveMode);
+         Flags = node.ReadEnum<DebugFlags>("@flags", 0);
+         CloseMode = node.ReadEnum("@closemode", CloseMode.Normal);
+         ActiveMode = node.ReadEnum("@active", defActiveMode);
          switch (ActiveMode)
          {
             case 0:
@@ -207,9 +231,13 @@ namespace Bitmanager.ImportPipeline
          Close(ctx);
          return this;
       }
-      internal IDataEndpoint _CreateDataEndpoint(PipelineContext ctx, string name)
+      internal IDataEndpoint _CreateDataEndpoint(PipelineContext ctx, string name, bool mustExcept = true)
       {
-         return CreateDataEndpoint(ctx, name);
+         return CreateDataEndpoint(ctx, name, mustExcept);
+      }
+      internal bool _CheckDataEndpoint(PipelineContext ctx, string name, bool mustExcept = true)
+      {
+         return CheckDataEndpoint(ctx, name, mustExcept);
       }
 
       protected virtual void Open(PipelineContext ctx)
@@ -221,9 +249,13 @@ namespace Bitmanager.ImportPipeline
          opened = false;
       }
 
-      protected virtual IDataEndpoint CreateDataEndpoint(PipelineContext ctx, string name)
+      protected virtual IDataEndpoint CreateDataEndpoint(PipelineContext ctx, string name, bool mustExcept = true)
       {
          return new JsonEndpointBase<Endpoint>(this);
+      }
+      protected virtual bool CheckDataEndpoint(PipelineContext ctx, string name, bool mustExcept = true)
+      {
+         return true;
       }
 
       public virtual IAdminEndpoint GetAdminEndpoint(PipelineContext ctx)

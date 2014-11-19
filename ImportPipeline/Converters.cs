@@ -31,15 +31,15 @@ namespace Bitmanager.ImportPipeline
          var ret = new Converter[arr.Length];
          for (int i = 0; i < arr.Length; i++)
          {
-            ret[i] = OptGetByName (arr[i]);
+            ret[i] = GetByName (arr[i], false);
             if (ret[i] == null) throw new BMException("Cannot find converter '{0}'.", arr[i]);
          }
          return ret;
       }
       public static String readConverters(XmlNode node)
       {
-         String s = node.OptReadStr("@converters", null);
-         return s != null ? s : node.OptReadStr("@converter", null); 
+         String s = node.ReadStr("@converters", null);
+         return s != null ? s : node.ReadStr("@converter", null); 
       }
    }
 
@@ -105,7 +105,7 @@ namespace Bitmanager.ImportPipeline
 
       public static Converter Create(XmlNode node)
       {
-         String type = node.OptReadStr("@type", node.ReadStr("@name")).ToLowerInvariant();
+         String type = node.ReadStr("@type", node.ReadStr("@name")).ToLowerInvariant();
          switch (type)
          {
             case "htmlencode": return new HtmlEncodeConverter(node);
@@ -185,8 +185,8 @@ namespace Bitmanager.ImportPipeline
       {
          XmlNodeList nodes;
          this.formats = stdFormats;
-         bool includeStd = node.OptReadBool("includestandard", true);
-         String[] formats = node.OptReadStr("@formats", null).SplitStandard();
+         bool includeStd = node.ReadBool("includestandard", true);
+         String[] formats = node.ReadStr("@formats", null).SplitStandard();
          if (formats != null)
          {
             this.formats = includeStd ? formats.ToList().Concat(stdFormats).ToArray() : formats;
@@ -216,9 +216,9 @@ namespace Bitmanager.ImportPipeline
          else
          {
             if (node.SelectSingleNode("@mode") == null)
-               mode = node.OptReadBool("@utc", false) ? DateMode.ToUtc : DateMode.none;
+               mode = node.ReadBool("@utc", false) ? DateMode.ToUtc : DateMode.none;
             else
-               mode = node.OptReadEnum("@mode", DateMode.ToUtc); 
+               mode = node.ReadEnum("@mode", DateMode.ToUtc); 
          }
 
          //var logger = Logs.DebugLog;
@@ -376,8 +376,8 @@ namespace Bitmanager.ImportPipeline
          : base(node)
       {
          numberFormat = CultureInfo.InvariantCulture.NumberFormat;
-         String groupSep = node.OptReadStr("@groupsep", null);
-         String decimalSep = node.OptReadStr("@decimalsep", null);
+         String groupSep = node.ReadStr("@groupsep", null);
+         String decimalSep = node.ReadStr("@decimalsep", null);
          if (groupSep != null || decimalSep != null)
          {
             numberFormat = (NumberFormatInfo)numberFormat.Clone();
@@ -582,7 +582,7 @@ namespace Bitmanager.ImportPipeline
       private FormatFlags flags;
       public FormatConverter(XmlNode node) : base(node) {
          format = node.ReadStr("@format");
-         flags = node.OptReadEnum("@flags", FormatFlags.NeedArguments);
+         flags = node.ReadEnum("@flags", FormatFlags.NeedArguments);
          needValue = (flags & FormatFlags.NeedValue) != 0;
 
          String[] args = node.ReadStr("@arguments").SplitStandard();

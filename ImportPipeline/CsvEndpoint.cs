@@ -31,20 +31,20 @@ namespace Bitmanager.ImportPipeline
       public CsvEndpoint(ImportEngine engine, XmlNode node)
          : base(node, ActiveMode.Lazy | ActiveMode.Local)
       {
-         MaxGenerations = node.OptReadInt("@generations", int.MinValue);
+         MaxGenerations = node.ReadInt("@generations", int.MinValue);
          if (MaxGenerations != int.MinValue)
             generations = new FileGenerations();
-         String tmp = MaxGenerations == int.MinValue ? node.ReadStr("@file") : node.OptReadStr("@file", null);
+         String tmp = MaxGenerations == int.MinValue ? node.ReadStr("@file") : node.ReadStr("@file", null);
          FileNameBase = engine.Xml.CombinePath(tmp == null ? "csvOutput" : tmp);
          fileName = FileNameBase;
-         trim = node.OptReadBool("@trim", true);
-         lenient = node.OptReadBool("@lenient", false);
+         trim = node.ReadBool("@trim", true);
+         lenient = node.ReadBool("@lenient", false);
          delimChar = CsvDatasource.readChar(node, "@dlm", ',');
          quoteChar = CsvDatasource.readChar(node, "@quote", '"');
          commentChar = CsvDatasource.readChar(node, "@comment", '#');
 
          //Predefine field orders if requested (implies linient mode)
-         String[] fieldOrder = node.OptReadStr("@fieldorder", null).SplitStandard();
+         String[] fieldOrder = node.ReadStr("@fieldorder", null).SplitStandard();
          if (fieldOrder != null)
          {
             lenient = true;
@@ -80,7 +80,7 @@ namespace Bitmanager.ImportPipeline
          if (generations != null) generations.RemoveSuperflouisGenerations(MaxGenerations);
       }
 
-      protected override IDataEndpoint CreateDataEndpoint(PipelineContext ctx, string dataName)
+      protected override IDataEndpoint CreateDataEndpoint(PipelineContext ctx, string dataName, bool mustExcept)
       {
          return new CsvDataEndpoint(this);
       }

@@ -110,7 +110,7 @@
          <provider type="FileNameFeeder" root="C:\Users\pweerd\Documents" filter="\.pdf$|\.eml$|\.docx$" virtualroot="docs" />
          <provider type="FileNameFeeder" root="C:\Users\pweerd\Documents" filter="\.eml$" virtualroot="docs" />
       </datasource>
-      <datasource name="tikadoc" type="TikaDS" pipeline="tika" trim="true" maxparallel="2" tikaurl='http://localhost:8080/html/filesystem/' tikaprocess='tika' pingurl='http://localhost:8080/ping' pingtimeout='30000' logadds="500">
+      <datasource name="tikadoc" type="TikaDS"  trim="true" maxparallel="2" tikaurl='http://localhost:8080/html/filesystem/' tikaprocess='tika' pingurl='http://localhost:8080/ping' pingtimeout='30000' logadds="500">
          <dbgstore>pdf</dbgstore>
          <provider type="FileNameFeeder" root="C:\Users\pweerd\Documents" filter="n\.pdf$" virtualroot="docs" />
          <provider type="FileNameFeeder" root="C:\Users\pweerd\Documents" filter="\.pdf$|\.eml$|\.docx$" virtualroot="docs" />

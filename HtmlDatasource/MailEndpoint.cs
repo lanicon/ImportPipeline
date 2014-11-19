@@ -74,15 +74,15 @@ namespace BeursGorilla
       {
          toMail = new List<JObject>();
          toMailForced = new List<JObject>();
-         Limit = node.OptReadFloat("@limitperc", 1.0);
+         Limit = node.ReadFloat("@limitperc", 1.0);
 
-         MailAddr = node.OptReadStr("@email", null);
-         MailServer = MailAddr==null ? node.OptReadStr("@server", null) : node.ReadStr("@server");
-         MailSubject = node.OptReadStr("@subject", "[Koersen]");
-         String force = node.OptReadStr("@force", null);
+         MailAddr = node.ReadStr("@email", null);
+         MailServer = MailAddr==null ? node.ReadStr("@server", null) : node.ReadStr("@server");
+         MailSubject = node.ReadStr("@subject", "[Koersen]");
+         String force = node.ReadStr("@force", null);
          if (force != null)
             ForceExpr = new Regex(force, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-         SortMethod = node.OptReadEnum("@sort", _StockSort.Percentage);
+         SortMethod = node.ReadEnum("@sort", _StockSort.Percentage);
          sortComparer = new MultiSort<JObject>();
          if ((SortMethod & _StockSort.Exchange) != 0) sortComparer.Add((x, y) => String.CompareOrdinal((String)x["exchange"], (String)y["exchange"]));
          if ((SortMethod & _StockSort.Name) != 0) sortComparer.Add((x, y) => StringComparer.InvariantCultureIgnoreCase.Compare((String)x["name"], (String)y["name"]));
@@ -181,7 +181,7 @@ namespace BeursGorilla
          b.AppendFormat("</tr>\r\n");
       }
 
-      protected override IDataEndpoint CreateDataEndpoint(PipelineContext ctx, string dataName)
+      protected override IDataEndpoint CreateDataEndpoint(PipelineContext ctx, string dataName, bool mustExcept)
       {
          return new MailDataEndpoint(this);
       }

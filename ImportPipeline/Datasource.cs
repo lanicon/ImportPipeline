@@ -23,6 +23,7 @@ namespace Bitmanager.ImportPipeline
       public String Type { get; private set; }
       public Datasource Datasource {get; private set;}
       public Pipeline Pipeline { get; private set; }
+      public String EndpointName { get; private set; }
       public int LogAdds { get; set; }
       public int MaxAdds { get; set; }
       public bool Active { get; private set; }
@@ -31,11 +32,29 @@ namespace Bitmanager.ImportPipeline
          : base(node)
       {
          Type = node.ReadStr("@type");
-         Active = node.OptReadBool("@active", true);
-         LogAdds = node.OptReadInt("@logadds", -1);
-         MaxAdds = node.OptReadInt("@maxadds", -1);
-         String pipelineName = node.OptReadStr("@pipeline", null);
+         Active = node.ReadBool("@active", true);
+         LogAdds = node.ReadInt(1, "@logadds", -1);
+         MaxAdds = node.ReadInt(1, "@maxadds", -1);
+         String pipelineName = node.ReadStr(1, "@pipeline", null);
          Pipeline = ctx.ImportEngine.Pipelines.GetByNamesOrFirst(pipelineName, Name);
+
+         String endpoint = node.ReadStr(1, "@endpoint", null);
+         if (endpoint != null)
+         {
+            endpoint = endpoint.Replace("*", Name);
+            ctx.ImportEngine.Endpoints.CheckDataEndpoint(ctx, endpoint, true);
+            EndpointName = endpoint;
+         }
+         String endpointExpr = node.ReadStr(1, "@endpoint_expr", null);
+         if (endpointExpr != null)
+         {
+            if (endpoint != null) throw new BMNodeException(node, "@endpoint and @endpoint_expr cannot be specified both.");
+            EndpointName = PerlRegex.Replace(endpointExpr, Name);
+            ctx.ImportEngine.Endpoints.CheckDataEndpoint(ctx, EndpointName, true);
+         }
+
+         Pipeline.CheckEndpoints(ctx, this);
+
 
          //if (!Active) return; Zie notes: ws moet een datasource definitief kunnen worden uitgeschakeld. iets als active=true/false/disabled
          Datasource = ImportEngine.CreateObject<Datasource> (Type);

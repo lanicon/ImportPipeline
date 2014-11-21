@@ -11,9 +11,10 @@ namespace Bitmanager.ImportPipeline
       XmlNode Context {get;}
       Object  Element {get;}
    }
-   public interface IDatasourceFeeder : IEnumerable<IDatasourceFeederElement>
+   public interface IDatasourceFeeder
    {
       void Init(PipelineContext ctx, XmlNode node);
+      IEnumerable<IDatasourceFeederElement> GetElements (PipelineContext ctx);
    }
 
 

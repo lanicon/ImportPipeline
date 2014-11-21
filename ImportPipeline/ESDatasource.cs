@@ -37,7 +37,7 @@ namespace Bitmanager.ImportPipeline
 
       public void Import(PipelineContext ctx, IDatasourceSink sink)
       {
-         foreach (var elt in feeder)
+         foreach (var elt in feeder.GetElements(ctx))
          {
             try
             {

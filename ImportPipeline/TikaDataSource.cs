@@ -68,7 +68,7 @@ namespace Bitmanager.ImportPipeline
          ensureTikaServiceStarted(ctx);
          previousRun = ctx.RunAdministrations.GetLastOKRunDate(ctx.DatasourceAdmin.Name);
          ctx.ImportLog.Log("Previous run was {0}.", previousRun);
-         foreach (var elt in feeder)
+         foreach (var elt in feeder.GetElements(ctx))
          {
             try
             {

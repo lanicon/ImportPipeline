@@ -317,7 +317,7 @@ namespace BeursGorilla
       {
          SharesWithoutHistory = 0;
          Regex regex = new Regex (@"instrumentcode=(.*)$", RegexOptions.CultureInvariant | RegexOptions.Compiled | RegexOptions.IgnoreCase);
-         foreach (var elt in feeder)
+         foreach (var elt in feeder.GetElements(ctx))
          {
             try
             {

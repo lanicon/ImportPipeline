@@ -68,15 +68,10 @@ namespace Bitmanager.ImportPipeline
          }
          this.urlElements = urls;
       }
-      public IEnumerator<IDatasourceFeederElement> GetEnumerator()
-      {
-         for (int i=0; i<urlElements.Count; i++)
-            yield return urlElements[i];
-      }
 
-      System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+      public IEnumerable<IDatasourceFeederElement> GetElements(PipelineContext ctx)
       {
-         return GetEnumerator();
+         return new EnumerableWrapper<IDatasourceFeederElement, FeederElementBase>(urlElements);
       }
    }
 }

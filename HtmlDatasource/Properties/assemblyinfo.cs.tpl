@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Importer")]
+[assembly: AssemblyTitle("HtmlDatasource (SHA:$$GIT$$)")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("Importer")]
-[assembly: AssemblyCopyright("Copyright ©  2014 www.bitmanager.nl")]
+[assembly: AssemblyCompany("$$COMPANY$$")]
+[assembly: AssemblyProduct("HtmlDatasource")]
+[assembly: AssemblyCopyright("Copyright © $$YYYY$$, $$COMPANY$$")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("efa041c4-2332-4872-a57a-a3d7bb91110a")]
+[assembly: Guid("956dba7d-8a3c-4b2f-94c4-6b89b8c4f019")]
 
 // Version information for an assembly consists of the following four values:
 //
@@ -32,5 +32,5 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.0.0.$$REVNO$$")]
+[assembly: AssemblyFileVersion("1.0.0.$$REVNO$$")]

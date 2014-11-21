@@ -164,7 +164,8 @@ namespace Bitmanager.ImportPipeline
          StartTimeUtc = DateTime.UtcNow;
 
          ImportLog.Log();
-         ImportLog.Log(_LogType.ltProgress, "Starting import. Flags={0}, MaxAdds={1}, ActiveDS's='{2}'.", ImportFlags, MaxAdds, enabledDSses==null ? null : String.Join (", ", enabledDSses));
+         ImportLog.Log(new String ('-', 80));
+         ImportLog.Log(_LogType.ltProgress, "Starting import. Flags={0}, MaxAdds={1}, ActiveDS's='{2}'.", ImportFlags, MaxAdds, enabledDSses == null ? null : String.Join(", ", enabledDSses));
          PipelineContext mainCtx = new PipelineContext(this);
          Endpoints.Open(mainCtx);
 

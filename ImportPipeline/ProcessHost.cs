@@ -44,7 +44,12 @@ namespace Bitmanager.ImportPipeline
       {
          if (!initDone)
          {
-            //Console.CancelKeyPress += Console_CancelKeyPress;
+            try
+            {
+               Console.CancelKeyPress += Console_CancelKeyPress;
+            }
+            catch { }
+
             //ConsoleHelpers.AllocConsole();
             //SetConsoleCtrlHandler(null, true);
             //ConsoleHelpers.AddConsoleCtrlHandler(ctrlHandler);    
@@ -55,7 +60,7 @@ namespace Bitmanager.ImportPipeline
 
       void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
       {
-         throw new NotImplementedException();
+         e.Cancel = true;
       }
 
       private static bool ctrlHandler(CtrlTypes CtrlType)

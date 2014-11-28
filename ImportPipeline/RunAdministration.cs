@@ -94,10 +94,15 @@ namespace Bitmanager.ImportPipeline
          }
          return ret;
       }
-      public static DateTime GetLastOKRunDate(this List<RunAdministration> list, String ds)
+      public static DateTime GetLastOKRunDate(this List<RunAdministration> list, DatasourceAdmin ds)
       {
-         var a = GetLastOKRun(list, ds);
+         var a = GetLastOKRun(list, ds.Name);
          return a == null ? DateTime.MinValue : a.RunDateUtc;
+      }
+      public static DateTime GetLastOKRunDateShifted(this List<RunAdministration> list, DatasourceAdmin ds)
+      {
+         var a = GetLastOKRun(list, ds.Name);
+         return a == null ? DateTime.MinValue : a.RunDateUtc.AddSeconds(+ds.ShiftLastRuntime);
       }
    }
 }

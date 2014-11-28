@@ -66,8 +66,8 @@ namespace Bitmanager.ImportPipeline
             ServicePointManager.DefaultConnectionLimit = maxParallel;
          }
          ensureTikaServiceStarted(ctx);
-         previousRun = ctx.RunAdministrations.GetLastOKRunDate(ctx.DatasourceAdmin.Name);
-         ctx.ImportLog.Log("Previous run was {0}.", previousRun);
+         previousRun = ctx.RunAdministrations.GetLastOKRunDateShifted(ctx.DatasourceAdmin);
+         ctx.ImportLog.Log("Previous (shifted) run was {0}.", previousRun);
          foreach (var elt in feeder.GetElements(ctx))
          {
             try

@@ -57,6 +57,17 @@ namespace Bitmanager.ImportPipeline
       }
       public void Load(String fileName)
       {
+         if (!File.Exists(fileName))
+         {
+            String tmp = Path.Combine("ImportDirs", fileName);
+            if (File.Exists(tmp)) fileName = tmp;
+         }
+         String dir = Path.GetDirectoryName(Path.GetFullPath(fileName));
+         dir = Path.Combine(dir, "logs");
+         if (Directory.Exists(dir))
+         {
+            LogFactorySettings.Instance.AppLogPath = dir;
+         }
          XmlHelper xml = new XmlHelper(fileName);
          Load(xml);
       }

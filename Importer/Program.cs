@@ -56,9 +56,7 @@ namespace Bitmanager.Importer
                logError("Syntax: <importxml file> [list of datasources] [/flags:<importflags>]");
                return 12;
             }
-            Logs.DebugLog.Log("1");
             ImportEngine eng = new ImportEngine();
-            Logs.DebugLog.Log("2");
             String[] dsList = new String[cmd.Args.Count - 1];
             for (int i=1; i<cmd.Args.Count; i++)
                dsList[i-1] = cmd.Args[i];

@@ -137,7 +137,7 @@ namespace Bitmanager.ImportPipeline
       private DateTime getMinDate ()
       {
          if (IgnoreDates || _ctx==null || (_ctx.ImportFlags & _ImportFlags.FullImport) != 0) return DateTime.MinValue;
-         DateTime ret = _ctx.RunAdministrations.GetLastOKRunDate(_ctx.DatasourceAdmin.Name);
+         DateTime ret = _ctx.RunAdministrations.GetLastOKRunDateShifted(_ctx.DatasourceAdmin);
          _ctx.ImportLog.Log ("Enumerating files using minDate (utc): {0}", ret.ToUniversalTime());
          return ret;
       }

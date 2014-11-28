@@ -58,8 +58,6 @@ namespace BeursGorilla
       public const String F_exchange = "exchange";
       public const String F_checkTime = "checktime";
 
-
-
       private List<JObject> toMail, toMailForced;
       private Logger logger = Logs.CreateLogger("Gorilla", "MailEndpoint");
       public readonly double Limit;
@@ -67,8 +65,11 @@ namespace BeursGorilla
       public readonly String MailServer;
       public readonly String MailSubject;
       public readonly Regex ForceExpr;
+      public readonly String[] TriggerAtNonempty;
+      public readonly bool[] Triggered;
       private MultiSort<JObject> sortComparer;
       public readonly _StockSort SortMethod;
+      public  bool debug;
       public MailEndpoint(ImportEngine engine, XmlNode node)
          : base(node)
       {
@@ -79,6 +80,15 @@ namespace BeursGorilla
          MailAddr = node.ReadStr("@email", null);
          MailServer = MailAddr==null ? node.ReadStr("@server", null) : node.ReadStr("@server");
          MailSubject = node.ReadStr("@subject", "[Koersen]");
+         debug = node.ReadBool("@debug", false);
+         
+         String trigger = node.ReadStrRaw("@trigger-nonempty", _XmlRawMode.DefaultOnNull, "notes;note");
+         TriggerAtNonempty = trigger.SplitStandard();
+         if (TriggerAtNonempty.Length == 0) 
+            TriggerAtNonempty = null;
+         else
+            Triggered = new bool[TriggerAtNonempty.Length];
+
          String force = node.ReadStr("@force", null);
          if (force != null)
             ForceExpr = new Regex(force, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
@@ -103,12 +113,13 @@ namespace BeursGorilla
       {
          if (!logCloseAndCheckForNormalClose(ctx)) return;
 
-         if (toMail.Count==0)
+         if (toMail.Count == 0 && toMailForced.Count==0)
          {
-            logger.Log ("No percentages found.");
+            logger.Log ("No filtered items to mail found.");
             return;
          }
 
+         //Create header
          StringBuilder bldr = new StringBuilder();
          const String htmlHead = "<html><head><style>\r\n thead { font-weight: bold; }" +
             " .red {color: red; }" +
@@ -117,7 +128,23 @@ namespace BeursGorilla
             "</style></head><body><table>";
          const String htmlEnd = "</body></html>";
 
-         bldr.Append("<table><thead><tr><td class='left'>Stock</td><td>Change</td><td>Price</td><td>Opened</td><td>Checked at</td></tr></thead>\r\n");
+         bldr.Append("<table><thead><tr><td class='left'>Stock</td><td>Change</td><td>Price</td><td>Opened</td><td>Checked at</td>");
+         //Append dynamic fields
+         if (Triggered != null)
+         {
+            for (int i=0; i<Triggered.Length; i++)
+            {
+               if (!Triggered[i]) continue;
+               bldr.Append("<td class='left'>");
+               String h = TriggerAtNonempty[i];
+               bldr.Append(char.ToUpperInvariant(h[0]));
+               bldr.Append(h, 1, h.Length - 1);
+               bldr.Append("</td>");
+            }
+         }
+         bldr.Append("</tr></thead>\r\n");
+
+         //Append forced(first) and non-forced lines
          buildMail(bldr, toMailForced);
          bldr.Append ("<tr></tr>");
          buildMail(bldr, toMail);
@@ -178,6 +205,18 @@ namespace BeursGorilla
          b.AppendFormat("<td>{0:F3}</td>", obj.ReadDbl(F_price));
          b.AppendFormat("<td>{0:F3}</td>", obj.ReadDbl(F_priceOpened));
          b.AppendFormat("<td>{0}</td>", obj.ReadStr(F_checkTime));
+
+         //Append dynamic fields
+         if (Triggered != null)
+         {
+            for (int i = 0; i < Triggered.Length; i++)
+            {
+               if (!Triggered[i]) continue;
+               b.Append("<td class='left'>");
+               b.Append(obj.ReadStr(TriggerAtNonempty[i]));
+               b.Append("</td>");
+            }
+         }
          b.AppendFormat("</tr>\r\n");
       }
 
@@ -192,19 +231,54 @@ namespace BeursGorilla
       int unexpected;
       private readonly double limitPerc;
       private readonly Regex forceExpr;
+      private readonly String[] triggerAtNonempty;
+      private readonly bool[] triggered;
+      private readonly bool debug;
+
 
       public MailDataEndpoint(MailEndpoint m)
          : base(m)
       {
          limitPerc = m.Limit;
          forceExpr = m.ForceExpr;
+         triggerAtNonempty = m.TriggerAtNonempty;
+         triggered = m.Triggered;
+         debug = m.debug;
       }
 
       private bool isForced(JObject obj)
       {
-         if (forceExpr == null) return false;
-         String name = obj.ReadStr(MailEndpoint.F_name);
-         return forceExpr.IsMatch(name);
+         //Need to check triggerAtNonempty first: otherwise the triggered array is not correctly filled.
+         if (triggerAtNonempty != null)
+         {
+            for (int i = 0; i < triggerAtNonempty.Length; i++)
+            {
+               String nm = triggerAtNonempty[i];
+               JToken jt = obj[nm];
+               if (jt==null) continue;
+               switch (jt.Type)
+               {
+                  case JTokenType.Null:
+                  case JTokenType.Undefined:
+                  case JTokenType.None:
+                     continue;
+                  case JTokenType.String:
+                     if (String.IsNullOrEmpty((String)jt)) continue;
+                     triggered[i] = true;
+                     return true;
+                  default:
+                     return true;
+               }
+            }
+         }
+
+         if (forceExpr != null)
+         {
+            String name = obj.ReadStr(MailEndpoint.F_name);
+            if (forceExpr.IsMatch(name)) return true;
+         }
+
+         return false;
       }
       public override void Add(PipelineContext ctx)
       {
@@ -219,15 +293,20 @@ namespace BeursGorilla
                return;
             }
             double perc = 100 * (price - priceAtOpen) / priceAtOpen;
+            if (debug) ctx.DebugLog.Log("perc={0}, rec={1}", perc, base.accumulator);
             if (isForced(base.accumulator))
             {
+               if (debug) ctx.DebugLog.Log("-- forced to output");
                accumulator.WriteToken(MailEndpoint.F_perc, perc);
                Endpoint.AddForMailForced(accumulator);
             } else if (Math.Abs(perc) >= limitPerc)
             {
+               if (debug) ctx.DebugLog.Log("-- perc > limit({0}", limitPerc);
                accumulator.WriteToken(MailEndpoint.F_perc, perc);
                Endpoint.AddForMail(accumulator);
             }
+            else
+               if (debug) ctx.DebugLog.Log("-- skipped");
          }
          finally
          {

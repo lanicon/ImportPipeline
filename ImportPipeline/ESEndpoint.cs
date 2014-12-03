@@ -46,26 +46,10 @@ namespace Bitmanager.ImportPipeline
          if (Indexes.Count == 0)
             throw new BMNodeException(node, "At least 1 index+type is required!");
 
-         String[] arr = node.ReadStr("waitfor/@status", "yellow").SplitStandard();
+         WaitFor = node.ReadEnum("waitfor/@status", ClusterStatus.Green | ClusterStatus.Yellow);
+         AltWaitFor = node.ReadEnum("waitfor/@altstatus", ClusterStatus.None);
          WaitForTimeout = node.ReadInt("waitfor/@timeout", 30);
-         WaitForMustExcept = node.ReadBool("waitfor/@except", false);
-         try
-         {
-            if (arr.Length == 1)
-            {
-               WaitFor = Invariant.ToEnum<ClusterStatus>(arr[0]);
-               AltWaitFor = WaitFor;
-            }
-            else
-            {
-               WaitFor = Invariant.ToEnum<ClusterStatus>(arr[0]);
-               AltWaitFor = Invariant.ToEnum<ClusterStatus>(arr[1]);
-            }
-         }
-         catch (Exception err)
-         {
-            throw new BMNodeException(node, err);
-         }
+         WaitForMustExcept = node.ReadBool("waitfor/@except", true);
       }
 
       protected override void Open(PipelineContext ctx)

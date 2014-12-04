@@ -21,7 +21,6 @@ namespace Bitmanager.ImportPipeline
       private int numRecords;
       private int maxParallel;
       private int splitUntil;
-      private int maxRecords;
       private bool scan;
 
       public void Init(PipelineContext ctx, XmlNode node)
@@ -33,7 +32,6 @@ namespace Bitmanager.ImportPipeline
          maxParallel = node.ReadInt("@maxparallel", 1);
          requestBody = node.ReadStr("request", null);
          splitUntil = node.ReadInt("@splituntil", 1);
-         maxRecords = node.ReadInt("@maxrecords", -1);
          scan = node.ReadBool("@scan", true);
       }
 
@@ -108,11 +106,9 @@ namespace Bitmanager.ImportPipeline
                ESRecordEnum e = new ESRecordEnum(conn, index, req, numRecords, timeout, scan);
                if (maxParallel > 0) e.Async = true;
                ctx.ImportLog.Log("Starting scan of {0} records. Index={1}, connection={2}, async={3}, buffersize={4} requestbody={5}, splituntil={6}, scan={7}.", e.Count, index, url, e.Async, numRecords, req != null, splitUntil, scan);
-               int cnt = 0;
                foreach (var doc in e)
                {
-                  if (maxRecords > 0 && cnt >= maxRecords) break;
-                  ++cnt;
+                  ctx.CountEmit();
                   sink.HandleValue(ctx, "record/_sort", doc.Sort);
                   sink.HandleValue(ctx, "record/_type", doc.Type);
                   foreach (var kvp in doc)
@@ -127,7 +123,6 @@ namespace Bitmanager.ImportPipeline
                   }
                   sink.HandleValue(ctx, "record", doc);
                }
-               ctx.ImportLog.Log("Scanned {0} records", e.ScrolledCount);
             }
             sink.HandleValue(ctx, Pipeline.ItemStop, elt);
          }

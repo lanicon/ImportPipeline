@@ -103,7 +103,11 @@ namespace Bitmanager.ImportPipeline
                      if (lvl == 0)
                         keys[0] = rdr.Name;
                      else
+                     {
                         keys[lvl] = keys[lvl - 1] + "/" + rdr.Name;
+                        if (lvl == 1) ctx.CountEmit();
+                     }
+
                      //l.Log("{0}: [{1}, {2}]", lvl, keys[lvl], rdr.NodeType);
                      bool isEmpty = rdr.IsEmptyElement;  //cache this value: after reading the attribs its value is lost 
                      if (rdr.AttributeCount > 0)

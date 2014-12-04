@@ -11,7 +11,7 @@ namespace Bitmanager.Importer
 {
    public class EngineWrapper : MarshalByRefObject
    {
-      public void Run(_ImportFlags flags, String xml, String[] activeDS, int maxAdds)
+      public String Run(_ImportFlags flags, String xml, String[] activeDS, int maxAdds, int maxEmits)
       {
          try
          {
@@ -19,7 +19,9 @@ namespace Bitmanager.Importer
             engine.Load(xml);
             engine.ImportFlags = flags;
             engine.MaxAdds = maxAdds;
+            engine.MaxEmits = maxEmits;
             engine.Import(activeDS);
+            return (engine.ImportContext.LastError == null) ? null : engine.ImportContext.LastError.Message;
          }
          catch (Exception e)
          {
@@ -31,12 +33,13 @@ namespace Bitmanager.Importer
 
    public class AsyncAdmin : IDisposable
    {
+      public String Status;
       AppDomain domain;
-      Action<_ImportFlags, String, String[], int> action;
+      Func<_ImportFlags, String, String[], int, int, String> action;
       IAsyncResult asyncResult;
       bool started; 
 
-      public void Start(_ImportFlags flags, String xml, String[] activeDS, int maxRecords)
+      public void Start(_ImportFlags flags, String xml, String[] activeDS, int maxRecords, int maxEmits)
       {
          domain = AppDomain.CreateDomain("import");
          Type type = typeof(EngineWrapper);
@@ -44,7 +47,7 @@ namespace Bitmanager.Importer
          EngineWrapper wrapper = (EngineWrapper)domain.CreateInstanceAndUnwrap(type.Assembly.FullName, type.FullName, false, BindingFlags.CreateInstance, null, null, Invariant.Culture, null);
          action = wrapper.Run;
 
-         asyncResult = action.BeginInvoke(flags, xml, activeDS, maxRecords, null, null);
+         asyncResult = action.BeginInvoke(flags, xml, activeDS, maxRecords, maxEmits, null, null);
          started = true;
          return;
       }
@@ -55,7 +58,7 @@ namespace Bitmanager.Importer
          IAsyncResult ar = asyncResult;
          asyncResult = null;
 
-         action.EndInvoke(ar);
+         Status = action.EndInvoke(ar);
       }
 
       public bool CheckStopped()

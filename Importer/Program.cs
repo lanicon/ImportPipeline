@@ -50,13 +50,17 @@ namespace Bitmanager.Importer
             Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
             var cmd = new CommandLineParms(args);
             _ImportFlags flags = Invariant.ToEnum<_ImportFlags>(cmd.NamedArgs.OptGetItem("flags"), _ImportFlags.UseFlagsFromXml);
+            int maxAdds = Invariant.ToInt32(cmd.NamedArgs.OptGetItem("maxadds"), -1);
+            int maxEmits = Invariant.ToInt32(cmd.NamedArgs.OptGetItem("maxemits"), -1);
             if (cmd.Args.Count == 0)
             {
                logError("Invalid commandline: {0}", Environment.CommandLine);
-               logError("Syntax: <importxml file> [list of datasources] [/flags:<importflags>]");
+               logError("Syntax: <importxml file> [list of datasources] [/flags:<importflags>] [/maxadds:<number>] [/maxemits:<number>]");
                return 12;
             }
             ImportEngine eng = new ImportEngine();
+            eng.MaxAdds = maxAdds;
+            eng.MaxEmits = maxEmits;
             String[] dsList = new String[cmd.Args.Count - 1];
             for (int i=1; i<cmd.Args.Count; i++)
                dsList[i-1] = cmd.Args[i];

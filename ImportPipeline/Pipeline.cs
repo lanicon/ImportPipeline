@@ -333,6 +333,9 @@ namespace Bitmanager.ImportPipeline
                ctx.ErrorLog.Log("Dumping content of current accu: fieldcount={0}", accu.Count);
                ctx.ErrorLog.Log(act.Endpoint.GetFieldAsToken(null).ToString());
             }
+            if (MaxAddsExceededException.ContainsMaxAddsExceededException(e))
+               throw;
+
 
             throw new BMException (e, "{0}\r\nKey={1}, valueType={2}.", e.Message, key, type);
          }

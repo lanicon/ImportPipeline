@@ -218,6 +218,7 @@ namespace BeursGorilla
 
          for (int i = offset; i < nodes.Count; i++)
          {
+            ctx.CountEmit();
             var trNode = nodes[i];
             var tdNodes = trNode.SelectNodes("td");
             if (tdNodes == null || tdNodes.Count != 7)

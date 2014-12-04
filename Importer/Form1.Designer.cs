@@ -36,6 +36,8 @@
          this.label1 = new System.Windows.Forms.Label();
          this.label2 = new System.Windows.Forms.Label();
          this.grpFlags = new System.Windows.Forms.GroupBox();
+         this.checkBox2 = new System.Windows.Forms.CheckBox();
+         this.cbRetryErrors = new System.Windows.Forms.CheckBox();
          this.cbIgnoreErrors = new System.Windows.Forms.CheckBox();
          this.cbIgnoreLimited = new System.Windows.Forms.CheckBox();
          this.cbTraceValues = new System.Windows.Forms.CheckBox();
@@ -53,7 +55,9 @@
          this.textBox1 = new System.Windows.Forms.TextBox();
          this.textBox2 = new System.Windows.Forms.TextBox();
          this.checkBox1 = new System.Windows.Forms.CheckBox();
-         this.cbRetryErrors = new System.Windows.Forms.CheckBox();
+         this.lblStatus = new System.Windows.Forms.Label();
+         this.label4 = new System.Windows.Forms.Label();
+         this.txtMaxEmits = new System.Windows.Forms.TextBox();
          this.grpFlags.SuspendLayout();
          this.SuspendLayout();
          // 
@@ -113,18 +117,39 @@
          // 
          // grpFlags
          // 
+         this.grpFlags.Controls.Add(this.checkBox2);
          this.grpFlags.Controls.Add(this.cbRetryErrors);
          this.grpFlags.Controls.Add(this.cbIgnoreErrors);
          this.grpFlags.Controls.Add(this.cbIgnoreLimited);
          this.grpFlags.Controls.Add(this.cbTraceValues);
          this.grpFlags.Controls.Add(this.cbDoNotRename);
          this.grpFlags.Controls.Add(this.CbFullImport);
-         this.grpFlags.Location = new System.Drawing.Point(30, 155);
+         this.grpFlags.Location = new System.Drawing.Point(30, 145);
          this.grpFlags.Name = "grpFlags";
-         this.grpFlags.Size = new System.Drawing.Size(165, 170);
+         this.grpFlags.Size = new System.Drawing.Size(165, 198);
          this.grpFlags.TabIndex = 7;
          this.grpFlags.TabStop = false;
          this.grpFlags.Text = "Flags";
+         // 
+         // checkBox2
+         // 
+         this.checkBox2.AutoSize = true;
+         this.checkBox2.Location = new System.Drawing.Point(17, 173);
+         this.checkBox2.Name = "checkBox2";
+         this.checkBox2.Size = new System.Drawing.Size(140, 19);
+         this.checkBox2.TabIndex = 16;
+         this.checkBox2.Text = "MaxAddsToMaxEmits";
+         this.checkBox2.UseVisualStyleBackColor = true;
+         // 
+         // cbRetryErrors
+         // 
+         this.cbRetryErrors.AutoSize = true;
+         this.cbRetryErrors.Location = new System.Drawing.Point(17, 147);
+         this.cbRetryErrors.Name = "cbRetryErrors";
+         this.cbRetryErrors.Size = new System.Drawing.Size(83, 19);
+         this.cbRetryErrors.TabIndex = 15;
+         this.cbRetryErrors.Text = "RetryErrors";
+         this.cbRetryErrors.UseVisualStyleBackColor = true;
          // 
          // cbIgnoreErrors
          // 
@@ -236,7 +261,7 @@
          // label3
          // 
          this.label3.AutoSize = true;
-         this.label3.Location = new System.Drawing.Point(26, 343);
+         this.label3.Location = new System.Drawing.Point(26, 361);
          this.label3.Name = "label3";
          this.label3.Size = new System.Drawing.Size(71, 15);
          this.label3.TabIndex = 13;
@@ -244,7 +269,7 @@
          // 
          // txtMaxRecords
          // 
-         this.txtMaxRecords.Location = new System.Drawing.Point(103, 340);
+         this.txtMaxRecords.Location = new System.Drawing.Point(103, 358);
          this.txtMaxRecords.Name = "txtMaxRecords";
          this.txtMaxRecords.Size = new System.Drawing.Size(94, 23);
          this.txtMaxRecords.TabIndex = 14;
@@ -287,15 +312,30 @@
          this.checkBox1.UseVisualStyleBackColor = true;
          this.checkBox1.CheckedChanged += new System.EventHandler(this.checkBox1_CheckedChanged);
          // 
-         // cbRetryErrors
+         // lblStatus
          // 
-         this.cbRetryErrors.AutoSize = true;
-         this.cbRetryErrors.Location = new System.Drawing.Point(17, 147);
-         this.cbRetryErrors.Name = "cbRetryErrors";
-         this.cbRetryErrors.Size = new System.Drawing.Size(83, 19);
-         this.cbRetryErrors.TabIndex = 15;
-         this.cbRetryErrors.Text = "RetryErrors";
-         this.cbRetryErrors.UseVisualStyleBackColor = true;
+         this.lblStatus.AutoSize = true;
+         this.lblStatus.Location = new System.Drawing.Point(27, 78);
+         this.lblStatus.Name = "lblStatus";
+         this.lblStatus.Size = new System.Drawing.Size(0, 15);
+         this.lblStatus.TabIndex = 19;
+         // 
+         // label4
+         // 
+         this.label4.AutoSize = true;
+         this.label4.Location = new System.Drawing.Point(213, 361);
+         this.label4.Name = "label4";
+         this.label4.Size = new System.Drawing.Size(58, 15);
+         this.label4.TabIndex = 20;
+         this.label4.Text = "MaxEmits";
+         // 
+         // txtMaxEmits
+         // 
+         this.txtMaxEmits.Location = new System.Drawing.Point(277, 358);
+         this.txtMaxEmits.Name = "txtMaxEmits";
+         this.txtMaxEmits.Size = new System.Drawing.Size(94, 23);
+         this.txtMaxEmits.TabIndex = 21;
+         this.txtMaxEmits.Text = "-1";
          // 
          // Form1
          // 
@@ -304,6 +344,9 @@
          this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
          this.CancelButton = this.btnCancel;
          this.ClientSize = new System.Drawing.Size(1143, 401);
+         this.Controls.Add(this.txtMaxEmits);
+         this.Controls.Add(this.label4);
+         this.Controls.Add(this.lblStatus);
          this.Controls.Add(this.checkBox1);
          this.Controls.Add(this.textBox2);
          this.Controls.Add(this.textBox1);
@@ -360,6 +403,10 @@
       private System.Windows.Forms.TextBox textBox2;
       private System.Windows.Forms.CheckBox checkBox1;
       private System.Windows.Forms.CheckBox cbRetryErrors;
+      private System.Windows.Forms.CheckBox checkBox2;
+      private System.Windows.Forms.Label lblStatus;
+      private System.Windows.Forms.Label label4;
+      private System.Windows.Forms.TextBox txtMaxEmits;
    }
 }
 

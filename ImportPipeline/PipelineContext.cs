@@ -41,11 +41,13 @@ namespace Bitmanager.ImportPipeline
       public IAdminEndpoint AdminEndpoint;
       public List<RunAdministration> RunAdministrations;
       public MaxAddsExceededException Exceeded { get; private set; }
+      public Exception LastError { get; internal set; }
       public PipelineAction Action;
       public String SkipUntilKey;
       public int Added, Deleted, Skipped, Emitted, Errors;
       public int LogAdds;
       public int MaxAdds;
+      public int MaxEmits;
       public _ImportFlags ImportFlags;
       public _ActionFlags ActionFlags;
       public _ErrorState ErrorState;
@@ -62,6 +64,10 @@ namespace Bitmanager.ImportPipeline
          ImportFlags = eng.ImportFlags;
          LogAdds = (ds.LogAdds > 0) ? ds.LogAdds : eng.LogAdds;
          MaxAdds = (ds.MaxAdds >= 0) ? ds.MaxAdds : eng.MaxAdds;
+         MaxEmits = (ds.MaxEmits >= 0) ? ds.MaxEmits : eng.MaxEmits;
+         if (MaxEmits < 0 && (ImportFlags & _ImportFlags.MaxAddsToMaxEmits) != 0)
+            MaxEmits = MaxAdds;
+         ImportLog.Log("Current maxAdds={0}, maxEmits={1}", MaxAdds, MaxEmits);
       }
       public PipelineContext(ImportEngine eng)
       {
@@ -119,12 +125,22 @@ namespace Bitmanager.ImportPipeline
       }
 
 
+      public void CountEmit ()
+      {
+         if (MaxEmits >= 0 && Emitted >= MaxEmits)
+         {
+            ImportLog.Log("MAX EMITS EXCEEDED, {0}", GetStats());
+            throw Exceeded = new MaxAddsExceededException(Emitted, "emits");
+         }
+         ++Emitted;
+      }
+
       public void CountAndLogAdd()
       {
          if (MaxAdds >= 0 && Added >= MaxAdds)
          {
-            ImportLog.Log("MAX EXCEEDED");
-            throw Exceeded = new MaxAddsExceededException(Added);
+            ImportLog.Log("MAX ADDS EXCEEDED, {0}", GetStats());
+            throw Exceeded = new MaxAddsExceededException(Added, "adds");
          }
          switch ((++Added) % LogAdds)
          {
@@ -168,8 +184,8 @@ namespace Bitmanager.ImportPipeline
    public class MaxAddsExceededException : Exception
    {
       public readonly int Limit;
-      public MaxAddsExceededException(int limit)
-         : base(String.Format("Max #adds exceeded: {0}.", limit))
+      public MaxAddsExceededException(int limit, String what)
+         : base(String.Format("Max #{1} exceeded: {0}.", limit, what))
       {
          Limit = limit;
       }

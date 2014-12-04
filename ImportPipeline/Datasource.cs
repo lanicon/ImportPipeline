@@ -27,6 +27,7 @@ namespace Bitmanager.ImportPipeline
       public String EndpointName { get; private set; }
       public int LogAdds { get; set; }
       public int MaxAdds { get; set; }
+      public int MaxEmits { get; set; }
       public bool Active { get; private set; }
 
       public DatasourceAdmin(PipelineContext ctx, XmlNode node)
@@ -36,6 +37,7 @@ namespace Bitmanager.ImportPipeline
          Active = node.ReadBool("@active", true);
          LogAdds = node.ReadInt(1, "@logadds", -1);
          MaxAdds = node.ReadInt(1, "@maxadds", -1);
+         MaxEmits = node.ReadInt(1, "@maxemits", -1);
          String tmp = node.ReadStr(1, "@shiftlastruntime", null);
          ShiftLastRuntime = computeRuntimeShift (tmp);
          if (ShiftLastRuntime == int.MinValue) throw new BMNodeException(node, "Invalid shiftlastruntime [{0}]: must be <int>[d|h|m|s].", tmp);

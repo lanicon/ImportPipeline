@@ -118,6 +118,7 @@ namespace Bitmanager.ImportPipeline
             for (line=0; csvRdr.NextRecord(); line++ )
             {
                if (startAt > line) continue;
+               ctx.CountEmit();
                sink.HandleValue(ctx, "record/_start", null);
                var fields = csvRdr.Fields;
                int fieldCount = fields.Count;
@@ -127,10 +128,9 @@ namespace Bitmanager.ImportPipeline
                {
                   sink.HandleValue(ctx, keys[i], fields[i]);
                }
-               ctx.Emitted++;
                sink.HandleValue(ctx, "record", null);
             }
-            ctx.ImportLog.Log ("Invalid records: {0}", csvRdr.NumInvalidRecords);
+            ctx.ImportLog.Log("Invalid records: {0}", csvRdr.NumInvalidRecords);
          }
          sink.HandleValue(ctx, Pipeline.ItemStop, fileName);
       }
@@ -197,6 +197,7 @@ namespace Bitmanager.ImportPipeline
          sink.HandleValue(ctx, Pipeline.ItemStart, fileName);
          for (int r = 0; r < rows.Count; r++)
          {
+            ctx.CountEmit();
             String[] arr = rows[r];
             rows[r] = null; //Let this element be GC-ed
             sink.HandleValue(ctx, "record/_start", null);
@@ -204,7 +205,6 @@ namespace Bitmanager.ImportPipeline
             {
                sink.HandleValue(ctx, keys[i-1], arr[i]);
             }
-            ctx.Emitted++;
             sink.HandleValue(ctx, "record", null);
          }
          sink.HandleValue(ctx, Pipeline.ItemStop, fileName);

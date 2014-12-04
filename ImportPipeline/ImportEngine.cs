@@ -25,9 +25,12 @@ namespace Bitmanager.ImportPipeline
       UseFlagsFromXml = 1 << 5,
       Silent = 1 << 6,
       RetryErrors = 1 << 7,
+      MaxAddsToMaxEmits = 1 << 8,
    }
    public class ImportEngine
    {
+      private PipelineContext importContext;
+      public PipelineContext ImportContext { get { return importContext; } }
       public XmlHelper Xml { get; private set; }
       public Endpoints Endpoints;
       public Converters Converters;
@@ -42,6 +45,7 @@ namespace Bitmanager.ImportPipeline
       public DateTime StartTimeUtc { get; private set; }
       public int LogAdds { get; set; }
       public int MaxAdds { get; set; }
+      public int MaxEmits { get; set; }
       public _ImportFlags ImportFlags { get; set; }
 
 
@@ -54,6 +58,7 @@ namespace Bitmanager.ImportPipeline
          Logs.DebugLog.Log(((InternalLogger)ImportLog)._Logger.Name);
          LogAdds = 50000;
          MaxAdds = -1;
+         MaxEmits = -1;
       }
       public void Load(String fileName)
       {
@@ -170,7 +175,7 @@ namespace Bitmanager.ImportPipeline
       {
          Import(enabledDSses.SplitStandard());
       }
-      public void Import(String[] enabledDSses=null)
+      public void Import(String[] enabledDSses = null)
       {
          StartTimeUtc = DateTime.UtcNow;
 
@@ -178,6 +183,7 @@ namespace Bitmanager.ImportPipeline
          ImportLog.Log(new String ('_', 80));
          ImportLog.Log(_LogType.ltProgress, "Starting import. Flags={0}, MaxAdds={1}, ActiveDS's='{2}'.", ImportFlags, MaxAdds, enabledDSses == null ? null : String.Join(", ", enabledDSses));
          PipelineContext mainCtx = new PipelineContext(this);
+         importContext = mainCtx;
          Endpoints.Open(mainCtx);
 
          try
@@ -203,6 +209,7 @@ namespace Bitmanager.ImportPipeline
                }
                catch (Exception err)
                {
+                  mainCtx.LastError = err;
                   if (MaxAddsExceededException.ContainsMaxAddsExceededException (err))
                   {
                      ctx.ErrorState |= _ErrorState.Limited;
@@ -237,6 +244,11 @@ namespace Bitmanager.ImportPipeline
             ImportLog.Log(_LogType.ltProgress, "Import ended");
             JavaHostCollection.StopAll();
             Endpoints.Close(mainCtx);
+         }
+         catch (Exception err2)
+         {
+            mainCtx.LastError = err2;
+            throw;
          }
          finally
          {

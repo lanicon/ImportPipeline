@@ -141,6 +141,8 @@ namespace Bitmanager.Importer
             UseWaitCursor = false;
             enableAllButCancel();
             asyncAdmin.Stop();
+            lblStatus.Text = asyncAdmin.Status;
+            if (lblStatus.Text != null) lblStatus.Text = lblStatus.Text.Replace('\r', ' ').Replace('\n', ' ');
             Utils.FreeAndNil (ref asyncAdmin);
          }
          catch
@@ -168,16 +170,8 @@ namespace Bitmanager.Importer
             activeDSses = list.ToArray();
          }
 
-         //if (Debugger.IsAttached)
-         //{
-         //   ImportEngine engine = new ImportEngine();
-         //   engine.Load(comboBox1.Text);
-         //   engine.ImportFlags = uiToFlags();
-         //   engine.MaxAdds = Invariant.ToInt32(txtMaxRecords.Text);
-         //   engine.Import(activeDSses);
-         //}
          AsyncAdmin asyncAdmin = new AsyncAdmin();
-         asyncAdmin.Start(uiToFlags(), comboBox1.Text, activeDSses, Invariant.ToInt32(txtMaxRecords.Text));
+         asyncAdmin.Start(uiToFlags(), comboBox1.Text, activeDSses, Invariant.ToInt32(txtMaxRecords.Text), Invariant.ToInt32(txtMaxEmits.Text));
          this.asyncAdmin = asyncAdmin;
 
          timer1.Enabled = true;
@@ -212,6 +206,7 @@ namespace Bitmanager.Importer
       }
       private void button1_Click(object sender, EventArgs e)
       {
+         lblStatus.Text = null;
          import2();
       }
 
@@ -226,6 +221,7 @@ namespace Bitmanager.Importer
          engine.Load(comboBox1.Text);
          uiFromFlags (engine);
          txtMaxRecords.Text = engine.MaxAdds.ToString();
+         txtMaxEmits.Text = engine.MaxEmits.ToString();
 
          foreach (var ds in engine.Datasources)
          {

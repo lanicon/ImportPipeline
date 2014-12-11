@@ -110,6 +110,7 @@ namespace Bitmanager.ImportPipeline
                   logger.Log(e);
                }
             }
+            logger.Log("StopAll -- atLeastOneWantedToWait={0}.", atLeastOneWantedToWait);
             if (!atLeastOneWantedToWait) continue;
             if (waitForAllExit(runners, limit)) break;
             limit = DateTime.UtcNow.AddSeconds(30);
@@ -119,10 +120,11 @@ namespace Bitmanager.ImportPipeline
          for (int i = 0; i < runners.Count; i++)
          {
             ConsoleRunner runner = runners[i];
-            if (runner.CheckStoppedAndDispose())
-               stoppedNormal++;
-            else
+            runner.CheckStoppedAndDispose();
+            if (runner.ErrorsDuringExit)
                stoppedError++;
+            else
+               stoppedNormal++;
          }
 
          if (stoppedError == 0)
@@ -142,9 +144,10 @@ namespace Bitmanager.ImportPipeline
             if (runner == null) continue;
             int msLeft = (int)limit.Subtract(DateTime.UtcNow).TotalMilliseconds;
             if (msLeft < 0) msLeft = 0;
-
             if (!runner.WaitForExit(msLeft)) allExited = false;
+            logger.Log("StopAll -- waited for exit {0}. code={1}", i, runner.process==null ? -1 : runner.process.ExitCode);
          }
+         logger.Log("StopAll -- allExited={0}", allExited);
          return allExited;
       }
    }

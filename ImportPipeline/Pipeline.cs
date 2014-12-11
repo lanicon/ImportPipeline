@@ -33,8 +33,6 @@ namespace Bitmanager.ImportPipeline
 
    public class Pipeline : NamedItem, IDatasourceSink
    {
-      public const String ItemStart = "_item/_start";
-      public const String ItemStop = "_item/_stop";
       private Dictionary<String, Object> variables;
       private StringDict<IDataEndpoint> endPointCache;
 
@@ -185,12 +183,10 @@ namespace Bitmanager.ImportPipeline
          }
 
          started = true;
-         HandleValue(ctx, "_datasource/_start", ctx.DatasourceAdmin.Name);
       }
 
       public void Stop(PipelineContext ctx)
       {
-         HandleValue(ctx, "_datasource/_stop", ctx.DatasourceAdmin.Name);
          ctx.MissedLog.Log("Stopped datasource [{0}]. {1} missed keys.", ctx.DatasourceAdmin.Name, missed.Count);
          foreach (var kvp in missed)
          {
@@ -211,7 +207,6 @@ namespace Bitmanager.ImportPipeline
          if (endPointCache != null)
             foreach (var kvp in this.endPointCache)
                kvp.Value.Stop(ctx);
-         ctx.LogLastAdd();
          Dump("after import");
 
          endPointCache = null;

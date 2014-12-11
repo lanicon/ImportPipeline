@@ -198,6 +198,8 @@ namespace Bitmanager.ImportPipeline
 
          try
          {
+            _ErrorState stateFilter = ((ImportFlags & _ImportFlags.IgnoreLimited) != 0) ? (~_ErrorState.Limited) : _ErrorState.All; 
+
             for (int i = 0; i < Datasources.Count; i++)
             {
                DatasourceAdmin admin = Datasources[i];
@@ -209,44 +211,19 @@ namespace Bitmanager.ImportPipeline
 
                PipelineContext ctx = new PipelineContext(this, admin);
                var pipeline = admin.Pipeline;
-               ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStart, "[{0}]: starting import with pipeline {1}, default endpoint={2}, maxadds={3} ", admin.Name, pipeline.Name, pipeline.DefaultEndpoint, ctx.MaxAdds);
 
                try
                {
-                  pipeline.Start(ctx);
-                  admin.Datasource.Import(ctx, pipeline);
-                  ImportLog.Log(_LogType.ltProgress | _LogType.ltTimerStop, "[{0}]: import ended. {1}.", admin.Name, ctx.GetStats());
+                  admin.Import(ctx);
+                  mainCtx.ErrorState |= (ctx.ErrorState & stateFilter);
+                  if (ctx.LastError != null) mainCtx.LastError = ctx.LastError;
                }
                catch (Exception err)
                {
                   mainCtx.LastError = err;
-                  if (MaxAddsExceededException.ContainsMaxAddsExceededException (err))
-                  {
-                     ctx.ErrorState |= _ErrorState.Limited;
-                     ImportLog.Log(_LogType.ltWarning | _LogType.ltTimerStop, "[{0}]: {1}", admin.Name, err.Message);
-                     ImportLog.Log("-- " + ctx.GetStats());
-                     if ((ImportFlags & _ImportFlags.IgnoreLimited) != 0)
-                        ImportLog.Log(_LogType.ltWarning, "Limited ignored due to importFlags [{0}].", ImportFlags);
-                     else
-                        mainCtx.ErrorState |= _ErrorState.Limited;
-                  }
-                  else
-                  {
-                     ctx.ErrorState |= _ErrorState.Error;
-                     ImportLog.Log(_LogType.ltError | _LogType.ltTimerStop, "[{0}]: crashed err={1}", admin.Name, err.Message);
-                     ImportLog.Log("-- " + ctx.GetStats());
-                     Exception toThrow = new BMException(err, "{0}\r\nDatasource={1}.", err.Message, admin.Name);
-                     ErrorLog.Log(toThrow);
-                     if ((ImportFlags & _ImportFlags.IgnoreErrors) != 0)
-                        ImportLog.Log(_LogType.ltWarning, "Error ignored due to importFlags [{0}].", ImportFlags);
-                     else
-                     {
-                        mainCtx.ErrorState |= _ErrorState.Error;
-                        throw toThrow;
-                     }
-                  }
+                  mainCtx.ErrorState |= (ctx.ErrorState & stateFilter) | _ErrorState.Error;
+                  throw;
                }
-               pipeline.Stop(ctx);
                Endpoints.OptClosePerDatasource(ctx);
 
                foreach (var c in Converters) c.DumpMissed(ctx);

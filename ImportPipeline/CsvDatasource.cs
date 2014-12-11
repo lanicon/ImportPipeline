@@ -18,7 +18,7 @@ namespace Bitmanager.ImportPipeline
    {
       private IDatasourceFeeder feeder;
       //DSString file;
-      int[] sortValuesToKeep;
+      //int[] sortValuesToKeep;
       int sortKey;
       int startAt;
 
@@ -110,7 +110,8 @@ namespace Bitmanager.ImportPipeline
       protected void processFile(PipelineContext ctx, String fileName, IDatasourceSink sink)
       {
          List<String> keys = new List<string>();
-         sink.HandleValue(ctx, Pipeline.ItemStart, fileName);
+         ctx.SendItemStart(fileName);
+
          using (FileStream strm = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
          {
             CsvReader csvRdr = createReader(strm);
@@ -132,7 +133,7 @@ namespace Bitmanager.ImportPipeline
             }
             ctx.ImportLog.Log("Invalid records: {0}", csvRdr.NumInvalidRecords);
          }
-         sink.HandleValue(ctx, Pipeline.ItemStop, fileName);
+         ctx.SendItemStop();
       }
 
       private int cbSortString(String[] a, String[] b)
@@ -194,7 +195,7 @@ namespace Bitmanager.ImportPipeline
          for (int i = 0; i <= maxFieldCount; i++) keys.Add(String.Format("record/f{0}", i));
 
          //Emit sorted records
-         sink.HandleValue(ctx, Pipeline.ItemStart, fileName);
+         ctx.SendItemStart (fileName);
          for (int r = 0; r < rows.Count; r++)
          {
             ctx.CountEmit();
@@ -207,7 +208,7 @@ namespace Bitmanager.ImportPipeline
             }
             sink.HandleValue(ctx, "record", null);
          }
-         sink.HandleValue(ctx, Pipeline.ItemStop, fileName);
+         ctx.SendItemStop(fileName);
       }
    }
 

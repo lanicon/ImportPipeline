@@ -81,7 +81,7 @@ namespace Bitmanager.ImportPipeline
          //StringDict attribs = getAttributes(elt.Context);
          //var fullElt = (FileNameFeederElement)elt;
          String url = elt.ToString();
-         sink.HandleValue(ctx, Pipeline.ItemStart, elt);
+         ctx.SendItemStart(elt);
          String command = elt.Context.ReadStr("@command", null);
          String index = command != null ? null : elt.Context.ReadStr("@index"); //mutual exclusive with command
          String reqBody = elt.Context.ReadStr("request", this.requestBody);
@@ -124,7 +124,7 @@ namespace Bitmanager.ImportPipeline
                   sink.HandleValue(ctx, "record", doc);
                }
             }
-            sink.HandleValue(ctx, Pipeline.ItemStop, elt);
+            ctx.SendItemStop();
          }
          catch (Exception e)
          {

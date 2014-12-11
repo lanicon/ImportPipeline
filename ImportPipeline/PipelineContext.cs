@@ -27,6 +27,7 @@ namespace Bitmanager.ImportPipeline
       OK = 0,
       Error = 1 << 0,
       Limited = 1 << 2,
+      All = Error | Limited,
    };
 
    public class PipelineContext
@@ -44,6 +45,7 @@ namespace Bitmanager.ImportPipeline
       public Exception LastError { get; internal set; }
       public PipelineAction Action;
       public String SkipUntilKey;
+
       public int Added, Deleted, Skipped, Emitted, Errors;
       public int LogAdds;
       public int MaxAdds;
@@ -51,6 +53,9 @@ namespace Bitmanager.ImportPipeline
       public _ImportFlags ImportFlags;
       public _ActionFlags ActionFlags;
       public _ErrorState ErrorState;
+
+      private bool itemStartPending;
+      private Object valueForItemStart;
 
       public PipelineContext(ImportEngine eng, DatasourceAdmin ds)
       {
@@ -179,6 +184,28 @@ namespace Bitmanager.ImportPipeline
       {
          return String.Format("Emitted={3}, Added={0}, Deleted={1}, Skipped={2}, Errors={4}", Added, Deleted, Skipped, Emitted, Errors);
       }
+
+      public Object SendItemStart(Object value = null)
+      {
+         valueForItemStart = value;
+         itemStartPending = true;
+         return Pipeline.HandleValue(this, "_item/_start", value);
+      }
+      public Object SendItemStop(Object value)
+      {
+         valueForItemStart = null;
+         itemStartPending = false;
+         return Pipeline.HandleValue(this, "_item/_stop", value);
+      }
+      public Object SendItemStop()
+      {
+         return SendItemStop(valueForItemStart);
+      }
+      public void OptSendItemStop()
+      {
+         if (itemStartPending) SendItemStop(valueForItemStart);
+      }
+
    }
 
    public class MaxAddsExceededException : Exception

@@ -19,12 +19,12 @@ namespace Bitmanager.Java
       public Process process;
       protected int remainingRestarts;
       protected int exitCode;
-      protected bool errorsDuringExit;
+      public bool ErrorsDuringExit {get; protected set;}
 
       public ConsoleRunner(ProcessHostSettings settings, String name)
       {
          Settings = settings;
-         String from = String.Format(settings.LogFrom, name);
+         String from = String.Format(settings.LogFrom, name); 
          logger = Logs.CreateLogger(settings.LogName, from);
          optClearLog(logger);
 
@@ -80,7 +80,7 @@ namespace Bitmanager.Java
       public virtual void Start()
       {
 
-         errorsDuringExit = false;
+         ErrorsDuringExit = false;
          logger.Log();
          Process p = new Process();
          ProcessStartInfo psi = p.StartInfo;
@@ -132,7 +132,7 @@ namespace Bitmanager.Java
          if (exitCode != 0)
          {
             lt = _LogType.ltError;
-            errorsDuringExit = true;
+            ErrorsDuringExit = true;
          }
          Utils.FreeAndNil(ref process);
          logger.Log(lt, "Process exited with exitcode={0} (0x{0:X}).", exitCode);
@@ -206,12 +206,12 @@ namespace Bitmanager.Java
 
          logger.Log(_LogType.ltError, "-- Killing process...");
          process.Kill();
-         errorsDuringExit = true;
+         ErrorsDuringExit = true;
          return true;
       }
       public bool CheckStoppedAndDispose()
       {
-         if (checkExited()) return !errorsDuringExit;
+         if (checkExited()) return !ErrorsDuringExit;
 
          Utils.FreeAndNil(ref process);
          return false;

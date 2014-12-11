@@ -68,6 +68,61 @@ namespace Bitmanager.ImportPipeline
          Datasource.Init(ctx, node);
       }
 
+      public void Import (PipelineContext ctx)
+      {
+         Logger importLog = ctx.ImportLog;
+         bool stopNeeded = false;
+         importLog.Log(_LogType.ltProgress | _LogType.ltTimerStart, "[{0}]: starting import with pipeline {1}, default endpoint={2}, maxadds={3} ", Name, Pipeline.Name, Pipeline.DefaultEndpoint, ctx.MaxAdds);
+
+         Pipeline.Start(ctx);
+         Pipeline.HandleValue(ctx, "_datasource/_start", this);
+         try
+         {
+            Datasource.Import(ctx, Pipeline);
+            importLog.Log(_LogType.ltProgress | _LogType.ltTimerStop, "[{0}]: import ended. {1}.", Name, ctx.GetStats());
+            stopNeeded = true;
+         }
+
+         catch (Exception e)
+         {
+            ctx.LastError = e;
+            if (MaxAddsExceededException.ContainsMaxAddsExceededException(e))
+            {
+               stopNeeded = true;
+               ctx.ErrorState |= _ErrorState.Limited;
+               importLog.Log(_LogType.ltWarning | _LogType.ltTimerStop, "[{0}]: {1}", Name, e.Message);
+               importLog.Log("-- " + ctx.GetStats());
+               if ((ctx.ImportFlags & _ImportFlags.IgnoreLimited) != 0)
+                  importLog.Log(_LogType.ltWarning, "Limited ignored due to importFlags [{0}].", ctx.ImportFlags);
+            }
+            else
+            {
+               ctx.ErrorState |= _ErrorState.Error;
+               importLog.Log(_LogType.ltError | _LogType.ltTimerStop, "[{0}]: crashed err={1}", Name, e.Message);
+               importLog.Log("-- " + ctx.GetStats());
+               Exception toThrow = new BMException(e, "{0}\r\nDatasource={1}.", e.Message, Name);
+               ctx.ErrorLog.Log(toThrow);
+               throw toThrow;
+            }
+         }
+
+         finally
+         {
+            try
+            {
+               if (stopNeeded)
+               {
+                  ctx.OptSendItemStop();
+                  Pipeline.HandleValue(ctx, "_datasource/_stop", this);
+               }
+            }
+            finally
+            {
+               Pipeline.Stop(ctx);
+            }
+         }
+      }
+
       static int computeRuntimeShift (String x)
       {
          if (String.IsNullOrEmpty(x)) return 0;

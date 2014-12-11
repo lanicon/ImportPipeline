@@ -54,6 +54,7 @@ namespace Bitmanager.ImportPipeline
       {
          Uri uri = new Uri(Parent.UriBase + HttpUtility.UrlEncode(fn));
          HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create(uri);
+         req.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
          req.KeepAlive = true;
          HttpWebResponse resp;
          try

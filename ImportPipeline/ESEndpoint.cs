@@ -320,11 +320,15 @@ namespace Bitmanager.ImportPipeline
 
       public List<RunAdministration> LoadAdministration(PipelineContext ctx)
       {
+         JObject cmdObj = JObject.Parse("{ 'sort': [{'adm_date': 'desc'}]}");
          List<RunAdministration> ret = new List<RunAdministration>();
-         var e = Connection.CreateEnumerator(this.DocType.UrlPart);
+         String url = ((ctx.ImportFlags & _ImportFlags.FullImport) == 0) ? DocType.UrlPart : DocType.UrlPartForPreviousIndex;
+         var e = new ESRecordEnum (Connection, url, cmdObj, 100, "5m", false);
          foreach (var doc in e)
          {
+            //ctx.ImportLog.Log("Imported id={0}", doc.Id);
             ret.Add(new RunAdministration(doc));
+            if (ret.Count >= 500) break;
          }
          return ret;
       }

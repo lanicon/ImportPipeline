@@ -5,10 +5,9 @@
 
 	<groupId>nl.bitmanager.tikaservice</groupId>
 	<artifactId>tikaservice</artifactId>
-	<packaging>war</packaging>
+	<packaging>jar</packaging>
 	<version>1.0</version>
 	<properties>
-		<jersey.version>1.18.1</jersey.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 
@@ -28,7 +27,43 @@
              <artifactId>maven-war-plugin</artifactId>
              <version>2.1.1</version>
          </plugin>
+			<plugin>
+				<!-- Build an executable JAR -->
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>2.4</version>
+				<configuration>
+					<archive>
+						<manifest>
+							<addClasspath>true</addClasspath>
+							<classpathPrefix>lib/</classpathPrefix>
+							<mainClass>nl.bitmanager.tika.service.TikaService</mainClass>
+						</manifest>
+						<manifestEntries>
+							<implementation-build>${buildNumber}</implementation-build>
+							<git-commit>${mvngit.commit.id}</git-commit>
+						</manifestEntries>
+					</archive>
+				</configuration>
+			</plugin>
+			<plugin>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+					<execution>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>copy-dependencies</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${project.build.directory}/lib</outputDirectory>
+							<excludeArtifactIds>main</excludeArtifactIds>
+							<includeScope>runtime</includeScope>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
+		
 	</build>
 
 	<dependencies>
@@ -38,14 +73,9 @@
 			<version>1.7-SNAPSHOT</version>
 		</dependency>
 		<dependency>
-			<groupId>com.sun.jersey</groupId>
-			<artifactId>jersey-server</artifactId>
-			<version>${jersey.version}</version>
+			<groupId>org.apache.tika</groupId>
+			<artifactId>tika-core</artifactId>
+			<version>1.7-SNAPSHOT</version>
 		</dependency>
-        <dependency>
-            <groupId>com.sun.jersey.contribs</groupId>
-            <artifactId>jersey-spring</artifactId>
-            <version>${jersey.version}</version>
-        </dependency>
 	</dependencies>
 </project>

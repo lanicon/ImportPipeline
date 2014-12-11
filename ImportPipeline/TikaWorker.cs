@@ -64,9 +64,8 @@ namespace Bitmanager.ImportPipeline
          catch (WebException we)
          {
             resp = (HttpWebResponse)we.Response;
-            Logs.ErrorLog.Log("error");
+            Logs.ErrorLog.Log("error: " + we);
             if (resp == null || resp.StatusCode != HttpStatusCode.InternalServerError) throw;
-            Logs.ErrorLog.Log("error: reading");
             StreamReader x = new StreamReader(resp.GetResponseStream(), Encoding.UTF8);
             String strResp = x.ReadToEnd();
             Logs.ErrorLog.Log("error={0}", strResp);

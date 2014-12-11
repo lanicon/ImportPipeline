@@ -94,7 +94,7 @@ namespace Bitmanager.ImportPipeline
                ConsoleRunner runner = runners[i];
                try
                {
-                  logger.Log("StopAll -- phase={0} runner={1}.", phase, runner.Name);
+                  //logger.Log("StopAll -- phase={0} runner={1}.", phase, runner.Name);
                   bool waitNeeded = false;
                   switch (phase)
                   {
@@ -110,7 +110,7 @@ namespace Bitmanager.ImportPipeline
                   logger.Log(e);
                }
             }
-            logger.Log("StopAll -- atLeastOneWantedToWait={0}.", atLeastOneWantedToWait);
+            //logger.Log("StopAll -- atLeastOneWantedToWait={0}.", atLeastOneWantedToWait);
             if (!atLeastOneWantedToWait) continue;
             if (waitForAllExit(runners, limit)) break;
             limit = DateTime.UtcNow.AddSeconds(30);
@@ -145,9 +145,9 @@ namespace Bitmanager.ImportPipeline
             int msLeft = (int)limit.Subtract(DateTime.UtcNow).TotalMilliseconds;
             if (msLeft < 0) msLeft = 0;
             if (!runner.WaitForExit(msLeft)) allExited = false;
-            logger.Log("StopAll -- waited for exit {0}. code={1}", i, runner.process==null ? -1 : runner.process.ExitCode);
+            //logger.Log("StopAll -- waited for exit {0}. code={1}", i, runner.process==null ? -1 : runner.process.ExitCode);
          }
-         logger.Log("StopAll -- allExited={0}", allExited);
+         //logger.Log("StopAll -- allExited={0}", allExited);
          return allExited;
       }
    }

@@ -149,13 +149,18 @@ namespace Bitmanager.ImportPipeline
          if (String.IsNullOrEmpty(dir)) return;
          Environment.SetEnvironmentVariable("IMPORT_TIKA_SERVICE_DIR", dir);
 
-         String jetty = findLargest(dir, "jetty-runner-*.jar");
-         if (jetty == null) return;
+         //String jetty = findLargest(dir, "jetty-runner-*.jar");
+         //if (jetty == null) return;
 
-         String war = findLargest(Path.Combine(dir, "target"), "tikaservice-*.war");
-         if (war == null) return;
+         //String war = findLargest(Path.Combine(dir, "target"), "tikaservice-*.war");
+         //if (war == null) return;
 
-         Environment.SetEnvironmentVariable("IMPORT_TIKA_CMD", String.Format("\"{0}\"  \"{1}\"", jetty, war));
+         //Environment.SetEnvironmentVariable("IMPORT_TIKA_CMD", String.Format("\"{0}\"  \"{1}\"", jetty, war));
+
+         String srv = findLargest(dir, "tikaservice-*.jar");
+         if (srv == null) srv = findLargest(Path.Combine(dir, "target"), "tikaservice-*.jar");
+         Environment.SetEnvironmentVariable("IMPORT_TIKA_CMD", "\"" + srv + "\"");
+         Environment.SetEnvironmentVariable("IMPORT_TIKA_URLBASE", "http://localhost:8080");
       }
 
       private String findLargest(String dir, String spec)

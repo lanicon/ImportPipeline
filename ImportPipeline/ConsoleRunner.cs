@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -145,23 +146,23 @@ namespace Bitmanager.Java
          if (Settings.ShutdownUrl == null) return false;
 
          logger.Log("Sending shutdownUrl {0}, method={1}", Settings.ShutdownUrl, Settings.ShutdownMethod);
-         //Uri url = new Uri(Settings.ShutdownUrl);
-         //try
-         //{
-         //   var resp = ESClient.ES.SendUrl(url, Settings.ShutdownMethod, null);
-         //   _LogType lt = _LogType.ltInfo;
-         //   if (resp.StatusCode != System.Net.HttpStatusCode.OK)
-         //   {
-         //      lt = _LogType.ltError;
-         //      errorsDuringExit = true;
-         //   }
-         //   logger.Log(lt, "-- response; status={0}, responseTxt={1}", resp.StatusCode, resp);
-         //}
-         //catch (Exception e)
-         //{
-         //   logger.Log(e);
-         //}
-         return true;
+         Uri url = new Uri(Settings.ShutdownUrl);
+         Exception saved = null;
+         using (WebClient client = new WebClient())
+         {
+            try 
+            {
+               client.DownloadData(url);
+               return true;  //wait  some time before the ctrl-c
+            }
+            catch (Exception err)
+            {
+               saved = err;
+            }
+         }
+         logger.Log("Shutdown failed...");
+         logger.Log(saved);
+         return false; //No wait needed
       }
 
       [DllImport("user32.dll", CharSet = CharSet.Auto)]

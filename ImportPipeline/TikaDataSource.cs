@@ -68,24 +68,30 @@ namespace Bitmanager.ImportPipeline
          ensureTikaServiceStarted(ctx);
          previousRun = ctx.RunAdministrations.GetLastOKRunDateShifted(ctx.DatasourceAdmin);
          ctx.ImportLog.Log("Previous (shifted) run was {0}.", previousRun);
-         foreach (var elt in feeder.GetElements(ctx))
+         try
          {
-            try
+            foreach (var elt in feeder.GetElements(ctx))
             {
-               importUrl(ctx, sink, elt);
+               try
+               {
+                  importUrl(ctx, sink, elt);
+               }
+               catch (Exception e)
+               {
+                  throw new BMException(e, e.Message + "\r\nUrl=" + elt.Element + ".");
+               }
             }
-            catch (Exception e)
+            //Handle still queued workers
+            while (true)
             {
-               throw new BMException(e, e.Message + "\r\nUrl=" + elt.Element + ".");
+               TikaAsyncWorker popped = pushPop(ctx, sink, null);
+               if (popped == null) break;
+               importUrl(ctx, sink, popped);
             }
          }
-
-         //Handle still queued workers
-         while (true)
+         finally
          {
-            TikaAsyncWorker popped = pushPop(ctx, sink, null);
-            if (popped == null) break;
-            importUrl(ctx, sink, popped);
+            workerQueue.PopAllWithoutException();
          }
       }
 

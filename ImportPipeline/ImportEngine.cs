@@ -38,10 +38,10 @@ namespace Bitmanager.ImportPipeline
       public NamedAdminCollection<Pipeline> Pipelines;
       public ProcessHostCollection JavaHostCollection;
       public ScriptHost ScriptHost;
-      public readonly Logger ImportLog;
-      public readonly Logger DebugLog;
-      public readonly Logger ErrorLog;
-      public readonly Logger MissedLog;
+      public Logger ImportLog;
+      public Logger DebugLog;
+      public Logger ErrorLog;
+      public Logger MissedLog;
       public DateTime StartTimeUtc { get; private set; }
       public int LogAdds { get; set; }
       public int MaxAdds { get; set; }
@@ -51,15 +51,23 @@ namespace Bitmanager.ImportPipeline
 
       public ImportEngine()
       {
+         createLogs();
+         LogAdds = 50000;
+         MaxAdds = -1;
+         MaxEmits = -1;
+      }
+
+      private void createLogs()
+      {
          ImportLog = Logs.CreateLogger("import", "ImportEngine");
          DebugLog = Logs.CreateLogger("import-debug", "ImportEngine");
          MissedLog = Logs.CreateLogger("import-missed", "ImportEngine");
          ErrorLog = Logs.ErrorLog.Clone("ImportEngine");
          Logs.DebugLog.Log(((InternalLogger)ImportLog)._Logger.Name);
-         LogAdds = 50000;
-         MaxAdds = -1;
-         MaxEmits = -1;
+         ImportLog.Log();
+         ErrorLog.Log();
       }
+
       public void Load(String fileName)
       {
          if (!File.Exists(fileName))
@@ -72,7 +80,9 @@ namespace Bitmanager.ImportPipeline
          if (Directory.Exists(dir))
          {
             LogFactorySettings.Instance.AppLogPath = dir;
+            createLogs();
          }
+
          XmlHelper xml = new XmlHelper(fileName);
          Load(xml);
       }
@@ -137,7 +147,7 @@ namespace Bitmanager.ImportPipeline
       {
          String dir = IOUtils.FindDirectoryToRoot(Assembly.GetExecutingAssembly().Location, "TikaService", FindToTootFlags.ReturnNull);
          if (String.IsNullOrEmpty(dir)) return;
-         Environment.SetEnvironmentVariable("IMPORT_TIKA_SERVICE", dir);
+         Environment.SetEnvironmentVariable("IMPORT_TIKA_SERVICE_DIR", dir);
 
          String jetty = findLargest(dir, "jetty-runner-*.jar");
          if (jetty == null) return;

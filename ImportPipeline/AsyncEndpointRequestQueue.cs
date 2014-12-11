@@ -94,6 +94,21 @@ namespace Bitmanager.ImportPipeline
       public abstract List<AsyncRequestElement> PopAll();
 
       /// <summary>
+      /// Waits for all pending requests to complete, pops them, and swallows exceptions
+      /// </summary>
+      public virtual Exception PopAllWithoutException()
+      {
+         Exception ret = null;
+         while (true)
+         {
+            try { if (null == Pop()) break; }
+            catch (Exception e) { if (ret == null) ret = e; }
+         }
+         return ret;
+      }
+
+
+      /// <summary>
       /// Creates an optimized Q, depending on the size
       /// </summary>
       public static AsyncRequestQueue Create(int size)
@@ -203,7 +218,7 @@ namespace Bitmanager.ImportPipeline
             q[i] = null;
             if (ret == null) ret = new List<AsyncRequestElement>();
             popped.EndInvoke();
-            ret.Add (popped);
+            ret.Add(popped);
          }
          return ret == null ? EMPTY : ret;
       }

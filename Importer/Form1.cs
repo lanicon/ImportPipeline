@@ -171,7 +171,7 @@ namespace Bitmanager.Importer
          }
 
          AsyncAdmin asyncAdmin = new AsyncAdmin();
-         asyncAdmin.Start(uiToFlags(), comboBox1.Text, activeDSses, Invariant.ToInt32(txtMaxRecords.Text), Invariant.ToInt32(txtMaxEmits.Text));
+         asyncAdmin.Start(uiToFlags(), comboBox1.Text, activeDSses, Invariant.ToInt32(txtMaxRecords.Text, -1), Invariant.ToInt32(txtMaxEmits.Text, -1));
          this.asyncAdmin = asyncAdmin;
 
          timer1.Enabled = true;

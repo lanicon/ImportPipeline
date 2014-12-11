@@ -94,6 +94,7 @@ namespace Bitmanager.ImportPipeline
                ConsoleRunner runner = runners[i];
                try
                {
+                  logger.Log("StopAll -- phase={0} runner={1}.", phase, runner.Name);
                   bool waitNeeded = false;
                   switch (phase)
                   {
@@ -105,6 +106,7 @@ namespace Bitmanager.ImportPipeline
                }
                catch (Exception e)
                {
+                  logger.Log("StopAll failed in phase {0} for runner {1}.", phase, runner.Name);
                   logger.Log(e);
                }
             }

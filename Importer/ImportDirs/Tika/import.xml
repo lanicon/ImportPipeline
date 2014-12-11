@@ -3,8 +3,8 @@
    <script file="scriptextensions.cs" />
    <tempdir dir="temp" clearonstart="true" />
    <endpoints>
-      <endpoint name="es" type="ESEndpoint" url="http://localhost:9200/" cache="100" maxparallel="1">
-         <waitfor status="yellow"></waitfor>
+      <endpoint name="es" type="ESEndpoint" url="http://localhost:9200/" cache="300" maxparallel="1">
+         <waitfor status="yellow|green"></waitfor>
          <indexes>
             <index name="bosgoed" config="index.config.js"  >
               <type name="bosdoc" keyfield="filename" datefield="filedate" />  
@@ -47,15 +47,14 @@
       <process name='tika' maxrestarts="25" log="tika" errlog="tika_err" logfrom="tika" clearlogs="false">
          <exe>%JAVA_HOME%\bin\java</exe>
          <arguments>-jar %IMPORT_TIKA_CMD%</arguments>
-         <_shutdown method="POST" url="http://localhost:9200/_shutdown" />
-         <_shutdown method="POST" url="http://localhost:9200/_cluster/nodes/_local/_shutdown" />
+         <shutdown method="GET" url="http://localhost:8080/shutdown" />
       </process>
    </processes>
 
    <pipelines>
       <pipeline name="tika" trace="false" converters="trim" endpoint="es.bosdoc" script="ScriptExtensions" >
-         <action key="record" script="ErrorOn2"/>
-         <_action key="record" add="*" script="OnAdd"/>
+         <_action key="record" script="ErrorOn2"/>
+         <action key="record" add="*" script="OnAdd"/>
          <action key="record/_start" field="filename" tovar="key"/>
          <action key="record/_start" field="errorFileName" endpoint="es.errors_" />
          <action key="record/_istextmail" field="isTextMail" />
@@ -95,7 +94,7 @@
    </pipelines>
 
    <datasources>
-      <datasource name="tika" type="TikaDS" trim="true" maxparallel="2" tikaurl='http://localhost:8080/html/filesystem/' tikaprocess='tika' pingurl='http://localhost:8080/ping' pingtimeout='30000' logadds="500">
+      <datasource name="tika" type="TikaDS" trim="true" maxparallel="2" tikaurl='http://localhost:8080/convert?compress=true&amp;file=/' tikaprocess='tika' pingurl='http://localhost:8080/ping' pingtimeout='30000' logadds="5000">
          <dbgstore></dbgstore>
          <provider type="FileNameFeeder" root="e:\ma" filter="message-1-36829\.eml$" virtualroot="ma" />
          <provider type="FileNameFeeder" root="e:\ma" filter="\.eml$" virtualroot="ma" />
@@ -110,7 +109,7 @@
          <provider type="FileNameFeeder" root="C:\Users\pweerd\Documents" filter="\.pdf$|\.eml$|\.docx$" virtualroot="docs" />
          <provider type="FileNameFeeder" root="C:\Users\pweerd\Documents" filter="\.eml$" virtualroot="docs" />
       </datasource>
-      <datasource name="tikadoc" type="TikaDS"  trim="true" maxparallel="2" tikaurl='http://localhost:8080/html/filesystem/' tikaprocess='tika' pingurl='http://localhost:8080/ping' pingtimeout='30000' logadds="500">
+      <datasource name="tikadoc" type="TikaDS"  trim="true" maxparallel="2" tikaurl='http://localhost:8080/convert?compress=true&amp;file=/' tikaprocess='tika' pingurl='http://localhost:8080/ping' pingtimeout='30000' logadds="5000">
          <dbgstore>pdf</dbgstore>
          <provider type="FileNameFeeder" root="C:\Users\pweerd\Documents" filter="n\.pdf$" virtualroot="docs" />
          <provider type="FileNameFeeder" root="C:\Users\pweerd\Documents" filter="\.pdf$|\.eml$|\.docx$" virtualroot="docs" />

@@ -19,7 +19,8 @@ namespace Bitmanager.ImportPipeline
       Field = 2,
       Add = 3,
       Emit = 4,
-      ErrorHandler = 5
+      ErrorHandler = 5,
+      Except = 6
    }
    public enum _InternalActionType
    {
@@ -27,7 +28,8 @@ namespace Bitmanager.ImportPipeline
       Field = 2,
       Add = 3,
       Emit = 4,
-      ErrorHandler = 5
+      ErrorHandler = 5,
+      Except = 6
    }
    public delegate Object ScriptDelegate(PipelineContext ctx, String key, Object value); 
    public abstract class PipelineAction : NamedItem
@@ -189,6 +191,7 @@ namespace Bitmanager.ImportPipeline
             case _ActionType.Add: return _InternalActionType.Add;
             case _ActionType.Nop: return _InternalActionType.Nop;
             case _ActionType.ErrorHandler: return _InternalActionType.ErrorHandler;
+            case _ActionType.Except: return _InternalActionType.Except;
          }
          if (node.SelectSingleNode("@add") != null) return _InternalActionType.Add;
          if (node.SelectSingleNode("@nop") != null) return _InternalActionType.Nop;
@@ -206,6 +209,7 @@ namespace Bitmanager.ImportPipeline
             case _InternalActionType.Field: return new PipelineFieldAction(pipeline, node);
             case _InternalActionType.Emit: return new PipelineEmitAction(pipeline, node);
             case _InternalActionType.ErrorHandler: return new PipelineErrorAction(pipeline, node);
+            case _InternalActionType.Except: return new PipelineExceptionAction(pipeline, node);
          }
          throw new Exception ("Unexpected _InternalActionType: " + act);
       }
@@ -320,7 +324,7 @@ namespace Bitmanager.ImportPipeline
                }
             }
          }
-         ctx.CountAndLogAdd();
+         ctx.IncrementAndLogAdd();
          endPoint.Add(ctx);
          endPoint.Clear();
          pipeline.ClearVariables();
@@ -383,16 +387,38 @@ namespace Bitmanager.ImportPipeline
          : base(pipeline, node)
       {
       }
-      public PipelineNopAction(String name): base(name){}
+      public PipelineNopAction(String name) : base(name) { }
 
       internal PipelineNopAction(PipelineNopAction template, String name, Regex regex)
          : base(template, name, regex)
       {
       }
 
-      public override Object  HandleValue(PipelineContext ctx, String key, Object value)
+      public override Object HandleValue(PipelineContext ctx, String key, Object value)
       {
          return null;
+      }
+   }
+
+   public class PipelineExceptionAction : PipelineAction
+   {
+      protected String msg;
+      public PipelineExceptionAction(Pipeline pipeline, XmlNode node)
+         : base(pipeline, node)
+      {
+         msg = node.ReadStr("@msg", "Exception requested by action.");
+      }
+      public PipelineExceptionAction(String name) : base(name) { }
+
+      internal PipelineExceptionAction(PipelineExceptionAction template, String name, Regex regex)
+         : base(template, name, regex)
+      {
+         this.msg = optReplace(regex, name, template.msg);
+      }
+
+      public override Object HandleValue(PipelineContext ctx, String key, Object value)
+      {
+         throw new Exception(msg);
       }
    }
 

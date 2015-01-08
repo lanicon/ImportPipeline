@@ -105,7 +105,7 @@ namespace Bitmanager.ImportPipeline
                      else
                      {
                         keys[lvl] = keys[lvl - 1] + "/" + rdr.Name;
-                        if (lvl == 1) ctx.CountEmit();
+                        if (lvl == 1) ctx.IncrementEmitted();
                      }
 
                      //l.Log("{0}: [{1}, {2}]", lvl, keys[lvl], rdr.NodeType);

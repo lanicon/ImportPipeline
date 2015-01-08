@@ -119,7 +119,7 @@ namespace Bitmanager.ImportPipeline
             for (line=0; csvRdr.NextRecord(); line++ )
             {
                if (startAt > line) continue;
-               ctx.CountEmit();
+               ctx.IncrementEmitted();
                sink.HandleValue(ctx, "record/_start", null);
                var fields = csvRdr.Fields;
                int fieldCount = fields.Count;
@@ -198,7 +198,7 @@ namespace Bitmanager.ImportPipeline
          ctx.SendItemStart (fileName);
          for (int r = 0; r < rows.Count; r++)
          {
-            ctx.CountEmit();
+            ctx.IncrementEmitted();
             String[] arr = rows[r];
             rows[r] = null; //Let this element be GC-ed
             sink.HandleValue(ctx, "record/_start", null);

@@ -146,7 +146,7 @@ namespace Bitmanager.ImportPipeline
 
       private void importUrl(PipelineContext ctx, IDatasourceSink sink, TikaAsyncWorker worker)
       {
-         ctx.CountEmit();
+         ctx.IncrementEmitted();
          String fileName = worker.FullElt.FileName;
          sink.HandleValue(ctx, "record/_start", fileName);
          sink.HandleValue(ctx, "record/lastmodutc", worker.LastModifiedUtc);

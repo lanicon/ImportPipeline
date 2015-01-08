@@ -43,6 +43,7 @@
     <Reference Include="HtmlAgilityPack">
       <HintPath>..\..\_References\HtmlAgilityPack.dll</HintPath>
     </Reference>
+    <Reference Include="MySql.Data, Version=6.9.5.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL" />
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\_References\Newtonsoft.Json.dll</HintPath>
     </Reference>
@@ -87,6 +88,7 @@
     <Compile Include="ScriptBase.cs" />
     <Compile Include="ScriptHost.cs" />
     <Compile Include="SpecialCharsReplacer.cs" />
+    <Compile Include="SqlDatasource.cs" />
     <Compile Include="TestDatasource.cs" />
     <Compile Include="TikaWorker.cs" />
     <Compile Include="TikaDataSource.cs" />

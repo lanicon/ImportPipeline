@@ -35,6 +35,7 @@ namespace Bitmanager.ImportPipeline
             case _InternalActionType.Nop: return new PipelineNopTemplate(pipeline, node);
             case _InternalActionType.Field: return new PipelineFieldTemplate(pipeline, node);
             case _InternalActionType.Emit: return new PipelineEmitTemplate(pipeline, node);
+            case _InternalActionType.Except: return new PipelineExceptionTemplate(pipeline, node);
          }
          throw new Exception ("Unexpected _InternalActionType: " + act);
       }
@@ -57,6 +58,20 @@ namespace Bitmanager.ImportPipeline
       {
          if (!regex.IsMatch(key)) return null;
          return new PipelineNopAction((PipelineNopAction)template, key, regex);
+      }
+   }
+   public class PipelineExceptionTemplate : PipelineTemplate
+   {
+      public PipelineExceptionTemplate(Pipeline pipeline, XmlNode node)
+         : base(pipeline, node)
+      {
+         template = new PipelineExceptionAction(pipeline, node);
+      }
+
+      public override PipelineAction OptCreateAction(PipelineContext ctx, String key)
+      {
+         if (!regex.IsMatch(key)) return null;
+         return new PipelineExceptionAction((PipelineExceptionAction)template, key, regex);
       }
    }
 

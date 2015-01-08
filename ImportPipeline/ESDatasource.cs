@@ -108,7 +108,7 @@ namespace Bitmanager.ImportPipeline
                ctx.ImportLog.Log("Starting scan of {0} records. Index={1}, connection={2}, async={3}, buffersize={4} requestbody={5}, splituntil={6}, scan={7}.", e.Count, index, url, e.Async, numRecords, req != null, splitUntil, scan);
                foreach (var doc in e)
                {
-                  ctx.CountEmit();
+                  ctx.IncrementEmitted();
                   sink.HandleValue(ctx, "record/_sort", doc.Sort);
                   sink.HandleValue(ctx, "record/_type", doc.Type);
                   foreach (var kvp in doc)

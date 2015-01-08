@@ -130,7 +130,7 @@ namespace Bitmanager.ImportPipeline
       }
 
 
-      public void CountEmit ()
+      public void IncrementEmitted ()
       {
          if (MaxEmits >= 0 && Emitted >= MaxEmits)
          {
@@ -140,7 +140,7 @@ namespace Bitmanager.ImportPipeline
          ++Emitted;
       }
 
-      public void CountAndLogAdd()
+      public void IncrementAndLogAdd()
       {
          if (MaxAdds >= 0 && Added >= MaxAdds)
          {

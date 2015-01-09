@@ -28,16 +28,17 @@ namespace Bitmanager.ImportPipeline
 
       public static PipelineTemplate Create(Pipeline pipeline, XmlNode node)
       {
-         _InternalActionType act = PipelineAction.GetActionType(node); 
+         var act = PipelineAction.GetActionType(node); 
          switch (act)
          {
-            case _InternalActionType.Add: return new PipelineAddTemplate(pipeline, node);
-            case _InternalActionType.Nop: return new PipelineNopTemplate(pipeline, node);
-            case _InternalActionType.Field: return new PipelineFieldTemplate(pipeline, node);
-            case _InternalActionType.Emit: return new PipelineEmitTemplate(pipeline, node);
-            case _InternalActionType.Except: return new PipelineExceptionTemplate(pipeline, node);
+            case _ActionType.Add: return new PipelineAddTemplate(pipeline, node);
+            case _ActionType.Nop: return new PipelineNopTemplate(pipeline, node);
+            case _ActionType.Field: return new PipelineFieldTemplate(pipeline, node);
+            case _ActionType.Emit: return new PipelineEmitTemplate(pipeline, node);
+            case _ActionType.Except: return new PipelineExceptionTemplate(pipeline, node);
          }
-         throw new Exception ("Unexpected _InternalActionType: " + act);
+         act.ThrowUnexpected();
+         return null;
       }
 
       public override string ToString()

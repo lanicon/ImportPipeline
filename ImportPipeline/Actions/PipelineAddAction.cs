@@ -8,6 +8,7 @@ using System.Xml;
 using Newtonsoft.Json.Linq;
 using Bitmanager.Json;
 using System.Text.RegularExpressions;
+using Bitmanager.Elastic;
 
 namespace Bitmanager.ImportPipeline
 {

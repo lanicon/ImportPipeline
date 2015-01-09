@@ -56,6 +56,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Actions\PipelineAddAction.cs" />
+    <Compile Include="Actions\PipelineEmitAction.cs" />
+    <Compile Include="Actions\PipelineErrorAction.cs" />
+    <Compile Include="Actions\PipelineFieldAction.cs" />
+    <Compile Include="Actions\PipelineNopAction.cs" />
     <Compile Include="admincollections.cs" />
     <Compile Include="ComplexConverters.cs" />
     <Compile Include="AsyncEndpointRequestQueue.cs" />
@@ -65,6 +70,7 @@
     <Compile Include="Datasources\ESDatasource.cs" />
     <Compile Include="Endpoints\JsonEndPoint.cs" />
     <Compile Include="PerlRegex.cs" />
+    <Compile Include="Actions\PipelineExceptionAction.cs" />
     <Compile Include="ProcessHost.cs" />
     <Compile Include="Converters.cs" />
     <Compile Include="Datasources\CsvDatasource.cs" />

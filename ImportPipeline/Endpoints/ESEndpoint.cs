@@ -322,15 +322,32 @@ namespace Bitmanager.ImportPipeline
       {
          JObject cmdObj = JObject.Parse("{ 'sort': [{'adm_date': 'desc'}]}");
          List<RunAdministration> ret = new List<RunAdministration>();
-         String url = ((ctx.ImportFlags & _ImportFlags.FullImport) == 0) ? DocType.UrlPart : DocType.UrlPartForPreviousIndex;
-         var e = new ESRecordEnum (Connection, url, cmdObj, 100, "5m", false);
-         foreach (var doc in e)
+
+         try
          {
-            //ctx.ImportLog.Log("Imported id={0}", doc.Id);
-            ret.Add(new RunAdministration(doc));
-            if (ret.Count >= 500) break;
+            String url = ((ctx.ImportFlags & _ImportFlags.FullImport) == 0) ? DocType.UrlPart : DocType.UrlPartForPreviousIndex;
+            if (!Connection.Exists (url))
+            {
+               ctx.ErrorLog.Log("Cannot load previous administration: '{0}' not exists", url);
+               return ret;
+            }
+
+            var e = new ESRecordEnum(Connection, url, cmdObj, 100, "5m", false);
+            foreach (var doc in e)
+            {
+               //ctx.ImportLog.Log("Imported id={0}", doc.Id);
+               ret.Add(new RunAdministration(doc));
+               if (ret.Count >= 500) break;
+            }
+            return ret;
          }
-         return ret;
+         catch (Exception err)
+         {
+            if ((ctx.ImportFlags & _ImportFlags.FullImport) == 0) throw;
+            ctx.ErrorLog.Log("Cannot load previous administration:");
+            ctx.ErrorLog.Log(err);
+            return ret;
+         }
       }
       #endregion
 

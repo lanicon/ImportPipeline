@@ -78,6 +78,7 @@
          <action key="record/Message-ID" field="msg_ref" flags="unique|toarray" />
          <action key="record/In-Reply-To" field="msg_ref" flags="unique|toarray"/>
          <action key="record/References" field="msg_ref" flags="unique|toarray"/>
+         <action key="record/security/group" field="secgroups" flags="unique|toarray"/>
 
          <template expr="^record/.*(save-date|modified|save-date)$" field="date_modified" convert="date" flags="keepSmallest"/>
          <template expr="^record/.*(creation-date|created)$" field="date_created" converters="date" flags="keepSmallest"/>
@@ -95,6 +96,7 @@
 
    <datasources>
       <datasource name="tika" type="TikaDS" trim="true" maxparallel="2" tikaurl='http://localhost:8080/convert?compress=true&amp;file=/' tikaprocess='tika' pingurl='http://localhost:8080/ping' pingtimeout='30000' logadds="5000">
+         <security emit='true' wellknown="everyone" />
          <dbgstore></dbgstore>
          <provider type="FileNameFeeder" root="e:\ma" filter="message-1-36829\.eml$" virtualroot="ma" />
          <provider type="FileNameFeeder" root="e:\ma" filter="\.eml$" virtualroot="ma" />

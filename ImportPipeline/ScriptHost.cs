@@ -63,6 +63,7 @@ namespace Bitmanager.ImportPipeline
          _refs = new StringDict();
          AddReference("system.dll");
          AddReference("system.xml.dll");
+         AddReference("system.linq.dll");
       }
 
 

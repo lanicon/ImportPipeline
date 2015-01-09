@@ -8,7 +8,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-//using System.Threading.Tasks;
 using System.Xml;
 using System.Net;
 using System.IO;
@@ -18,6 +17,8 @@ using System.Web;
 using System.Threading;
 using Bitmanager.Elastic;
 using Bitmanager.IO;
+using System.Security.Principal;
+using System.Security.AccessControl;
 
 namespace Bitmanager.ImportPipeline
 {
@@ -31,8 +32,10 @@ namespace Bitmanager.ImportPipeline
       private int pingTimeout;
       private int abstractLength, abstractDelta;
       private int maxParallel;
+      private bool emitSecurity;
 
       private AsyncRequestQueue workerQueue;
+      private SecurityCache securityCache;
 
       public void Init(PipelineContext ctx, XmlNode node)
       {
@@ -53,6 +56,7 @@ namespace Bitmanager.ImportPipeline
          pingUrl = node.ReadStr("@pingurl", null);
          pingTimeout = node.ReadInt("@pingtimeout", 10000);
          maxParallel = node.ReadInt("@maxparallel", 1);
+         emitSecurity = node.ReadBool("security/@emit", false); 
       }
 
       private DateTime previousRun;
@@ -68,6 +72,7 @@ namespace Bitmanager.ImportPipeline
          ensureTikaServiceStarted(ctx);
          previousRun = ctx.RunAdministrations.GetLastOKRunDateShifted(ctx.DatasourceAdmin);
          ctx.ImportLog.Log("Previous (shifted) run was {0}.", previousRun);
+         if (this.emitSecurity) securityCache = new SecurityCache();
          try
          {
             foreach (var elt in feeder.GetElements(ctx))
@@ -92,6 +97,7 @@ namespace Bitmanager.ImportPipeline
          finally
          {
             workerQueue.PopAllWithoutException();
+            Utils.FreeAndNil(ref securityCache);
          }
       }
 
@@ -164,6 +170,42 @@ namespace Bitmanager.ImportPipeline
                sink.HandleValue(ctx, "record/" + kvp.Key, kvp.Value);
             }
 
+            ctx.ImportLog.Log("emitsec=" + emitSecurity);
+            if (emitSecurity)
+            {
+               FileInfo info = new FileInfo(fileName);
+               var ac = info.GetAccessControl();
+               var rules = ac.GetAccessRules(true, true, typeof(NTAccount));
+               foreach (AuthorizationRule rule in rules)
+               {
+                  FileSystemAccessRule fsRule = rule as FileSystemAccessRule;
+                  if (fsRule.AccessControlType == AccessControlType.Deny) continue;
+                  //ctx.ImportLog.Log("rule2 {0}: {1}", securityCache.GetAccount(rule.IdentityReference), fsRule.FileSystemRights);
+                  if ((fsRule.FileSystemRights & FileSystemRights.ReadData) == 0) continue;
+
+                  var account = securityCache.GetAccount(rule.IdentityReference);
+                  String sid = account.Sid.Value;
+                  if (account.WellKnownSid != null)
+                  {
+                     WellKnownSidType sidType = (WellKnownSidType)account.WellKnownSid;
+                     //ctx.ImportLog.Log("wellksid={0}", sidType);
+                     switch (sidType)
+                     {
+                        case WellKnownSidType.AuthenticatedUserSid:
+                        case WellKnownSidType.WorldSid:
+                           sid = sidType.ToString();
+                           break;
+                        default: continue;
+                     }
+                  }
+                  else
+                  {
+                     if (!account.IsGroup) continue;
+                  }
+                  sink.HandleValue(ctx, "record/security/group", sid);
+               }                         
+
+            }
             //Add dummy type to recognize the errors
             //if (error)
             //   doc.AddField("content_type", "ConversionError");

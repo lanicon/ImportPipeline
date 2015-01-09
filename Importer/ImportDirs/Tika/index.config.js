@@ -88,6 +88,7 @@
                "type": "string",
                "analyzer": "lc_text"
             },
+            secgroups: {"type": "string", "analyzer": "lc_keyword"},
             "recip": {"type": "string", "analyzer": "lc_text"},
             "recip_cc": {"type": "string", "analyzer": "lc_text"},
             "msg_id": {"type": "string", "analyzer": "lc_keyword"},

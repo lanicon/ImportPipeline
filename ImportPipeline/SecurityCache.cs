@@ -29,7 +29,7 @@ namespace Bitmanager.ImportPipeline
          wellKnownTypes = types;
       }
 
-      internal SecurityAccount(SecurityCache parent, IdentityReference ident)
+      internal protected SecurityAccount(SecurityCache parent, IdentityReference ident)
       {
          NTAccount = ident as NTAccount;
          if (NTAccount != null)
@@ -141,17 +141,25 @@ namespace Bitmanager.ImportPipeline
          Utils.Free(NTAccount, ref e);
          Utils.Free(Sid, ref e);
       }
+
+      public static SecurityAccount FactoryImpl(SecurityCache parent, IdentityReference ident)
+      {
+         return new TikaSecurityAccount(parent, ident);
+      }
+
    }
 
    public class SecurityCache: IDisposable
    {
+      private readonly Func<SecurityCache, IdentityReference, SecurityAccount> factory;
       private List<SecurityAccount> accountList;
       private StringDict<PrincipalContext> contextCache;
       private StringDict<SecurityAccount> accountCache;
       private Object _lock;
 
-      public SecurityCache()
+      public SecurityCache(Func<SecurityCache, IdentityReference, SecurityAccount> factory=null)
       {
+         this.factory = (factory != null) ? factory : SecurityAccount.FactoryImpl;
          contextCache = new StringDict<PrincipalContext>();
          accountCache = new StringDict<SecurityAccount>();
          _lock = new object();
@@ -202,7 +210,7 @@ namespace Bitmanager.ImportPipeline
             }
          }
 
-         SecurityAccount created = new SecurityAccount(this, ident);
+         SecurityAccount created = factory (this, ident);
          lock (_lock)
          {
             if (accountCache.TryGetValue(ident.Value, out ret))

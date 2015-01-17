@@ -188,11 +188,23 @@ namespace Bitmanager.ImportPipeline
       {
          ctx.MissedLog.Log();
          ctx.MissedLog.Log("Datasource [{0}] missed {1} keys.", ctx.DatasourceAdmin.Name, missed.Count);
+         List<string> lines = new List<string>();
          foreach (var kvp in missed)
          {
-            ctx.MissedLog.Log("-- {0}", kvp.Key);
+            if (kvp.Value != null) continue; //skip templated actions
+            lines.Add(String.Format(@"-- [{0}]", kvp.Key));
+         }
+         int offset = lines.Count;
+         foreach (var kvp in missed)
+         {
+            if (kvp.Value == null) continue; //skip real missed
+            lines.Add(String.Format(@"-- [{0}] matched by template [{1}].", kvp.Key, kvp.Value));
          }
          missed = new StringDict();
+         lines.Sort(0, offset, StringComparer.InvariantCultureIgnoreCase);
+         lines.Sort(offset, lines.Count - offset, StringComparer.InvariantCultureIgnoreCase);
+         foreach (var line in lines) ctx.MissedLog.Log(line);
+
 
          //Optional save the administration records 
          if (ctx.AdminEndpoint != null)
@@ -386,6 +398,7 @@ namespace Bitmanager.ImportPipeline
 
       ADD_TEMPLATE:
          templateExpr = templates[i].Expr;
+         missed[key] = templateExpr;
          while (true)
          {
             a.Start(ctx);

@@ -67,6 +67,7 @@
     <Compile Include="admincollections.cs" />
     <Compile Include="ComplexConverters.cs" />
     <Compile Include="AsyncEndpointRequestQueue.cs" />
+    <Compile Include="DatasourceReport.cs" />
     <Compile Include="Datasources\JsonDatasource.cs" />
     <Compile Include="Credentials.cs" />
     <Compile Include="Endpoints\CsvEndpoint.cs" />

@@ -32,7 +32,7 @@ namespace Bitmanager.ImportPipeline
       private int pingTimeout;
       private int abstractLength, abstractDelta;
       private int maxParallel;
-      private bool emitSecurity;
+      private bool mustEmitSecurity;
 
       private AsyncRequestQueue workerQueue;
       private SecurityCache securityCache;
@@ -56,7 +56,7 @@ namespace Bitmanager.ImportPipeline
          pingUrl = node.ReadStr("@pingurl", null);
          pingTimeout = node.ReadInt("@pingtimeout", 10000);
          maxParallel = node.ReadInt("@maxparallel", 1);
-         emitSecurity = node.ReadBool("security/@emit", false); 
+         mustEmitSecurity = node.ReadBool("security/@emit", false); 
       }
 
       private DateTime previousRun;
@@ -72,9 +72,9 @@ namespace Bitmanager.ImportPipeline
          ensureTikaServiceStarted(ctx);
          previousRun = ctx.RunAdministrations.GetLastOKRunDateShifted(ctx.DatasourceAdmin);
          ctx.ImportLog.Log("Previous (shifted) run was {0}.", previousRun);
-         if (this.emitSecurity) securityCache = new SecurityCache();
          try
          {
+            if (this.mustEmitSecurity) securityCache = new SecurityCache(TikaSecurityAccount.FactoryImpl);
             foreach (var elt in feeder.GetElements(ctx))
             {
                try
@@ -170,42 +170,7 @@ namespace Bitmanager.ImportPipeline
                sink.HandleValue(ctx, "record/" + kvp.Key, kvp.Value);
             }
 
-            ctx.ImportLog.Log("emitsec=" + emitSecurity);
-            if (emitSecurity)
-            {
-               FileInfo info = new FileInfo(fileName);
-               var ac = info.GetAccessControl();
-               var rules = ac.GetAccessRules(true, true, typeof(NTAccount));
-               foreach (AuthorizationRule rule in rules)
-               {
-                  FileSystemAccessRule fsRule = rule as FileSystemAccessRule;
-                  if (fsRule.AccessControlType == AccessControlType.Deny) continue;
-                  //ctx.ImportLog.Log("rule2 {0}: {1}", securityCache.GetAccount(rule.IdentityReference), fsRule.FileSystemRights);
-                  if ((fsRule.FileSystemRights & FileSystemRights.ReadData) == 0) continue;
-
-                  var account = securityCache.GetAccount(rule.IdentityReference);
-                  String sid = account.Sid.Value;
-                  if (account.WellKnownSid != null)
-                  {
-                     WellKnownSidType sidType = (WellKnownSidType)account.WellKnownSid;
-                     //ctx.ImportLog.Log("wellksid={0}", sidType);
-                     switch (sidType)
-                     {
-                        case WellKnownSidType.AuthenticatedUserSid:
-                        case WellKnownSidType.WorldSid:
-                           sid = sidType.ToString();
-                           break;
-                        default: continue;
-                     }
-                  }
-                  else
-                  {
-                     if (!account.IsGroup) continue;
-                  }
-                  sink.HandleValue(ctx, "record/security/group", sid);
-               }                         
-
-            }
+            if (mustEmitSecurity) emitSecurity(ctx, sink, fileName);
             //Add dummy type to recognize the errors
             //if (error)
             //   doc.AddField("content_type", "ConversionError");
@@ -228,8 +193,50 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
+      private void emitSecurity(PipelineContext ctx, IDatasourceSink sink, String fileName)
+      {
+         FileInfo info = new FileInfo(fileName);
+         var ac = info.GetAccessControl();
+         var rules = ac.GetAccessRules(true, true, typeof(NTAccount));
+         foreach (AuthorizationRule rule in rules)
+         {
+            FileSystemAccessRule fsRule = rule as FileSystemAccessRule;
+            if (fsRule.AccessControlType == AccessControlType.Deny) continue;
+            //ctx.ImportLog.Log("rule2 {0}: {1}", securityCache.GetAccount(rule.IdentityReference), fsRule.FileSystemRights);
+            if ((fsRule.FileSystemRights & FileSystemRights.ReadData) == 0) continue;
+
+            String access = null;
+            switch (fsRule.AccessControlType)
+            {
+               case AccessControlType.Allow: access = "/allow"; break;
+               case AccessControlType.Deny: access = "/deny"; break;
+               default: access = "/" + fsRule.ToString().ToLowerInvariant(); break;
+            }
+
+            var account = securityCache.GetAccount(rule.IdentityReference);
+            if (account.WellKnownSid != null)
+            {
+               WellKnownSidType sidType = (WellKnownSidType)account.WellKnownSid;
+               //ctx.ImportLog.Log("wellksid={0}", sidType);
+               switch (sidType)
+               {
+                  case WellKnownSidType.AuthenticatedUserSid:
+                  case WellKnownSidType.WorldSid:
+                     break;
+                  default: continue;
+               }
+            }
+            else
+            {
+               if (!account.IsGroup) continue;
+            }
+            sink.HandleValue(ctx, "record/security/group" + access, account);
+         }
+      }
+
       private void ensureTikaServiceStarted(PipelineContext ctx)
       {
+         ctx.ImportLog.Log(_LogType.ltTimerStart, "xx starting tika");
          ctx.ImportEngine.JavaHostCollection.EnsureStarted(this.processName);
          if (pingUrl == null)
          {
@@ -238,6 +245,7 @@ namespace Bitmanager.ImportPipeline
             return;
          }
 
+         ctx.ImportLog.Log(_LogType.ltTimer, "xx waiting");
          DateTime limit = DateTime.UtcNow.AddMilliseconds(pingTimeout);
          Uri uri = new Uri(pingUrl);
          Exception saved = null;
@@ -248,6 +256,7 @@ namespace Bitmanager.ImportPipeline
                try
                {
                   client.DownloadData(uri);
+                  ctx.ImportLog.Log(_LogType.ltTimerStop, "xx started");
                   return;
                }
                catch (Exception err)
@@ -598,6 +607,40 @@ namespace Bitmanager.ImportPipeline
       {
          if (coll == null) return new List<HtmlNode>();
          return coll.ToList();
+      }
+   }
+
+   public class TikaSecurityAccount : SecurityAccount, IComparable<TikaSecurityAccount>
+   {
+      public readonly String ExportedName;
+      internal protected TikaSecurityAccount(SecurityCache parent, IdentityReference ident): base (parent, ident)
+      {
+         ExportedName = WellKnownSid == null ? base.Sid.Value : ((WellKnownSidType)WellKnownSid).ToString();
+      }
+
+      public override bool Equals(object obj)
+      {
+         if (obj==this) return true;
+
+         TikaSecurityAccount other = obj as TikaSecurityAccount;
+         if (other == null) return false;
+         return ExportedName == other.ExportedName;
+      }
+
+      public override string ToString()
+      {
+         return ExportedName;
+      }
+
+      public static SecurityAccount FactoryImpl(SecurityCache parent, IdentityReference ident)
+      {
+         return new TikaSecurityAccount(parent, ident);
+      }
+
+      public int CompareTo(TikaSecurityAccount other)
+      {
+         if (other == null) return 1;
+         return ExportedName.CompareTo(other.ExportedName);
       }
    }
 }

@@ -11,7 +11,7 @@ namespace Bitmanager.Importer
 {
    public class EngineWrapper : MarshalByRefObject
    {
-      public String Run(_ImportFlags flags, String xml, String[] activeDS, int maxAdds, int maxEmits)
+      public ImportReport Run(_ImportFlags flags, String xml, String[] activeDS, int maxAdds, int maxEmits)
       {
          try
          {
@@ -20,8 +20,7 @@ namespace Bitmanager.Importer
             engine.ImportFlags = flags;
             engine.MaxAdds = maxAdds;
             engine.MaxEmits = maxEmits;
-            engine.Import(activeDS);
-            return (engine.ImportContext.LastError == null) ? null : engine.ImportContext.LastError.Message;
+            return engine.Import(activeDS);
          }
          catch (Exception e)
          {
@@ -33,9 +32,9 @@ namespace Bitmanager.Importer
 
    public class AsyncAdmin : IDisposable
    {
-      public String Status;
+      public ImportReport Report;
       AppDomain domain;
-      Func<_ImportFlags, String, String[], int, int, String> action;
+      Func<_ImportFlags, String, String[], int, int, ImportReport> action;
       IAsyncResult asyncResult;
       bool started; 
 
@@ -58,7 +57,7 @@ namespace Bitmanager.Importer
          IAsyncResult ar = asyncResult;
          asyncResult = null;
 
-         Status = action.EndInvoke(ar);
+         Report = action.EndInvoke(ar);
       }
 
       public bool CheckStopped()

@@ -58,6 +58,7 @@
          this.lblStatus = new System.Windows.Forms.Label();
          this.label4 = new System.Windows.Forms.Label();
          this.txtMaxEmits = new System.Windows.Forms.TextBox();
+         this.lbStatus = new System.Windows.Forms.ListBox();
          this.grpFlags.SuspendLayout();
          this.SuspendLayout();
          // 
@@ -337,13 +338,24 @@
          this.txtMaxEmits.TabIndex = 21;
          this.txtMaxEmits.Text = "-1";
          // 
+         // lbStatus
+         // 
+         this.lbStatus.FormattingEnabled = true;
+         this.lbStatus.ItemHeight = 15;
+         this.lbStatus.Location = new System.Drawing.Point(29, 413);
+         this.lbStatus.Name = "lbStatus";
+         this.lbStatus.ScrollAlwaysVisible = true;
+         this.lbStatus.Size = new System.Drawing.Size(1095, 109);
+         this.lbStatus.TabIndex = 22;
+         // 
          // Form1
          // 
          this.AcceptButton = this.btnImport;
          this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
          this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
          this.CancelButton = this.btnCancel;
-         this.ClientSize = new System.Drawing.Size(1143, 401);
+         this.ClientSize = new System.Drawing.Size(1143, 522);
+         this.Controls.Add(this.lbStatus);
          this.Controls.Add(this.txtMaxEmits);
          this.Controls.Add(this.label4);
          this.Controls.Add(this.lblStatus);
@@ -407,6 +419,7 @@
       private System.Windows.Forms.Label lblStatus;
       private System.Windows.Forms.Label label4;
       private System.Windows.Forms.TextBox txtMaxEmits;
+      private System.Windows.Forms.ListBox lbStatus;
    }
 }
 

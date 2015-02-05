@@ -24,6 +24,7 @@
          <timezone name="CEST" offset="+0200" />
          <timezone name="CET" offset="+0100" />
       </converter>
+      <converter name="string"/>
       <converter name="year"   mode="toLocal" select="y" type="datepart"/>
       <converter name="lower" />
       <converter name="upper" />
@@ -78,7 +79,7 @@
          <action key="record/Message-ID" field="msg_ref" flags="unique|toarray" />
          <action key="record/In-Reply-To" field="msg_ref" flags="unique|toarray"/>
          <action key="record/References" field="msg_ref" flags="unique|toarray"/>
-         <action key="record/security/group" field="secgroups" flags="unique|toarray"/>
+         <action key="record/security/group/allow" field="secgroups" flags="unique|toarray" converters="string"/>
 
          <template expr="^record/.*(save-date|modified|save-date)$" field="date_modified" convert="date" flags="keepSmallest"/>
          <template expr="^record/.*(creation-date|created)$" field="date_created" converters="date" flags="keepSmallest"/>

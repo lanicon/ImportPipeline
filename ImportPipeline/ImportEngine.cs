@@ -29,8 +29,6 @@ namespace Bitmanager.ImportPipeline
    }
    public class ImportEngine
    {
-      private PipelineContext importContext;
-      public PipelineContext ImportContext { get { return importContext; } }
       public XmlHelper Xml { get; private set; }
       public Endpoints Endpoints;
       public Converters Converters;
@@ -186,19 +184,19 @@ namespace Bitmanager.ImportPipeline
       }
 
 
-      public void Import(String enabledDSses)
+      public ImportReport Import(String enabledDSses)
       {
-         Import(enabledDSses.SplitStandard());
+         return Import(enabledDSses.SplitStandard());
       }
-      public void Import(String[] enabledDSses = null)
+      public ImportReport Import(String[] enabledDSses = null)
       {
+         var ret = new ImportReport();
          StartTimeUtc = DateTime.UtcNow;
 
          ImportLog.Log();
          ImportLog.Log(new String ('_', 80));
          ImportLog.Log(_LogType.ltProgress, "Starting import. Flags={0}, MaxAdds={1}, ActiveDS's='{2}'.", ImportFlags, MaxAdds, enabledDSses == null ? null : String.Join(", ", enabledDSses));
          PipelineContext mainCtx = new PipelineContext(this);
-         importContext = mainCtx;
          Endpoints.Open(mainCtx);
 
          try
@@ -222,6 +220,7 @@ namespace Bitmanager.ImportPipeline
                   admin.Import(ctx);
                   mainCtx.ErrorState |= (ctx.ErrorState & stateFilter);
                   if (ctx.LastError != null) mainCtx.LastError = ctx.LastError;
+                  ret.Add(new DatasourceReport(ctx));
                }
                catch (Exception err)
                {
@@ -255,6 +254,8 @@ namespace Bitmanager.ImportPipeline
                ImportLog.Log(e2);
             }
          }
+         ret.SetGlobalStatus(mainCtx);
+         return ret;
       }
 
       private static String replaceKnownTypes(String typeName)

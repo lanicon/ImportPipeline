@@ -30,7 +30,7 @@ namespace Bitmanager.Importer
       [DllImport("user32.dll")]
       public static extern int SendMessage(IntPtr hwnd, int message, int wParam, IntPtr lParam);
 
-      
+
       private const String HISTORY_KEY = @"Software\Bitmanager\ImportPipeline";
       public Form1()
       {
@@ -44,14 +44,14 @@ namespace Bitmanager.Importer
          String dir = Assembly.GetExecutingAssembly().Location;
 
          dir = IOUtils.FindDirectoryToRoot(Path.GetDirectoryName(dir), "ImportDirs");
-         if (dir!=null)
+         if (dir != null)
          {
-            FileTree tree = new FileTree ();
-            tree.AddFileFilter (@"\\import\.xml$", true);
-            tree.ReadFiles (dir);
+            FileTree tree = new FileTree();
+            tree.AddFileFilter(@"\\import\.xml$", true);
+            tree.ReadFiles(dir);
             if (tree.Files.Count != 0)
             {
-               History.LoadHistory(comboBox1, HISTORY_KEY, tree.Files.Select(f=>tree.GetFullName(f)).ToList());
+               History.LoadHistory(comboBox1, HISTORY_KEY, tree.Files.Select(f => tree.GetFullName(f)).ToList());
                return;
             }
          }
@@ -59,14 +59,16 @@ namespace Bitmanager.Importer
       }
       private void trySetIcon()
       {
-         try {
+         try
+         {
             Icon icon = Icon.ExtractAssociatedIcon(Assembly.GetExecutingAssembly().Location);
-            if (icon==null) return;
+            if (icon == null) return;
             this.Icon = icon;
             SendMessage(this.Handle, WM_SETICON, ICON_SMALL, icon.Handle);
             SendMessage(this.Handle, WM_SETICON, ICON_BIG, icon.Handle);
          }
-         catch (Exception e) {
+         catch (Exception e)
+         {
             Logs.ErrorLog.Log(e);
          }
       }
@@ -126,11 +128,11 @@ namespace Bitmanager.Importer
          x.Add("date", DateTime.UtcNow);
          x.Add("double", 123.45);
          MemoryStream m = new MemoryStream();
-            JsonWriter wtr = new JsonTextWriter(new StreamWriter(m));
-            x.WriteTo(wtr);
-            wtr.Flush();
-            String result = Encoding.UTF8.GetString(m.GetBuffer());
-            Logs.ErrorLog.Log(result);
+         JsonWriter wtr = new JsonTextWriter(new StreamWriter(m));
+         x.WriteTo(wtr);
+         wtr.Flush();
+         String result = Encoding.UTF8.GetString(m.GetBuffer());
+         Logs.ErrorLog.Log(result);
       }
       private void timer1_Tick(object sender, EventArgs e)
       {
@@ -141,9 +143,16 @@ namespace Bitmanager.Importer
             UseWaitCursor = false;
             enableAllButCancel();
             asyncAdmin.Stop();
-            lblStatus.Text = asyncAdmin.Status;
+            lblStatus.Text = asyncAdmin.Report.ErrorMessage;
             if (lblStatus.Text != null) lblStatus.Text = lblStatus.Text.Replace('\r', ' ').Replace('\n', ' ');
-            Utils.FreeAndNil (ref asyncAdmin);
+
+            lbStatus.Items.Clear();
+            lbStatus.Items.Add(lblStatus.Text);
+            foreach (var rep in asyncAdmin.Report.DatasourceReports)
+            {
+               lbStatus.Items.Add(rep.ToString());
+            }
+            Utils.FreeAndNil(ref asyncAdmin);
          }
          catch
          {
@@ -207,6 +216,9 @@ namespace Bitmanager.Importer
       private void button1_Click(object sender, EventArgs e)
       {
          lblStatus.Text = null;
+         lbStatus.Items.Clear();
+         lbStatus.Items.Add("Running...");
+
          import2();
       }
 
@@ -219,13 +231,13 @@ namespace Bitmanager.Importer
          dsList.Items.Clear();
          ImportEngine engine = new ImportEngine();
          engine.Load(comboBox1.Text);
-         uiFromFlags (engine);
+         uiFromFlags(engine);
          txtMaxRecords.Text = engine.MaxAdds.ToString();
          txtMaxEmits.Text = engine.MaxEmits.ToString();
 
          foreach (var ds in engine.Datasources)
          {
-            dsList.Items.Add (ds.Name, ds.Active);
+            dsList.Items.Add(ds.Name, ds.Active);
          }
       }
 
@@ -321,23 +333,23 @@ namespace Bitmanager.Importer
          ////pr2 = DateTime.ParseExact(date3, "ddd MMM dd HH:mm:ss zzz  yyyy", Invariant.Culture, System.Globalization.DateTimeStyles.AllowWhiteSpaces);
 
 
-      //   var logger = Logs.DebugLog;
-      //foreach (TimeZoneInfo timeZone in TimeZoneInfo.GetSystemTimeZones())
-      //{
-      //   bool hasDST = timeZone.SupportsDaylightSavingTime;
-      //   TimeSpan offsetFromUtc = timeZone.BaseUtcOffset;
-      //   TimeZoneInfo.AdjustmentRule[] adjustRules;
-      //   string offsetString;
+         //   var logger = Logs.DebugLog;
+         //foreach (TimeZoneInfo timeZone in TimeZoneInfo.GetSystemTimeZones())
+         //{
+         //   bool hasDST = timeZone.SupportsDaylightSavingTime;
+         //   TimeSpan offsetFromUtc = timeZone.BaseUtcOffset;
+         //   TimeZoneInfo.AdjustmentRule[] adjustRules;
+         //   string offsetString;
 
-      //   logger.Log("ID: {0}", timeZone.Id);
-      //   logger.Log("   Display Name: {0, 40}", timeZone.DisplayName);
-      //   logger.Log("   Standard Name: {0, 39}", timeZone.StandardName);
-      //   //sw.Write("   Daylight Name: {0, 39}", timeZone.DaylightName);
-      //   //sw.Write(hasDST ? "   ***Has " : "   ***Does Not Have ");
-      //   //sw.WriteLine("Daylight Saving Time***");
-      //   offsetString = String.Format("{0} hours, {1} minutes", offsetFromUtc.Hours, offsetFromUtc.Minutes);
-      //   logger.Log("   Offset from UTC: {0, 40}", offsetString);
-      //}
+         //   logger.Log("ID: {0}", timeZone.Id);
+         //   logger.Log("   Display Name: {0, 40}", timeZone.DisplayName);
+         //   logger.Log("   Standard Name: {0, 39}", timeZone.StandardName);
+         //   //sw.Write("   Daylight Name: {0, 39}", timeZone.DaylightName);
+         //   //sw.Write(hasDST ? "   ***Has " : "   ***Does Not Have ");
+         //   //sw.WriteLine("Daylight Saving Time***");
+         //   offsetString = String.Format("{0} hours, {1} minutes", offsetFromUtc.Hours, offsetFromUtc.Minutes);
+         //   logger.Log("   Offset from UTC: {0, 40}", offsetString);
+         //}
 
          //tryJson(); return; //PW moet weg
 

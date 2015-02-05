@@ -16,7 +16,7 @@ namespace Bitmanager.ImportPipeline
    {
       public readonly ImportEngine engine;
       public Endpoints(ImportEngine engine, XmlNode collNode)
-         : base(collNode, "endpoint", (n) => ImportEngine.CreateObject<Endpoint>(n, engine, n), false)
+         : base(collNode, "endpoint", (n) => create (engine, n), false)
       {
          this.engine = engine;
          if (GetByName("nop", false) == null)
@@ -24,6 +24,15 @@ namespace Bitmanager.ImportPipeline
             Add (new Endpoint("nop")); //always have a NOP endpoint for free
          }
       }
+
+      private static Endpoint create (ImportEngine engine, XmlNode n)
+      {
+         String type = n.ReadStr("@type");
+         if (String.Equals("nop", type, StringComparison.InvariantCultureIgnoreCase)) return new Endpoint(n);
+         return ImportEngine.CreateObject<Endpoint>(n, engine, n);
+      }
+
+
 
       public IDataEndpoint GetDataEndpoint(PipelineContext ctx, String name, bool mustExcept = true)
       {

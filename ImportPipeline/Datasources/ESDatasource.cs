@@ -18,6 +18,7 @@ namespace Bitmanager.ImportPipeline
       private IDatasourceFeeder feeder;
       private String timeout;
       private String requestBody;
+      private int timeoutInMs;
       private int numRecords;
       private int maxParallel;
       private int splitUntil;
@@ -29,6 +30,7 @@ namespace Bitmanager.ImportPipeline
          int size = node.ReadInt("@buffersize", 0);
          numRecords = size > 0 ? size : node.ReadInt("@buffersize", ESRecordEnum.DEF_BUFFER_SIZE);
          timeout = node.ReadStr("@timeout", ESRecordEnum.DEF_TIMEOUT);
+         timeoutInMs = Invariant.ToInterval(timeout);
          maxParallel = node.ReadInt("@maxparallel", 1);
          requestBody = node.ReadStr("request", null);
          splitUntil = node.ReadInt("@splituntil", 1);
@@ -94,6 +96,7 @@ namespace Bitmanager.ImportPipeline
             Uri uri = new Uri (url);
             ESConnection conn = new ESConnection (url);
             ContextCallback cb = new ContextCallback(ctx, this, elt);
+            conn.Timeout = timeoutInMs; //Same timeout as what we send to ES
             conn.OnPrepareRequest = cb.OnPrepareRequest;   
             if (command != null)
             {

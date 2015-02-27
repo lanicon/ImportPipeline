@@ -24,11 +24,13 @@ namespace Bitmanager.ImportPipeline
    public class JsonDatasource : Datasource
    {
       private IDatasourceFeeder feeder;
+      private int splitUntil;
       private bool dumpReader;
       public void Init(PipelineContext ctx, XmlNode node)
       {
          feeder = ctx.CreateFeeder(node);
          dumpReader = node.ReadBool("@debug", false);
+         splitUntil = node.ReadInt("@splituntil", 1);
       }
 
 
@@ -88,7 +90,7 @@ namespace Bitmanager.ImportPipeline
             rdr.Close();
             fs.Close();
 
-            Pipeline.EmitToken (ctx, sink, obj, "record", -1);
+            Pipeline.EmitToken (ctx, sink, obj, "record", splitUntil);
          }
          catch (Exception e)
          {

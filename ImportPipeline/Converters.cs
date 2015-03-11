@@ -559,7 +559,6 @@ namespace Bitmanager.ImportPipeline
 
    public class SplitConverter : Converter
    {
-      bool trim = true;
       char sep = ';';
       public SplitConverter(XmlNode node) : base(node) { }
 

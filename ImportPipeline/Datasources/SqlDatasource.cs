@@ -15,11 +15,15 @@ namespace Bitmanager.ImportPipeline
 {
    public class SqlDatasource : Datasource
    {
+      private StringDict<ConversionError> conversionErrors;
       public String ConnectionString;
       public List<Query> Queries;
+      public bool AllowConversionErrors;
       public void Init(PipelineContext ctx, XmlNode node)
       {
          ConnectionString = node.ReadStr("connection");
+         AllowConversionErrors = node.ReadBool("@allowconversionerrors", true);
+
          XmlNodeList ch = node.SelectNodes("query");
          if (ch.Count > 0)
          {
@@ -28,7 +32,28 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
-      protected virtual DbConnection createConnection ()
+      private void addConversionError(String field, Exception e)
+      {
+         if (conversionErrors == null) conversionErrors = new StringDict<ConversionError>();
+
+         ConversionError err;
+         if (conversionErrors.TryGetValue (field, out err))
+            err.Count++;
+         else
+            conversionErrors.Add (field, new ConversionError(field, e));
+      }
+
+      private void dumpConversionErrors(Logger lg)
+      {
+         if (conversionErrors == null) return;
+         lg.Log (_LogType.ltWarning, "Conversion errors occurred. Showing only the 1st exception and the total # errors");
+         foreach (var kvp in conversionErrors)
+         {
+            lg.Log (_LogType.ltWarning, "-- Field={0}, err.count={1}, err.message={2}.", kvp.Value.Field, kvp.Value.Count, kvp.Value.Error);
+         }
+      }
+
+      protected virtual DbConnection createConnection()
       {
          return new SqlConnection(ConnectionString);
       }
@@ -45,7 +70,8 @@ namespace Bitmanager.ImportPipeline
                EmitTables(ctx, connection);
             else
                foreach (Query q in Queries)
-                  EmitQuery(ctx, connection, q.Command, q.Prefix);
+                  EmitQuery(ctx, connection, q);
+            dumpConversionErrors(ctx.ImportLog);
          }
          finally
          {
@@ -75,20 +101,21 @@ namespace Bitmanager.ImportPipeline
 
       protected void EmitTable(PipelineContext ctx, DbConnection connection, String table)
       {
-         EmitQuery(ctx, connection, String.Format("select * from {0};", table), table);
+         Query q = new Query(table, String.Format("select * from {0};", table), this.AllowConversionErrors);
+         EmitQuery(ctx, connection, q);
       }
 
-      protected void EmitQuery(PipelineContext ctx, DbConnection connection, String q, String prefix)
+      protected void EmitQuery(PipelineContext ctx, DbConnection connection, Query q)
       {
          var cmd = connection.CreateCommand();
-         cmd.CommandText = q;
+         cmd.CommandText = q.Command;
          cmd.CommandTimeout = 15;
          cmd.CommandType = CommandType.Text;
 
          ctx.SendItemStart (cmd);
          using (DbDataReader rdr = executeReader(ctx, cmd))
          {
-            EmitRecords(ctx, rdr, prefix);
+            EmitRecords(ctx, rdr, q);
          }
          ctx.SendItemStop (cmd);
       }
@@ -110,9 +137,9 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
-      protected void EmitRecords(PipelineContext ctx, DbDataReader rdr, String prefix)
+      protected void EmitRecords(PipelineContext ctx, DbDataReader rdr, Query q)
       {
-         String pfxRecord = String.IsNullOrEmpty(prefix) ? "record" : prefix;
+         String pfxRecord = String.IsNullOrEmpty(q.Prefix) ? "record" : q.Prefix;
          String pfxField = pfxRecord + "/";
          var sink = ctx.Pipeline;
          while (rdr.Read())
@@ -122,7 +149,16 @@ namespace Bitmanager.ImportPipeline
             {
                String name = rdr.GetName(i);
                Type ft = rdr.GetFieldType(i);
-               Object value = rdr.GetValue(i);
+               Object value = null;
+               try
+               {
+                  if (!rdr.IsDBNull(i))
+                     value = rdr.GetValue(i);
+               } catch (Exception e)
+               {
+                  if (!q.AllowConversionErrors) throw new BMException (e, "{0}\r\nField={1}, type={2}.", e.Message, name, ft);
+                  addConversionError(name, e);
+               }
                sink.HandleValue(ctx, pfxField + name, value);
             }
             sink.HandleValue(ctx, pfxRecord, rdr);
@@ -130,16 +166,44 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
+      /// <summary>
+      /// Helper class to administrate Queries to be executed  
+      /// </summary>
       public class Query
       {
          public readonly String Prefix;
          public readonly String Command;
-         public Query (XmlNode node)
+         public readonly bool AllowConversionErrors;
+         public Query(XmlNode node)
          {
             Prefix = node.ReadStr("@prefix", null);
             Command = node.ReadStr("@cmd", null);
-            if (Command==null) 
+            if (Command == null)
                Command = node.ReadStr(null);
+            AllowConversionErrors = node.ReadBool(1, "@allowconversionerrors", true);
+         }
+         public Query(String pfx, String cmd, bool allowConvErrors)
+         {
+            Prefix = pfx;
+            Command = cmd;
+            AllowConversionErrors = allowConvErrors;
+         }
+      }
+
+      /// <summary>
+      /// Helper class to administrate conversion exceptions in a field
+      /// </summary>
+      public class ConversionError
+      {
+         public readonly String Field;
+         public readonly Exception Error;
+         public int Count;
+
+         public ConversionError(String field, Exception e)
+         {
+            Field = field;
+            Error = e;
+            Count = 1;
          }
       }
    }

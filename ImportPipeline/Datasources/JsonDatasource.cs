@@ -80,7 +80,6 @@ namespace Bitmanager.ImportPipeline
 
          List<String> keys = new List<string>();
          List<String> values = new List<String>();
-         int lvl = -1;
          FileStream fs = null;
          try
          {

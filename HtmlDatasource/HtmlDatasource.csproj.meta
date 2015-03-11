@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root debug="false">
+
+   <variables>
+      <var name="$$id$$" value="HtmlDatasource" />
+      <var name="$$title$$" value="$$id$$" />
+      <var name="$$description$$" value="De Bitmanager HtmlDatasource" />
+      <var name="$$product$$" value="HtmlDatasource" />
+      <var name="$$copyright$$" value="Copyright © $$YYYY$$, $$COMPANY$$" />
+      <var name="$$version$$" value="1.0.0.$$REVNO$$" />
+      <var name="$$fileversion$$" value="$$version$$" />
+   </variables>
+
+   <assemblyinfo>
+      <var name="$$title$$" value="$$id$$ (SHA:$$GIT$$)" />
+   </assemblyinfo>
+   <pre>
+      <asminfo update="true" increment="true"  />
+   </pre>
+</root>
+  

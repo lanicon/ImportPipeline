@@ -305,6 +305,7 @@ namespace Bitmanager.ImportPipeline
          removeEmptyTextNodes(HeadNode.ChildNodes);
          undupMailNodes();
          removeEmptyTextNodes(BodyNode.SelectNodes("//text()"));
+         PatchTargets("_blank");
          computeNumAttachments();
       EXIT_RTN:
          Document = doc;
@@ -319,6 +320,16 @@ namespace Bitmanager.ImportPipeline
          child = child.SelectSingleNode("*");
          if (child == null) return false;
          return String.Equals("pre", child.Name, StringComparison.OrdinalIgnoreCase);
+      }
+
+      public void PatchTargets (String target)
+      {
+         if (BodyNode == null) return;
+         HtmlNodeCollection anchors = BodyNode.SelectNodes("//a");
+         foreach (HtmlNode anchor in anchors)
+         {
+            anchor.SetAttributeValue("target", target);
+         }
       }
 
       public void undupMailNodes()

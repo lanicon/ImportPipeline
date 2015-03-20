@@ -19,6 +19,7 @@ namespace Bitmanager.ImportPipeline
       public readonly int CacheSize;
       public readonly String LineSeparator;
       public readonly String FileName;
+      public readonly Newtonsoft.Json.Formatting Formatting;
 
 
       private FileStream fs;
@@ -30,6 +31,7 @@ namespace Bitmanager.ImportPipeline
       {
          FileName = engine.Xml.CombinePath(node.ReadStr("@file"));
          LineSeparator = node.ReadStr("@linesep", "\r\n");
+         Formatting = node.ReadBool("@formatted", false) ? Newtonsoft.Json.Formatting.Indented : Newtonsoft.Json.Formatting.None;
       }
 
       protected override void Open(PipelineContext ctx)
@@ -38,7 +40,7 @@ namespace Bitmanager.ImportPipeline
          wtr = new StreamWriter(fs, Encoding.UTF8, 32*1024);
          jsonWtr = new Newtonsoft.Json.JsonTextWriter(wtr);
          jsonWtr.Culture = Invariant.Culture;
-         jsonWtr.Formatting = Newtonsoft.Json.Formatting.None;
+         jsonWtr.Formatting = Formatting;
       }
       protected override void Close(PipelineContext ctx)
       {

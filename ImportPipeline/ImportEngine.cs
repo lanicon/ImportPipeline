@@ -34,6 +34,7 @@ namespace Bitmanager.ImportPipeline
       public Converters Converters;
       public NamedAdminCollection<DatasourceAdmin> Datasources;
       public NamedAdminCollection<Pipeline> Pipelines;
+      public NamedAdminCollection<CategoryCollection> Categories;
       public ProcessHostCollection JavaHostCollection;
       public ScriptHost ScriptHost;
       public Logger ImportLog;
@@ -124,21 +125,34 @@ namespace Bitmanager.ImportPipeline
             (node) => Converter.Create (node),
             false);
 
+         ImportLog.Log(_LogType.ltTimer, "loading: categories");
+         Categories = new NamedAdminCollection<CategoryCollection>(
+            xml.SelectSingleNode("categories"),
+            "collection",
+            (node) => new CategoryCollection(node),
+            true);
+
          ImportLog.Log(_LogType.ltTimer, "loading: pipelines");
          Pipelines = new NamedAdminCollection<Pipeline>(
             xml.SelectMandatoryNode("pipelines"),
             "pipeline",
             (node) => new Pipeline(this, node),
             true);
-         
+
          ImportLog.Log(_LogType.ltTimer, "loading: datasources");
          Datasources = new NamedAdminCollection<DatasourceAdmin>(
             xml.SelectMandatoryNode("datasources"),
             "datasource",
             (node) => new DatasourceAdmin(ctx, node),
             true);
-      
-         ImportLog.Log(_LogType.ltTimerStop, "loading: finished");
+
+
+         ImportLog.Log(_LogType.ltTimerStop, "loading: finished. Loaded {0} datasources, {1} pipelines, {2} endpoints, {3} converters, {4} category collections.",
+            Datasources.Count,
+            Pipelines.Count,
+            Endpoints.Count,
+            Converters.Count,
+            Categories.Count);
       }
 
       private void fillTikaVars()

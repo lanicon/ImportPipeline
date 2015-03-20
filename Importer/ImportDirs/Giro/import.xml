@@ -2,7 +2,7 @@
 <root importflags="fullimport">
    <script file="script.cs" />
    <endpoints>
-      <endpoint name="es" type="ESEndpoint" url="http://bm:9200/" cache="500" maxparallel="2">
+      <endpoint name="es" type="ESEndpoint" url="http://localhost:9200/" cache="500" maxparallel="2">
          <index name="peter" indexname="gpeter" config="index.config.js" >
             <type name="doc" _keyfield="_id" />  
          </index>
@@ -17,6 +17,19 @@
          </index>
       </endpoint>
    </endpoints>
+   
+   <categories>
+      <collection name="all">
+         <category cat="self" dstfield="cat" >
+            <select field="name" expr="weerd.*" />
+            <category cat="sparen" dstfield="cat" >
+               <and>
+                  <select field="name" contains="pj" />
+               </and>
+            </category>   
+         </category>   
+      </collection>
+   </categories>
 
    <converters>
       <converter name="double" decimalsep="," groupsep="."/>
@@ -34,7 +47,7 @@
    <pipelines>
       <pipeline name="giro" _converters="trim" script="ScriptExtension" >
          <action key="_item/_start" script="OnDSStart"/>
-         <action key="record" add="*" script="OnAdd"/>
+         <action key="record" add="*" script="OnAdd" categories="all"/>
          <action key="record/f0" field="date"/>
          <action key="record/f1" field="name"  script="SaveName"/>
          <action key="record/f2" field="account" flags="toarray|SkipEmpty"/>

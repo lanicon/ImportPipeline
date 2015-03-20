@@ -338,7 +338,9 @@ namespace Bitmanager.ImportPipeline
             {
                var accu = (JObject)act.Endpoint.GetFieldAsToken(null);
                ctx.ErrorLog.Log("Dumping content of current accu: fieldcount={0}", accu.Count);
-               ctx.ErrorLog.Log(act.Endpoint.GetFieldAsToken(null).ToString());
+               String content = accu.ToString();
+               if (content != null && content.Length > 1000) content = content.Substring(0, 1000) + "...";
+               ctx.ErrorLog.Log(content);
             }
             if (MaxAddsExceededException.ContainsMaxAddsExceededException(e))
                throw;

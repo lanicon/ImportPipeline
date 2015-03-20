@@ -45,6 +45,7 @@
     <Reference Include="HtmlAgilityPack">
       <HintPath>..\..\_References\HtmlAgilityPack.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.JScript" />
     <Reference Include="MySql.Data, Version=6.9.5.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL" />
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\_References\Newtonsoft.Json.dll</HintPath>
@@ -65,6 +66,14 @@
     <Compile Include="Actions\PipelineFieldAction.cs" />
     <Compile Include="Actions\PipelineNopAction.cs" />
     <Compile Include="admincollections.cs" />
+    <Compile Include="Categorizer\Categorizer.cs" />
+    <Compile Include="Categorizer\CategoryCollection.cs" />
+    <Compile Include="Categorizer\CategorySelectorInt.cs" />
+    <Compile Include="Categorizer\CategorySelectorString.cs" />
+    <Compile Include="Categorizer\CatergorySelector.cs" />
+    <Compile Include="Categorizer\CatergorySelectorOperators.cs" />
+    <Compile Include="Categorizer\Catergory.cs" />
+    <Compile Include="Categorizer\JsEvaluator.cs" />
     <Compile Include="ComplexConverters.cs" />
     <Compile Include="AsyncEndpointRequestQueue.cs" />
     <Compile Include="ImportReport.cs" />

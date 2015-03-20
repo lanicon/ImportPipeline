@@ -18,20 +18,41 @@ namespace Bitmanager.ImportPipeline
    }
    public class PipelineAddAction : PipelineAction
    {
+      public CategoryCollection[] Categories;
       public PipelineAddAction(Pipeline pipeline, XmlNode node)
          : base(pipeline, node)
       {
+          Categories = loadCategories(pipeline, node);
       }
 
       internal PipelineAddAction(PipelineAddAction template, String name, Regex regex)
          : base(template, name, regex)
       {
+         Categories = template.Categories;
+      }
+
+      static CategoryCollection[] loadCategories(Pipeline pipeline, XmlNode node)
+      {
+         String[] cats = node.ReadStr("@categories", null).SplitStandard();
+         if (cats == null || cats.Length == 0) return null;
+
+         CategoryCollection[] list = new CategoryCollection[cats.Length];
+         var engine = pipeline.ImportEngine;
+         for (int i = 0; i < cats.Length; i++)
+         {
+            list[i] = engine.Categories.GetByName(cats[i]);
+         }
+         return list;
       }
 
       public override Object HandleValue(PipelineContext ctx, String key, Object value)
       {
          value = ConvertAndCallScript(ctx, key, value);
          if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) { ctx.Skipped++; goto EXIT_RTN; }
+
+         if (Categories != null)
+            foreach (var cat in Categories) cat.HandleRecord(ctx);
+
          if (checkMode != 0)
          {
             Object res = base.handleCheck(ctx, value);

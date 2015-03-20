@@ -65,7 +65,7 @@
    mappings: {
       bosdoc: {
          _meta: { lastmod:""}, 
-         "_all" : { "type" : "string", "analyzer" : "lc_text" },
+         "_all" : {"enabled" : false},
          "dynamic_templates" : [ 
             { 
                "template_1" : { 
@@ -98,7 +98,7 @@
                analyzer: "lc_keyword"
             },
             shortcontent: {
-               "type": "string", index:"no", "store": "yes" , "analyzer": "lc_text"    
+               "type": "string", index:"no" , "analyzer": "lc_text"    
             },
             numattachments: {"type": "integer"},
             numparts: {"type": "integer"},
@@ -119,6 +119,7 @@
                type: "string",
                analyzer: "lc_keyword"
             },
+            doc_cat: {"type" : "string", analyzer: "lc_keyword"},
             keywords: {
                "type": "multi_field",
                fields: {
@@ -133,18 +134,20 @@
          }
       },
       admin_: {
-            _meta: { lastmod:""}, 
-            properties: { 
-               name: { "type" : "string", "index":"no", "store": "yes" },
-               lastUpdUtc: { "type" : "date", "index":"no", "store": "yes" }
+         _meta: { lastmod:""}, 
+         "_all" : {"enabled" : false},
+         properties: { 
+               name: { "type" : "string", "index":"no"},
+               lastUpdUtc: { "type" : "date", "index":"no" }
             }
       },
       errors_: {
+         "_all" : {"enabled" : false},
          properties: { 
-            errorFileName: { "type" : "string", "analyzer": "lc_text", "store": "yes" },
-            errorDate:  { "type" : "date", "index":"no", "store": "yes" },
-            errorText: { "type" : "string", "index":"no", "store": "yes" },
-            errorStack: { "type" : "string", "index":"no", "store": "yes" }
+            errorFileName: { "type" : "string", "analyzer": "lc_text"},
+            errorDate:  { "type" : "date", "index":"no"},
+            errorText: { "type" : "string", "index":"no"},
+            errorStack: { "type" : "string", "index":"no"}
          }
       }
    }

@@ -15,6 +15,14 @@
       </endpoint>
    </endpoints>
 
+   <categories>
+      <collection name="all">
+         <category cat="spam" dstfield="doc_cat" >
+            <select field="author" expr="moni" />
+         </category>   
+      </collection>
+   </categories>
+
    <converters>
       <converter name="urlEncode"/>
       <converter name="htmlDecode"/>
@@ -55,7 +63,7 @@
    <pipelines>
       <pipeline name="tika" trace="false" converters="trim" endpoint="es.bosdoc" script="ScriptExtensions" >
          <_action key="record" script="ErrorOn2"/>
-         <action key="record" add="*" script="OnAdd"/>
+         <action key="record" add="*" script="OnAdd" categories="all"/>
          <action key="record/_start" field="filename" tovar="key"/>
          <action key="record/_start" field="errorFileName" endpoint="es.errors_" />
          <action key="record/_istextmail" field="isTextMail" />

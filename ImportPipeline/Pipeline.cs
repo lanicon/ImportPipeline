@@ -227,7 +227,15 @@ namespace Bitmanager.ImportPipeline
 
       private String getEndpointName(String name, DatasourceAdmin ds)
       {
-         if (name != null) return name;
+         if (name != null)
+         {
+            if (name[0] != '.') return name;
+
+            //Name with a dot indicates an amendment on the default name 
+            String defName = getEndpointName(null, ds);
+            int idx = defName.LastIndexOf('.');
+            return (idx<0 ? defName : defName.Substring (0, idx)) + name;
+         }
          
          name = ds.EndpointName;
          if (name != null) return name;

@@ -9,6 +9,7 @@ using Newtonsoft.Json.Linq;
 using Bitmanager.Json;
 using System.Globalization;
 using System.Web;
+using System.Reflection;
 
 namespace Bitmanager.ImportPipeline
 {
@@ -17,6 +18,7 @@ namespace Bitmanager.ImportPipeline
       public Converters(XmlNode collNode, String childrenNode, Func<XmlNode, Converter> factory, bool mandatory)
          : base(collNode, childrenNode, factory, mandatory)
       {
+         Converter.AddDefaultConverters(this);
       }
       //public Converter[] ToConverters (XmlNode node)
       //{
@@ -47,6 +49,7 @@ namespace Bitmanager.ImportPipeline
    {
       protected bool needValue;
       public Converter(XmlNode node) : base(node) { needValue = true; }
+      public Converter(String name) : base(name) { needValue = true; }
 
       protected bool TryConvertArray(PipelineContext ctx, Object value, out Object convertedArray)
       {
@@ -103,31 +106,69 @@ namespace Bitmanager.ImportPipeline
       }
 
 
+      static ConverterFactory[] arr = {
+                new ConverterFactory ("htmlencode", typeof(HtmlEncodeConverter)),
+                new ConverterFactory ("htmldecode", typeof(HtmlDecodeConverter)),
+                new ConverterFactory ("urlencode", typeof(UrlEncodeConverter)),
+                new ConverterFactory ("urldecode", typeof(UrlDecodeConverter)),
+                new ConverterFactory ("dateonly", typeof(ToDateConverter)),
+                new ConverterFactory ("datetime", typeof(ToDateConverter)),
+                new ConverterFactory ("date", typeof(ToDateConverter)),
+                new ConverterFactory ("time", typeof(ToDateConverter)),
+                new ConverterFactory ("datepart", typeof(ToDatePartConverter)),
+                new ConverterFactory ("trim", typeof(TrimConverter)),
+                new ConverterFactory ("trimwhite", typeof(TrimWhiteConverter)),
+                new ConverterFactory ("lower", typeof(ToLowerConverter)),
+                new ConverterFactory ("upper", typeof(ToUpperConverter)),
+                new ConverterFactory ("string", typeof(ToStringConverter)),
+                new ConverterFactory ("double", typeof(ToDoubleConverter)),
+                new ConverterFactory ("int32", typeof(ToInt32Converter)),
+                new ConverterFactory ("int64", typeof(ToInt64Converter)),
+                new ConverterFactory ("split", typeof(SplitConverter)),
+                new ConverterFactory ("format", typeof(FormatConverter))
+      };
+
+      public static void AddDefaultConverters (Converters coll)
+      {
+         for (int i = 0; i < arr.Length; i++)
+         {
+            String type = arr[i].Name;
+            if (coll.Contains(type)) continue;
+            var converter = arr[i].Create();
+            if (converter == null) continue;
+            coll.Add(converter);
+         }
+      }
       public static Converter Create(XmlNode node)
       {
          String type = node.ReadStr("@type", node.ReadStr("@name")).ToLowerInvariant();
-         switch (type)
+         for (int i=0; i<arr.Length; i++)
          {
-            case "htmlencode": return new HtmlEncodeConverter(node);
-            case "htmldecode": return new HtmlDecodeConverter(node);
-            case "urlencode": return new UrlEncodeConverter(node);
-            case "urldecode": return new UrlDecodeConverter(node);
-            case "dateonly":
-            case "datetime":
-            case "date": 
-            case "time": return new ToDateConverter(node, type);
-            case "datepart": return new ToDatePartConverter(node, type);
-            case "trim": return new TrimConverter(node);
-            case "trimwhite": return new TrimWhiteConverter(node);
-            case "lower": return new ToLowerConverter(node);
-            case "upper": return new ToUpperConverter(node);
-            case "string": return new ToStringConverter(node);
-            case "double": return new ToDoubleConverter(node);
-            case "int32": return new ToInt32Converter(node);
-            case "int64": return new ToInt32Converter(node);
-            case "split": return new SplitConverter(node);
-            case "format": return new FormatConverter(node);
+            if (arr[i].Name!=type) continue;
+            return arr[i].Create(node);
          }
+         //switch (type)
+         //{
+         //   case "htmlencode": return new HtmlEncodeConverter(node);
+         //   case "htmldecode": return new HtmlDecodeConverter(node);
+         //   case "urlencode": return new UrlEncodeConverter(node);
+         //   case "urldecode": return new UrlDecodeConverter(node);
+         //   case "dateonly":
+         //   case "datetime":
+         //   case "date": 
+         //   case "time": return new ToDateConverter(node, type);
+         //   case "datepart": return new ToDatePartConverter(node, type);
+         //   case "trim": return new TrimConverter(node);
+         //   case "trimwhite": return new TrimWhiteConverter(node);
+         //   case "lower": return new ToLowerConverter(node);
+         //   case "upper": return new ToUpperConverter(node);
+         //   case "string": return new ToStringConverter(node);
+         //   case "double": return new ToDoubleConverter(node);
+         //   case "int32": return new ToInt32Converter(node);
+         //   case "int64": return new ToInt64Converter(node);
+         //   case "split": return new SplitConverter(node);
+         //   case "format": return new FormatConverter(node);
+         //}
          return Objects.CreateObject<Converter>(type, node);
       }
    }
@@ -180,6 +221,12 @@ namespace Bitmanager.ImportPipeline
       protected string[] formats;
       protected _TZ[] timezones;
       protected DateMode mode;
+      public ToDateConverter(String type) : base(type)
+      {
+         this.formats = stdFormats;
+         mode = (type == "dateonly") ? DateMode.none : DateMode.ToUtc;
+      }
+
       public ToDateConverter(XmlNode node, String type)
          : base(node)
       {
@@ -372,6 +419,11 @@ namespace Bitmanager.ImportPipeline
    public abstract class ToNumConverter : Converter 
    {
       protected NumberFormatInfo numberFormat;
+      public ToNumConverter(String name)
+         : base(name)
+      {
+         numberFormat = CultureInfo.InvariantCulture.NumberFormat;
+      }
       public ToNumConverter(XmlNode node)
          : base(node)
       {
@@ -413,7 +465,8 @@ namespace Bitmanager.ImportPipeline
    }
    public class ToInt64Converter : ToNumConverter
    {
-      public ToInt64Converter(XmlNode node) : base(node) {}
+      public ToInt64Converter(XmlNode node) : base(node) { }
+      public ToInt64Converter(String name) : base(name) { }
 
       public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
@@ -438,6 +491,7 @@ namespace Bitmanager.ImportPipeline
    public class ToInt32Converter : ToNumConverter
    {
       public ToInt32Converter(XmlNode node) : base(node) { }
+      public ToInt32Converter(string name) : base (name) {}
 
       public override Object ConvertScalar(PipelineContext ctx, Object value)
       {
@@ -579,7 +633,9 @@ namespace Bitmanager.ImportPipeline
       private FormatArgument[] arguments;
       private String format;
       private FormatFlags flags;
-      public FormatConverter(XmlNode node) : base(node) {
+      public FormatConverter(XmlNode node)
+         : base(node)
+      {
          format = node.ReadStr("@format");
          flags = node.ReadEnum("@flags", FormatFlags.NeedArguments);
          needValue = (flags & FormatFlags.NeedValue) != 0;
@@ -665,6 +721,40 @@ namespace Bitmanager.ImportPipeline
       public override Object GetArgument(PipelineContext ctx)
       {
          return ctx.Action.Endpoint.GetField (field);
+      }
+   }
+
+
+   class ConverterFactory
+   {
+      public readonly String Name;
+      Type type;
+      ConstructorInfo typeConstructor;
+      ConstructorInfo nodeConstructor1, nodeConstructor2;
+      static Type[] types_node = new Type[1] { typeof(XmlNode) };
+      static Type[] types_nodeWithType = new Type[2] { typeof(XmlNode), typeof(String) };
+      static Type[] types_type = new Type[1] { typeof(String) };
+
+
+      public ConverterFactory (String name, Type type)
+      {
+         this.Name = name;
+         this.type = type;
+         nodeConstructor1 = type.GetConstructor(types_node);
+         nodeConstructor2 = type.GetConstructor(types_nodeWithType);
+         typeConstructor = type.GetConstructor(types_type);
+         if (nodeConstructor1 == null && nodeConstructor2 == null) throw new BMException("Type {0} has no constructor (XmlNode, String) or (XmlNode).", type);
+      }
+
+      public Converter Create()
+      {
+         if (typeConstructor == null) return null;
+         return (Converter)typeConstructor.Invoke(new Object[1] { Name });
+      }
+      public Converter Create(XmlNode node)
+      {
+         if (nodeConstructor1 != null) return (Converter) nodeConstructor1.Invoke(new Object[1] { node });
+         return (Converter) nodeConstructor2.Invoke(new Object[2] { node, Name });
       }
    }
 }

@@ -62,9 +62,17 @@ namespace Bitmanager.ImportPipeline
       }
 
       /// <summary>
+      /// Returns the exists value for the key
+      /// </summary>
+      public bool Contains(String name)
+      {
+         return namedItems.ContainsKey(name);
+      }
+
+      /// <summary>
       /// Returns an element if it exists under that name, or raise an exception.
       /// </summary>
-      public T GetByName(String name, bool mustExcept=true)
+      public T GetByName(String name, bool mustExcept = true)
       {
          T item = namedItems.OptGetItem(name);
          if (item != null) return item;

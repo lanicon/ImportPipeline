@@ -35,6 +35,10 @@ namespace BeursGorilla
       {
          return Invariant.ToDouble(x.Replace(',', '.'));
       }
+      private static double toDouble(String x, double def)
+      {
+         return Invariant.ToDouble(x.Replace(',', '.'), def);
+      }
 
       private HtmlDocument loadUrl(Uri uri)
       {
@@ -250,13 +254,15 @@ namespace BeursGorilla
             foreach (var kvp in attribs)
                sink.HandleValue(ctx, "record/" + kvp.Key, kvp.Value);
 
-            double price = toDouble(tdNodes[2].InnerText);
+            double price = toDouble(tdNodes[2].InnerText, -1);
+            String pricePrev = tdNodes[5].InnerText.TrimToNull();
+            double priceOpened = pricePrev == null ? price : toDouble(pricePrev);
+            if (price < 0) price = priceOpened;
+            
             sink.HandleValue(ctx, "record/name", name);
             sink.HandleValue(ctx, "record/code", code);
             sink.HandleValue(ctx, "record/price", price);
-
-            String pricePrev = tdNodes[5].InnerText.TrimToNull();
-            sink.HandleValue(ctx, "record/priceOpened", pricePrev == null ? price : toDouble(pricePrev));
+            sink.HandleValue(ctx, "record/priceOpened", priceOpened);
 
             String time = tdNodes[6].InnerText.TrimToNull();
             if (time != null && !time.Equals("details", StringComparison.InvariantCultureIgnoreCase))

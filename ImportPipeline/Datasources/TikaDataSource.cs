@@ -326,6 +326,7 @@ namespace Bitmanager.ImportPipeline
       {
          if (BodyNode == null) return;
          HtmlNodeCollection anchors = BodyNode.SelectNodes("//a");
+         if (anchors == null) return;
          foreach (HtmlNode anchor in anchors)
          {
             anchor.SetAttributeValue("target", target);

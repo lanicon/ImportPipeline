@@ -49,6 +49,7 @@ namespace Tika
          if (lastMod != null && ep.GetFieldAsToken("year_modified")==null)
             ep.SetField ("year_modified", ((DateTime)lastMod).ToLocalTime().Year);
 
+         //ctx.ImportLog.Log ("ADD: " + ep.GetField(null));
          return value;
       }
        

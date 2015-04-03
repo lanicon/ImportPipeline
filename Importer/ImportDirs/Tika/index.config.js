@@ -1,5 +1,8 @@
 ﻿{
    settings: {  
+      "number_of_shards" : 2,
+      "number_of_replicas" : 0,
+      "refresh_interval": "600",
       "analysis" : {
           "char_filter" : {
              "html_strip" : {
@@ -130,6 +133,7 @@
             "page_count": {"type": "integer"},
             "date_created": {"type": "date", "index": "no"},
             "date_modified": {"type": "date"},
+            "sort_date": {"type": "date", "format": "date", "doc_values": true},
             "year_modified": {"type": "integer"}
          }
       },

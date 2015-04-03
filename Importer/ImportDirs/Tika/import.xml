@@ -3,7 +3,8 @@
    <script file="scriptextensions.cs" />
    <tempdir dir="temp" clearonstart="true" />
    <endpoints>
-      <endpoint name="es" type="ESEndpoint" url="http://localhost:9200/" cache="300" maxparallel="1">
+      <endpoint name="dump" type="jsonEndpoint" formatted="true" file="generated-json.txt" />
+      <endpoint name="es" type="ESEndpoint" url="http://localhost:9200/" cache="0" maxparallel="1">
          <waitfor status="yellow|green"></waitfor>
          <indexes>
             <index name="bosgoed" config="index.config.js"  >
@@ -18,13 +19,33 @@
    <categories>
       <collection name="all">
          <category cat="spam" dstfield="doc_cat" >
-            <select field="author" expr="moni" />
+            <select field="author" expr="nagios@booking|aanbestedingskalender" />
+            <select field="title" expr="spam" />
          </category>   
       </collection>
    </categories>
 
    <converters>
-      <converter name="urlEncode"/>
+      <converter name="double" decimalsep="," groupsep="."/>
+      <converter name="date"   mode="toUtc" _formats="yyyyMMdd">
+         <timezone name="CEST" offset="+0200" />
+         <timezone name="CET" offset="+0100" />
+      </converter>
+      <converter name="year"   mode="toLocal" select="y" type="datepart"/>
+      <converter name="doctype" type="ReplaceConverter" dumpmissed="100">
+         <replace value="application/pdf" repl="Pdf" />
+         <replace value="application/msword" repl="Word" />
+         <replace value="application/rtf" repl="Word" />
+         <replace value="application/vnd.openxmlformats-officedocument.wordprocessingml.document" repl="Word" />
+         <replace value="application/vnd.ms-excel" repl="Excel" />
+         <replace value="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" repl="Excel" />
+         <replace value="application/vnd.ms-powerpoint" repl="Powerpoint" />
+         <replace value="application/vnd.openxmlformats-officedocument.presentationml.presentation" repl="Powerpoint" />
+         <replace value="ConversionError" repl="Error" />
+         <replace expr="message" repl="Mail" />
+         <replace expr="text" repl="Text" />
+      </converter>
+<!--      <converter name="urlEncode"/>
       <converter name="htmlDecode"/>
       <converter name="int32"/>
       <converter name="double" decimalsep="," groupsep="."/>
@@ -50,7 +71,7 @@
          <replace expr="message" repl="Mail" />
          <replace expr="text" repl="Text" />
       </converter>
-
+-->
    </converters>
    <processes>
       <process name='tika' maxrestarts="25" log="tika" errlog="tika_err" logfrom="tika" clearlogs="false">
@@ -62,8 +83,7 @@
 
    <pipelines>
       <pipeline name="tika" trace="false" converters="trim" endpoint="es.bosdoc" script="ScriptExtensions" >
-         <_action key="record" script="ErrorOn2"/>
-         <action key="record" add="*" script="OnAdd" categories="all"/>
+         <action key="record" type='add' script="OnAdd" categories="all"/>
          <action key="record/_start" field="filename" tovar="key"/>
          <action key="record/_start" field="errorFileName" endpoint="es.errors_" />
          <action key="record/_istextmail" field="isTextMail" />
@@ -107,13 +127,14 @@
       <datasource name="tika" type="TikaDS" trim="true" maxparallel="2" tikaurl='http://localhost:8080/convert?compress=true&amp;file=/' tikaprocess='tika' pingurl='http://localhost:8080/ping' pingtimeout='30000' logadds="5000">
          <security emit='true' wellknown="everyone" />
          <dbgstore></dbgstore>
-         <provider type="FileNameFeeder" root="e:\ma" filter="message-1-36829\.eml$" virtualroot="ma" />
-         <provider type="FileNameFeeder" root="e:\ma" filter="\.eml$" virtualroot="ma" />
          <provider type="FileNameFeeder" root="\\bm\c\mailArchive\Peter" filter="\.eml$" virtualroot="ma" />
+         <provider type="FileNameFeeder" root="e:\ma" filter="message-1-50709\.eml$" virtualroot="ma" />
+         <provider type="FileNameFeeder" root="e:\ma" filter="message-1-36829\.eml$" virtualroot="ma" />
+         <provider type="FileNameFeeder" root="\\bm\c\mailArchive\Peter\Bitmanager" filter="message-1-48495\.eml$" virtualroot="ma" />
+         <provider type="FileNameFeeder" root="e:\ma" filter="\.eml$" virtualroot="ma" />
          <provider type="FileNameFeeder" root="e:\ma" filter="message-1-50709\.eml$" virtualroot="ma" />
          <provider type="FileNameFeeder" root="e:\ma" filter="message-1-27368\.eml$" virtualroot="ma" />
          <provider type="FileNameFeeder" root="e:\ma" filter="message-1-46653\.eml$" virtualroot="ma" />
-         <provider type="FileNameFeeder" root="e:\ma" filter="message-1-50709\.eml$" virtualroot="ma" />
          <provider type="FileNameFeeder" root="e:\ma" filter="message-1-26126\.eml$" virtualroot="ma" />
          <provider type="FileNameFeeder" root="\\bm\c\mailArchive\Peter" filter="message-1-26126\.eml$" virtualroot="ma" />
          <_provider type="FileNameFeeder" root="C:\Users\pweerd\Documents" filter="Alma\\Documents\\updateCatalogueRecordResponse\.docx$" virtualroot="docs" />

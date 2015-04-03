@@ -34,7 +34,9 @@ namespace Bitmanager.ImportPipeline
          for (int i = 0; i < arr.Length; i++)
          {
             ret[i] = GetByName (arr[i], false);
-            if (ret[i] == null) throw new BMException("Cannot find converter '{0}'.", arr[i]);
+            if (ret[i] != null) continue;
+            dumpConverters();
+            throw new BMException("Cannot find converter '{0}'.", arr[i]);
          }
          return ret;
       }
@@ -42,6 +44,16 @@ namespace Bitmanager.ImportPipeline
       {
          String s = node.ReadStr("@converters", null);
          return s != null ? s : node.ReadStr("@converter", null); 
+      }
+
+      private void dumpConverters ()
+      {
+         Logger logger = Logs.ErrorLog;
+         logger.Log("Dumping {0} converters", this.Count);
+         foreach (var item in this)
+         {
+            logger.Log("-- Converter[{0}] = {1}", item.Name, item.GetType().Name);
+         }
       }
    }
 
@@ -115,7 +127,7 @@ namespace Bitmanager.ImportPipeline
                 new ConverterFactory ("datetime", typeof(ToDateConverter)),
                 new ConverterFactory ("date", typeof(ToDateConverter)),
                 new ConverterFactory ("time", typeof(ToDateConverter)),
-                new ConverterFactory ("datepart", typeof(ToDatePartConverter)),
+                new ConverterFactory ("datepart", typeof(ToDatePartConverter), false),
                 new ConverterFactory ("trim", typeof(TrimConverter)),
                 new ConverterFactory ("trimwhite", typeof(TrimWhiteConverter)),
                 new ConverterFactory ("lower", typeof(ToLowerConverter)),
@@ -125,13 +137,14 @@ namespace Bitmanager.ImportPipeline
                 new ConverterFactory ("int32", typeof(ToInt32Converter)),
                 new ConverterFactory ("int64", typeof(ToInt64Converter)),
                 new ConverterFactory ("split", typeof(SplitConverter)),
-                new ConverterFactory ("format", typeof(FormatConverter))
+                new ConverterFactory ("format", typeof(FormatConverter), false)
       };
 
       public static void AddDefaultConverters (Converters coll)
       {
          for (int i = 0; i < arr.Length; i++)
          {
+            if (!arr[i].Auto) continue;
             String type = arr[i].Name;
             if (coll.Contains(type)) continue;
             var converter = arr[i].Create();
@@ -731,13 +744,17 @@ namespace Bitmanager.ImportPipeline
       Type type;
       ConstructorInfo typeConstructor;
       ConstructorInfo nodeConstructor1, nodeConstructor2;
+
+      public readonly bool Auto;
+
       static Type[] types_node = new Type[1] { typeof(XmlNode) };
       static Type[] types_nodeWithType = new Type[2] { typeof(XmlNode), typeof(String) };
       static Type[] types_type = new Type[1] { typeof(String) };
 
 
-      public ConverterFactory (String name, Type type)
+      public ConverterFactory (String name, Type type, bool auto = true)
       {
+         this.Auto = auto;
          this.Name = name;
          this.type = type;
          nodeConstructor1 = type.GetConstructor(types_node);
@@ -748,7 +765,13 @@ namespace Bitmanager.ImportPipeline
 
       public Converter Create()
       {
-         if (typeConstructor == null) return null;
+         if (typeConstructor == null)
+         {
+            XmlDocument doc = new XmlDocument();
+            XmlElement elt = doc.CreateElement ("dummy");
+            elt.SetAttribute("name", Name);
+            return Create(elt);
+         }
          return (Converter)typeConstructor.Invoke(new Object[1] { Name });
       }
       public Converter Create(XmlNode node)

@@ -4,7 +4,7 @@
    <tempdir dir="temp" clearonstart="true" />
    <endpoints>
       <endpoint name="dump" type="jsonEndpoint" formatted="true" file="generated-json.txt" />
-      <endpoint name="es" type="ESEndpoint" url="http://localhost:9200/" cache="0" maxparallel="1">
+      <endpoint name="es" type="ESEndpoint" url="http://localhost:9200/" cache="100" maxparallel="1">
          <waitfor status="yellow|green"></waitfor>
          <indexes>
             <index name="bosgoed" config="index.config.js"  >

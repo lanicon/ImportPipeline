@@ -34,28 +34,44 @@ namespace Bitmanager.Importer
       private const String HISTORY_KEY = @"Software\Bitmanager\ImportPipeline";
       public Form1()
       {
-         InitializeComponent();
-         Bitmanager.Core.GlobalExceptionHandler.HookGlobalExceptionHandler();
+         try
+         {
+            Bitmanager.Core.GlobalExceptionHandler.HookGlobalExceptionHandler();
+            InitializeComponent();
+         }
+         catch (Exception ex)
+         {
+            Logs.ErrorLog.Log(ex);
+            throw;
+         }
       }
 
       private void Form1_Load(object sender, EventArgs e)
       {
-         trySetIcon();
-         String dir = Assembly.GetExecutingAssembly().Location;
-
-         dir = IOUtils.FindDirectoryToRoot(Path.GetDirectoryName(dir), "ImportDirs");
-         if (dir != null)
+         try
          {
-            FileTree tree = new FileTree();
-            tree.AddFileFilter(@"\\import\.xml$", true);
-            tree.ReadFiles(dir);
-            if (tree.Files.Count != 0)
+            trySetIcon();
+            String dir = Assembly.GetExecutingAssembly().Location;
+
+            dir = IOUtils.FindDirectoryToRoot(Path.GetDirectoryName(dir), "ImportDirs");
+            if (dir != null)
             {
-               History.LoadHistory(comboBox1, HISTORY_KEY, tree.Files.Select(f => tree.GetFullName(f)).ToList());
-               return;
+               FileTree tree = new FileTree();
+               tree.AddFileFilter(@"\\import\.xml$", true);
+               tree.ReadFiles(dir);
+               if (tree.Files.Count != 0)
+               {
+                  History.LoadHistory(comboBox1, HISTORY_KEY, tree.Files.Select(f => tree.GetFullName(f)).ToList());
+                  return;
+               }
             }
+            History.LoadHistory(comboBox1, HISTORY_KEY);
          }
-         History.LoadHistory(comboBox1, HISTORY_KEY);
+         catch (Exception ex)
+         {
+            Logs.ErrorLog.Log(ex);
+            throw;
+         }
       }
       private void trySetIcon()
       {
@@ -220,10 +236,6 @@ namespace Bitmanager.Importer
          lbStatus.Items.Add("Running...");
 
          import2();
-      }
-
-      private void button2_Click(object sender, EventArgs e)
-      {
       }
 
       private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)

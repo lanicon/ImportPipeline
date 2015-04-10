@@ -91,7 +91,6 @@ namespace Bitmanager.ImportPipeline
             goto EXIT_RTN;
          }
          String dir = Path.GetDirectoryName(file);
-         if (!Directory.Exists(dir)) goto EXIT_RTN;
 
          var dirInfo = new DirectoryInfo(dir);
          var files = dirInfo.GetFileSystemInfos (Path.GetFileName(file));

@@ -71,6 +71,7 @@ namespace Bitmanager.ImportPipeline
       public void Import (PipelineContext ctx)
       {
          Logger importLog = ctx.ImportLog;
+         Logger errorLog = ctx.ErrorLog;
          bool stopNeeded = false;
          importLog.Log(_LogType.ltProgress | _LogType.ltTimerStart, "[{0}]: starting import with pipeline {1}, default endpoint={2}, maxadds={3} ", Name, Pipeline.Name, Pipeline.DefaultEndpoint, ctx.MaxAdds);
 
@@ -94,15 +95,23 @@ namespace Bitmanager.ImportPipeline
                importLog.Log("-- " + ctx.GetStats());
                if ((ctx.ImportFlags & _ImportFlags.IgnoreLimited) != 0)
                   importLog.Log(_LogType.ltWarning, "Limited ignored due to importFlags [{0}].", ctx.ImportFlags);
+               stopNeeded = true;
             }
             else
             {
                ctx.ErrorState |= _ErrorState.Error;
-               importLog.Log(_LogType.ltError | _LogType.ltTimerStop, "[{0}]: crashed err={1}", Name, e.Message);
+               String msg = String.Format("[{0}]: crashed err={1}", Name, e.Message);
+               importLog.Log(_LogType.ltError | _LogType.ltTimerStop, msg);
                importLog.Log("-- " + ctx.GetStats());
-               Exception toThrow = new BMException(e, "{0}\r\nDatasource={1}.", e.Message, Name);
-               ctx.ErrorLog.Log(toThrow);
-               throw toThrow;
+               errorLog.Log(_LogType.ltError, msg);
+               ctx.ErrorLog.Log(e);
+               if ((ctx.ImportFlags & _ImportFlags.IgnoreErrors) == 0)
+                  throw new BMException(e, "{0}\r\nDatasource={1}.", e.Message, Name);
+
+               msg = String.Format("Exception ignored due to importFlags [{0}].", ctx.ImportFlags);
+               importLog.Log(_LogType.ltWarning, msg);
+               errorLog.Log(_LogType.ltWarning, msg);
+               stopNeeded = true;
             }
          }
 

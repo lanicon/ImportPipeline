@@ -191,8 +191,10 @@ namespace Bitmanager.ImportPipeline
       {
          if ((ctx.ImportFlags & _ImportFlags.DoNotRename) != 0) return false;
          if (ctx.ErrorState == _ErrorState.OK) return true;
-         if ((ctx.ErrorState & _ErrorState.Error) != 0 && (CloseMode & ImportPipeline.CloseMode.NormalCloseOnError) == 0) return false;
-         if ((ctx.ErrorState & _ErrorState.Limited) != 0 && (CloseMode & ImportPipeline.CloseMode.NormalCloseOnLimit) == 0) return false;
+         if ((ctx.ErrorState & _ErrorState.Error) != 0)
+            if ((ctx.ImportFlags & _ImportFlags.IgnoreErrors) != 0 || (CloseMode & ImportPipeline.CloseMode.NormalCloseOnError) == 0) return false;
+         if ((ctx.ErrorState & _ErrorState.Limited) != 0)
+            if ((ctx.ImportFlags & _ImportFlags.IgnoreLimited) != 0 || (CloseMode & ImportPipeline.CloseMode.NormalCloseOnLimit) == 0) return false;
          return true;
       }
 

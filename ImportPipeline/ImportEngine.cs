@@ -215,7 +215,9 @@ namespace Bitmanager.ImportPipeline
 
          try
          {
-            _ErrorState stateFilter = ((ImportFlags & _ImportFlags.IgnoreLimited) != 0) ? (~_ErrorState.Limited) : _ErrorState.All; 
+            _ErrorState stateFilter = _ErrorState.All;
+            if ((ImportFlags & _ImportFlags.IgnoreLimited) != 0) stateFilter &= ~_ErrorState.Limited;
+            if ((ImportFlags & _ImportFlags.IgnoreErrors) != 0) stateFilter &= ~_ErrorState.Error; 
 
             for (int i = 0; i < Datasources.Count; i++)
             {

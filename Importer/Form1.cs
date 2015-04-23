@@ -46,10 +46,14 @@ namespace Bitmanager.Importer
          }
       }
 
+      private Logger importLog = Logs.CreateLogger("import", "importer");
+      private Logger errorLog = Logs.CreateLogger("error", "importer");
       private void Form1_Load(object sender, EventArgs e)
       {
          try
          {
+            AppDomain.CurrentDomain.AssemblyResolve += onResolve;
+            AppDomain.CurrentDomain.AssemblyLoad += onLoad;
             trySetIcon();
             String dir = Assembly.GetExecutingAssembly().Location;
 
@@ -72,6 +76,18 @@ namespace Bitmanager.Importer
             Logs.ErrorLog.Log(ex);
             throw;
          }
+      }
+
+      void onLoad(object sender, AssemblyLoadEventArgs args)
+      {
+         errorLog.Log("onLoad: '{0}'", args.LoadedAssembly);
+      }
+
+      Assembly onResolve(object sender, ResolveEventArgs args)
+      {
+         errorLog.Log("onResolve: '{0}'", args.Name);
+         errorLog.Log("-- requested by {0}", args.RequestingAssembly);
+         return null;
       }
       private void trySetIcon()
       {

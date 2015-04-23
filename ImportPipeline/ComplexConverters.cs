@@ -15,14 +15,17 @@ namespace Bitmanager.ImportPipeline
    {
       private delegate Object dlg_worker(PipelineContext ctx, Object value);
 
-      public enum Mode { Flatten, First, Last, Count };
+      public enum Mode { Flatten, First, Last, Count, Delegate };
       public readonly Mode ConvertMode;
       public readonly String Sep;
+      public readonly String DelegateKey;
       private readonly dlg_worker fnWorker;
 
       public ComplexConverter(XmlNode node)
          : base(node)
       {
+         DelegateKey = node.ReadStr("@delegate", null);
+         if (DelegateKey == "." || DelegateKey == "*") DelegateKey = null;
          ConvertMode = node.ReadEnum<Mode>("@mode");
          Sep = node.ReadStr("@sep", "; ");
          switch (ConvertMode)
@@ -32,6 +35,7 @@ namespace Bitmanager.ImportPipeline
             case Mode.Flatten: fnWorker = doFlatten; break;
             case Mode.First: fnWorker = doFirst; break;
             case Mode.Last: fnWorker = doLast; break;
+            case Mode.Delegate: fnWorker = doDelegate; break;
          }
       }
 
@@ -86,6 +90,50 @@ namespace Bitmanager.ImportPipeline
          }
 
          return ConvertScalar(ctx, value);
+      }
+      private Object doDelegate(PipelineContext ctx, Object value)
+      {
+         if (value == null) goto EXIT_NULL;
+
+         String delegateKey = DelegateKey != null ? DelegateKey : ctx.Action.Name;
+         Array arr = value as Array;
+         if (arr != null)
+         {
+            if (arr.Length == 0) goto EXIT_NULL;
+
+            foreach (var obj in arr)
+            {
+               ctx.Pipeline.HandleValue(ctx, delegateKey, obj);
+            }
+            goto EXIT_NULL;
+         }
+
+         JArray jarr = value as JArray;
+         if (jarr != null)
+         {
+            if (jarr.Count == 0) goto EXIT_NULL;
+            foreach (var obj in jarr)
+            {
+               ctx.Pipeline.HandleValue(ctx, delegateKey, obj);
+            }
+            goto EXIT_NULL;
+         }
+
+         JObject jobj = value as JObject;
+         if (jobj != null)
+         {
+            if (jobj.Count == 0) goto EXIT_NULL;
+            foreach (var v in jobj)
+            {
+               ctx.Pipeline.HandleValue(ctx, delegateKey, v.Value);
+            }
+            goto EXIT_NULL;
+         }
+
+         return ConvertScalar(ctx, value);
+
+         EXIT_NULL:
+         return null;
       }
 
       private Object doFirst(PipelineContext ctx, Object value)

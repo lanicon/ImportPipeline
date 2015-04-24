@@ -20,7 +20,9 @@ namespace Bitmanager.ImportPipeline
       Add = 3,
       Emit = 4,
       ErrorHandler = 5,
-      Except = 6
+      Except = 6,
+      Clear = 7,
+      Clr = 7
    }
    public delegate Object ScriptDelegate(PipelineContext ctx, String key, Object value); 
    public abstract class PipelineAction : NamedItem
@@ -189,6 +191,7 @@ namespace Bitmanager.ImportPipeline
          switch (act)
          {
             case _ActionType.Add: return new PipelineAddAction(pipeline, node);
+            case _ActionType.Clr: return new PipelineClearAction(pipeline, node);
             case _ActionType.Nop: return new PipelineNopAction(pipeline, node);
             case _ActionType.Field: return new PipelineFieldAction(pipeline, node);
             case _ActionType.Emit: return new PipelineEmitAction(pipeline, node);

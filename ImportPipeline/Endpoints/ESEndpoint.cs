@@ -118,6 +118,7 @@ namespace Bitmanager.ImportPipeline
       {
          IndexDocType ret = null;
          int ix=-1;
+         int cnt = 0;
          if (name != null && 0 <= (ix = name.IndexOf('.')))
          {
             ret = getDocType (name.Substring(0, ix), name.Substring (ix+1));
@@ -140,7 +141,6 @@ namespace Bitmanager.ImportPipeline
          var doctype = getDocType(name, null);
          if (doctype != null) return doctype;
 
-         int cnt = 0;
          foreach (var index in Indexes)
          {
             foreach (var dt in index.DocTypes)
@@ -156,7 +156,17 @@ namespace Bitmanager.ImportPipeline
 
       EXIT_RTN:
          if (!mustExcept) return null;
-         throw new BMException("Cannot find endpoint [{0}]. It is not found or it is ambiguous.", name);
+         Logger errorLog = Logs.ErrorLog;
+         errorLog.Log("Type {0} is not found or is ambiguous. Found cnt={1}. All types:", name, cnt);
+         foreach (var index in Indexes)
+         {
+            errorLog.Log("-- Index {0}:", index.Name);
+            foreach (var dt in index.DocTypes)
+            {
+               if (String.Equals(name, dt.Name)) errorLog.Log("-- -- Type {0}", dt.Name);
+            }
+         }
+         throw new BMException("Cannot find endpoint [{0}]. It is not found or ambiguous.", name);
       }
       protected IndexDocType getDocType(String indexName, String typeName)
       {

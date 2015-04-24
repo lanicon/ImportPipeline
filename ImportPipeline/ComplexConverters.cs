@@ -91,6 +91,7 @@ namespace Bitmanager.ImportPipeline
 
          return ConvertScalar(ctx, value);
       }
+
       private Object doDelegate(PipelineContext ctx, Object value)
       {
          if (value == null) goto EXIT_NULL;

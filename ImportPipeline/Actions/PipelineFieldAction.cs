@@ -13,22 +13,44 @@ namespace Bitmanager.ImportPipeline
 {
    public class PipelineFieldAction : PipelineAction
    {
+      protected enum FieldSource { Value, Field, Event, Variable };
       protected String toField;
       protected String toFieldFromVar;
       protected String toVar;
       protected String fromVar;
       protected String fromField;
+      protected String fromValue;
       protected FieldFlags fieldFlags;
       protected String sep;
+      protected FieldSource fieldSource;
 
       public PipelineFieldAction(Pipeline pipeline, XmlNode node)
          : base(pipeline, node)
       {
+         fieldSource = FieldSource.Event;
          toVar = node.ReadStr("@tovar", null);
          fromVar = node.ReadStr("@fromvar", null);
          fromField = node.ReadStr("@fromfield", null);
-         if (fromVar != null && fromField != null)
-            throw new BMNodeException(node, "Cannot specify both fromvar and fromfield.");
+         fromValue = node.ReadStr("@fromvalue", null);
+
+         int cnt=0;
+         if (fromVar != null)
+         {
+            cnt++;
+            fieldSource = FieldSource.Variable;
+         }
+         if (fromField != null)
+         {
+            cnt++;
+            fieldSource = FieldSource.Field;
+         }
+         if (fromValue != null)
+         {
+            cnt++;
+            fieldSource = FieldSource.Value;
+         }
+         if (cnt > 1)
+            throw new BMNodeException(node, "Cannot specify fromvar, fromfield or fromvalue together.");
 
          toField = node.ReadStr("@field", null);
          toFieldFromVar = node.ReadStr("@fieldfromvar", null);
@@ -46,16 +68,21 @@ namespace Bitmanager.ImportPipeline
          this.toVar = optReplace(regex, name, template.toVar);
          this.fromVar = optReplace(regex, name, template.fromVar);
          this.fromField = optReplace(regex, name, template.fromField);
+         this.fromValue = optReplace(regex, name, template.fromValue);
          this.toFieldFromVar = optReplace(regex, name, template.toFieldFromVar);
          this.sep = template.sep;
          this.fieldFlags = template.fieldFlags;
+         this.fieldSource = template.fieldSource;
       }
 
       public override Object HandleValue(PipelineContext ctx, String key, Object value)
       {
-         if (fromVar != null) value = ctx.Pipeline.GetVariable(fromVar);
-         if (fromField != null) value = endPoint.GetField(fromField);
-
+         switch (fieldSource)
+         {
+            case FieldSource.Field: value = endPoint.GetField(fromField); break;
+            case FieldSource.Value: value = fromValue; break;
+            case FieldSource.Variable: value = ctx.Pipeline.GetVariable(fromVar); break;
+         }
          value = ConvertAndCallScript(ctx, key, value);
          if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) return null;
 

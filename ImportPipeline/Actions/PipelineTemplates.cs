@@ -32,6 +32,7 @@ namespace Bitmanager.ImportPipeline
          switch (act)
          {
             case _ActionType.Add: return new PipelineAddTemplate(pipeline, node);
+            case _ActionType.Clear: return new PipelineClearTemplate(pipeline, node);
             case _ActionType.Nop: return new PipelineNopTemplate(pipeline, node);
             case _ActionType.Field: return new PipelineFieldTemplate(pipeline, node);
             case _ActionType.Emit: return new PipelineEmitTemplate(pipeline, node);

@@ -22,7 +22,7 @@ namespace Bitmanager.ImportPipeline
       public readonly int CacheSize;
       public readonly int MaxParallel;
 
-      protected readonly ClusterStatus WaitFor, AltWaitFor;
+      protected readonly ClusterStatus WaitFor;
       protected readonly bool WaitForMustExcept;
       protected readonly int WaitForTimeout;
       public readonly bool NormalCloseOnError;
@@ -47,7 +47,6 @@ namespace Bitmanager.ImportPipeline
             throw new BMNodeException(node, "At least 1 index+type is required!");
 
          WaitFor = node.ReadEnum("waitfor/@status", ClusterStatus.Green | ClusterStatus.Yellow);
-         AltWaitFor = node.ReadEnum("waitfor/@altstatus", ClusterStatus.None);
          WaitForTimeout = node.ReadInt("waitfor/@timeout", 30);
          WaitForMustExcept = node.ReadBool("waitfor/@except", true);
       }
@@ -109,9 +108,7 @@ namespace Bitmanager.ImportPipeline
       public bool WaitForStatus()
       {
          var cmd = Connection.CreateHealthRequest();
-         if (WaitFor == AltWaitFor)
-            return cmd.WaitForStatus(WaitFor, WaitForTimeout, WaitForMustExcept);
-         return cmd.WaitForStatus(WaitFor, AltWaitFor, WaitForTimeout, WaitForMustExcept);
+         return cmd.WaitForStatus(WaitFor, WaitForTimeout*1000, WaitForMustExcept);
       }
 
       protected IndexDocType getDocType(String name, bool mustExcept)

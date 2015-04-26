@@ -133,6 +133,7 @@ namespace Bitmanager.ImportPipeline
          {
             ctx.ErrorLog.Log("SQL error on query");
             ctx.ErrorLog.Log(cmd.CommandText);
+            ctx.ErrorLog.Log(e);
             throw;
          }
       }

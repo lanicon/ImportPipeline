@@ -45,7 +45,7 @@ namespace Bitmanager.ImportPipeline
                NTAccount = (NTAccount)Sid.Translate(typeof(NTAccount));
                IsMapped = true;
             }
-            catch (Exception e)
+            catch 
             {
                NTAccount = new NTAccount("unknown", Sid.Value);
             }
@@ -257,7 +257,7 @@ namespace Bitmanager.ImportPipeline
             {
                return new PrincipalContext(ctx[i], name);
             }
-            catch (Exception err) { }
+            catch { }
          }
          return null;
       }

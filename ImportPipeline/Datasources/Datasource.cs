@@ -24,7 +24,7 @@ namespace Bitmanager.ImportPipeline
       public int ShiftLastRuntime {get; set;}
       public Datasource Datasource {get; private set;}
       public Pipeline Pipeline { get; private set; }
-      public String EndpointName { get; private set; }
+      public String EndpointName { get; internal set; }
       public int LogAdds { get; set; }
       public int MaxAdds { get; set; }
       public int MaxEmits { get; set; }

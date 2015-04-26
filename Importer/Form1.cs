@@ -175,8 +175,8 @@ namespace Bitmanager.Importer
             UseWaitCursor = false;
             enableAllButCancel();
             asyncAdmin.Stop();
-            lblStatus.Text = asyncAdmin.Report.ErrorMessage;
-            if (lblStatus.Text != null) lblStatus.Text = lblStatus.Text.Replace('\r', ' ').Replace('\n', ' ');
+            //lblStatus.Text = asyncAdmin.Report.ErrorMessage;
+            //if (lblStatus.Text != null) lblStatus.Text = lblStatus.Text.Replace('\r', ' ').Replace('\n', ' ');
 
             lbStatus.Items.Clear();
             lbStatus.Items.Add(lblStatus.Text);
@@ -259,6 +259,16 @@ namespace Bitmanager.Importer
          dsList.Items.Clear();
          ImportEngine engine = new ImportEngine();
          engine.Load(comboBox1.Text);
+         cbEndpoints.Items.Clear();
+         cbEndpoints.Items.Add(String.Empty);
+         foreach (var item in engine.Endpoints) cbEndpoints.Items.Add(item.Name);
+
+
+         cbPipeLines.Items.Clear();
+         cbPipeLines.Items.Add(String.Empty);
+         foreach (var item in engine.Pipelines) cbPipeLines.Items.Add(item.Name);
+
+         
          uiFromFlags(engine);
          txtMaxRecords.Text = engine.MaxAdds.ToString();
          txtMaxEmits.Text = engine.MaxEmits.ToString();
@@ -390,6 +400,12 @@ namespace Bitmanager.Importer
          button1.Visible = cb.Checked;
          textBox1.Visible = cb.Checked;
          textBox2.Visible = cb.Checked;
+      }
+
+      private void cbEndpoints_SelectedValueChanged(object sender, EventArgs e)
+      {
+         //ComboBox cb = (ComboBox)sender;
+         //if (cb.SelectedItem > 0)
       }
    }
 }

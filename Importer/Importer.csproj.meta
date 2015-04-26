@@ -9,6 +9,7 @@
       <var name="$$copyright$$" value="Copyright © $$YYYY$$, $$COMPANY$$" />
       <var name="$$version$$" value="1.0.0.$$REVNO$$" />
       <var name="$$fileversion$$" value="$$version$$" />
+      <var name="$$exedir$$" value="bin\$$CONFIGURATION$$" />
    </variables>
 
    <assemblyinfo>
@@ -17,5 +18,11 @@
    <pre>
       <asminfo update="true" increment="true"  />
    </pre>
+   <post>
+      <exec cmd='copy /y $$exedir$$\importer.exe $$exedir$$\importer64.exe'/>
+      <exec cmd='copy /y $$exedir$$\importer.pdb $$exedir$$\importer64.pdb'/>
+      <exec cmd='"C:\Program Files (x86)\Microsoft SDKs\Windows\v8.1A\bin\NETFX 4.5.1 Tools\corflags" $$exedir$$\importer64.exe /32BITPREF-'/>
+      <exec cmd='"C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\editbin" /LARGEADDRESSAWARE $$exedir$$\importer.exe '/>
+   </post>
 </root>
   

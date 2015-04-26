@@ -46,6 +46,8 @@ namespace Bitmanager.ImportPipeline
       public int MaxAdds { get; set; }
       public int MaxEmits { get; set; }
       public _ImportFlags ImportFlags { get; set; }
+      public String OverrideEndpoint { get; set; }
+      public String OverridePipeline { get; set; }
 
 
       public ImportEngine()
@@ -209,7 +211,8 @@ namespace Bitmanager.ImportPipeline
 
          ImportLog.Log();
          ImportLog.Log(new String ('_', 80));
-         ImportLog.Log(_LogType.ltProgress, "Starting import. Flags={0}, MaxAdds={1}, ActiveDS's='{2}'.", ImportFlags, MaxAdds, enabledDSses == null ? null : String.Join(", ", enabledDSses));
+         ImportLog.Log(_LogType.ltProgress, "Starting import. VirtMem={3:F1}GB, Flags={0}, MaxAdds={1}, ActiveDS's='{2}'.", ImportFlags, MaxAdds, enabledDSses == null ? null : String.Join(", ", enabledDSses), OS.GetTotalVirtualMemory() / (1024 * 1024 * 1024.0));
+
          PipelineContext mainCtx = new PipelineContext(this);
          Endpoints.Open(mainCtx);
 
@@ -222,6 +225,17 @@ namespace Bitmanager.ImportPipeline
             for (int i = 0; i < Datasources.Count; i++)
             {
                DatasourceAdmin admin = Datasources[i];
+               if (!String.IsNullOrEmpty(OverrideEndpoint))
+               {
+                  ImportLog.Log(_LogType.ltWarning, "Datsource {0} will run with the override endpoint={1}", admin.Name, OverrideEndpoint);
+                  admin.EndpointName = OverrideEndpoint;
+               }
+               if (!String.IsNullOrEmpty(OverrideEndpoint))
+               {
+                  ImportLog.Log(_LogType.ltWarning, "Datsource {0} will run with the override pipeline={1}", admin.Name, OverridePipeline);
+                  //admin.p = OverrideEndpoint;
+               }
+
                if (!isActive(enabledDSses, admin))
                {
                   ImportLog.Log(_LogType.ltProgress, "[{0}]: not active", admin.Name);

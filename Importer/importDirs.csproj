@@ -62,98 +62,6 @@
       <SubType>Code</SubType>
       <Visible>true</Visible>
     </Compile>
-    <Compile Include="ImportDirs\AltNames\import.xml">
-      <SubType>Code</SubType>
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Include="ImportDirs\Channels\import.xml">
-      <SubType>Code</SubType>
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Include="ImportDirs\countCities\import.xml">
-      <SubType>Code</SubType>
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Include="ImportDirs\desttrans\import.xml">
-      <SubType>Code</SubType>
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Include="ImportDirs\esToNop\import.xml">
-      <SubType>Code</SubType>
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Include="ImportDirs\ES\import.xml">
-      <SubType>Code</SubType>
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Include="ImportDirs\EvaluateMissing\import.xml">
-      <SubType>Code</SubType>
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Include="ImportDirs\ExportAltNames\import.xml">
-      <SubType>Code</SubType>
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Include="ImportDirs\FinnishCountries\import.xml">
-      <SubType>Code</SubType>
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Include="ImportDirs\formatSample\import.xml">
-      <SubType>Code</SubType>
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Include="ImportDirs\Giro\import.xml">
-      <SubType>Designer</SubType>
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Include="ImportDirs\GorillaMail\import.xml">
-      <SubType>Code</SubType>
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Include="ImportDirs\Gorilla\import.xml">
-      <SubType>Code</SubType>
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Include="ImportDirs\hotelsVoorB\import.xml">
-      <SubType>Code</SubType>
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Include="ImportDirs\hotels\import.xml">
-      <SubType>Code</SubType>
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Include="ImportDirs\Missed2Canonical\import.xml">
-      <SubType>Code</SubType>
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Include="ImportDirs\Missed\import.xml">
-      <SubType>Code</SubType>
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Include="ImportDirs\queries\import.xml">
-      <SubType>Code</SubType>
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Include="ImportDirs\RealtimeEvents\import.xml">
-      <SubType>Code</SubType>
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Include="ImportDirs\termlist\import.xml">
-      <SubType>Code</SubType>
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Include="ImportDirs\Tika\import.xml">
-      <SubType>Designer</SubType>
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Include="ImportDirs\Xml\import.xml">
-      <SubType>Code</SubType>
-      <Visible>true</Visible>
-    </Compile>
-    <Compile Include="ImportDirs\zCsvToCsv\import.xml">
-      <SubType>Code</SubType>
-      <Visible>true</Visible>
-    </Compile>
     <Reference Include="bin\debug\HtmlAgilityPack.dll" />
     <Reference Include="bin\debug\HtmlDatasource.dll" />
     <Reference Include="..\bin\debug\*.dll" />
@@ -172,28 +80,6 @@
     <Reference Include="System" />
     <Reference Include="System.Web" />
     <Reference Include="System.XML" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="ImportDirs\AltNames\import.xml" />
-    <Content Include="ImportDirs\Channels\import.xml" />
-    <Content Include="ImportDirs\countCities\import.xml" />
-    <Content Include="ImportDirs\desttrans\import.xml" />
-    <Content Include="ImportDirs\esToNop\import.xml" />
-    <Content Include="ImportDirs\ES\import.xml" />
-    <Content Include="ImportDirs\EvaluateMissing\import.xml" />
-    <Content Include="ImportDirs\FinnishCountries\import.xml" />
-    <Content Include="ImportDirs\Giro\import.xml" />
-    <Content Include="ImportDirs\GorillaMail\import.xml" />
-    <Content Include="ImportDirs\Gorilla\import.xml" />
-    <Content Include="ImportDirs\hotelsVoorB\import.xml" />
-    <Content Include="ImportDirs\hotels\import.xml" />
-    <Content Include="ImportDirs\Missed2Canonical\import.xml" />
-    <Content Include="ImportDirs\Missed\import.xml" />
-    <Content Include="ImportDirs\RealtimeEvents\import.xml" />
-    <Content Include="ImportDirs\Xml\import.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="ImportDirs\zCsvToCsv\import.xml" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.0">

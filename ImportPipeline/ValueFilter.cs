@@ -12,7 +12,7 @@ namespace Bitmanager.ImportPipeline
 
    public class ValueFilterStringElt: IValueFilter
    {
-      private String incl, excl;
+      //private String incl, excl;
 
       public bool IsFiltered(object value)
       {

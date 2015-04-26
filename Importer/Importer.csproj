@@ -16,12 +16,12 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
+    <Optimize>true</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>DEBUG</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
+    <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -78,6 +78,7 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
+    <None Include="Importer.csproj.meta" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -95,6 +96,10 @@
     <ProjectReference Include="..\HtmlDatasource\HtmlDatasource.csproj">
       <Project>{67a6e646-6c1a-44cb-a33d-6591bd3ef6c1}</Project>
       <Name>HtmlDatasource</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\IgorDatasource\IgorDatasource.csproj">
+      <Project>{8665750a-ace7-4e25-ad4a-23912c2ab43a}</Project>
+      <Name>IgorDatasource</Name>
     </ProjectReference>
     <ProjectReference Include="..\ImportPipeline\ImportPipeline.csproj">
       <Project>{b0c6c1db-fa8a-418e-89d8-2f21d7650d3e}</Project>

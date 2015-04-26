@@ -644,7 +644,7 @@ namespace Bitmanager.ImportPipeline
          return ExportedName;
       }
 
-      public static SecurityAccount FactoryImpl(SecurityCache parent, IdentityReference ident)
+      public static new SecurityAccount FactoryImpl(SecurityCache parent, IdentityReference ident)
       {
          return new TikaSecurityAccount(parent, ident);
       }

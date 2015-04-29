@@ -26,6 +26,7 @@ namespace Bitmanager.ImportPipeline
       Silent = 1 << 6,
       RetryErrors = 1 << 7,
       MaxAddsToMaxEmits = 1 << 8,
+      LogEmits = 1 << 9
    }
    public class ImportEngine
    {

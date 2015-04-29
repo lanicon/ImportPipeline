@@ -14,20 +14,26 @@ namespace Bitmanager.ImportPipeline
 {
    public class FileNameFeeder : IDatasourceFeeder, IEnumerable<IDatasourceFeederElement>
    {
+      public enum SortMode { None=0, FileName = 1, FileSize = 2, FileDate = 4, Asc = 8, Desc = 16 };
       private String file;
       private XmlNode ctxNode;
       private FileTree tree;
       private string root, virtualRoot;
+      private int rootLen;
       private bool recursive;
       public  bool IgnoreDates {get; set;}
+      public SortMode Sort{get; set;}
+
       private static Logger errLogger = Logs.ErrorLog.Clone("FileNameFeeder");
 
       private static FeederElementBase createUri(XmlNode ctx, Uri baseUri, String url)
       {
          return new FeederElementBase(ctx, baseUri == null ? new Uri(url) : new Uri(baseUri, url));
       }
+
       public void Init(PipelineContext ctx, XmlNode node)
       {
+         Sort = node.ReadEnum("@filesort", SortMode.FileName | SortMode.Desc);
          IgnoreDates = node.ReadBool("@ignoredates", false);
          if ((ctx.ImportFlags & _ImportFlags.FullImport) != 0)
             IgnoreDates = true;
@@ -35,11 +41,18 @@ namespace Bitmanager.ImportPipeline
          file = node.ReadStr("@file", null);
          this.ctxNode = node;
          if (file != null)
+         {
             file = ctx.ImportEngine.Xml.CombinePath(file);
+            rootLen = 1 + Path.GetDirectoryName(file).Length;
+         }
          else
          {
             tree = new FileTree();
             root = XmlUtils.ReadStr(node, "@root");
+            root = ctx.ImportEngine.Xml.CombinePath(root);
+            rootLen = 1 + root.Length;
+            if (root[root.Length - 1] != '\\') rootLen--;
+
             virtualRoot = XmlUtils.ReadStr(node, "@virtualroot", null);
             recursive = XmlUtils.ReadBool(node, "@recursive", true);
 
@@ -81,13 +94,67 @@ namespace Bitmanager.ImportPipeline
          args.Continue = true;
       }
 
-
-      private List<String> getFilesFromFileSpec2 (String file, DateTime minUtc, DateTime maxUtc)
+      class _FileElt
       {
-         var arr = new List<string>();
+         public readonly String Name;
+         public readonly DateTime LastWriteUtc;
+         public readonly long Size;
+
+         public _FileElt(FileSystemInfo fi)
+         {
+            Name = fi.FullName;
+            LastWriteUtc = fi.LastWriteTimeUtc;
+         }
+         public _FileElt(String fullName)
+         {
+            Name = fullName;
+         }
+
+         public static int sortAscName(_FileElt left, _FileElt right)
+         {
+            return String.Compare(left.Name, right.Name, StringComparison.InvariantCultureIgnoreCase);
+         }
+         public static int sortDescName(_FileElt left, _FileElt right)
+         {
+            return String.Compare(right.Name, left.Name, StringComparison.InvariantCultureIgnoreCase);
+         }
+         public static int sortAscDate(_FileElt left, _FileElt right)
+         {
+            return DateTime.Compare(left.LastWriteUtc, right.LastWriteUtc);
+         }
+         public static int sortDescDate(_FileElt left, _FileElt right)
+         {
+            return DateTime.Compare(right.LastWriteUtc, left.LastWriteUtc);
+         }
+      }
+
+
+      Comparison<_FileElt> GetSorter ()
+      {
+         switch (Sort & (SortMode.FileName | SortMode.FileDate | SortMode.FileSize))
+         {
+            default: return null;
+            case SortMode.FileDate:
+               return (Sort & SortMode.Desc) != 0 ? (Comparison<_FileElt>)_FileElt.sortDescDate : (Comparison<_FileElt>)_FileElt.sortAscDate;
+            case SortMode.FileName:
+               return (Sort & SortMode.Desc) != 0 ? (Comparison<_FileElt>)_FileElt.sortDescName : (Comparison<_FileElt>)_FileElt.sortAscName;
+         }
+      }
+
+      List<_FileElt> SortElts (List<_FileElt> elts)
+      {
+         if (elts == null || elts.Count <= 1) return elts;
+         Comparison<_FileElt> cmp = GetSorter();
+         if (cmp != null)
+            elts.Sort (cmp);
+         return elts;
+      }
+      private List<_FileElt> getFilesFromFileSpec2(String file, DateTime minUtc, DateTime maxUtc)
+      {
+         var arr = new List<_FileElt>();
          if (file.IndexOf('*') < 0 && file.IndexOf('?') < 0)
          {
-            arr.Add (file);
+            arr.Add (new _FileElt(file));
             goto EXIT_RTN;
          }
          String dir = Path.GetDirectoryName(file);
@@ -97,41 +164,11 @@ namespace Bitmanager.ImportPipeline
          foreach (var info in files) {
             if (info.LastWriteTimeUtc < minUtc) continue;
             if (info.LastWriteTimeUtc >= maxUtc) continue;
-            arr.Add (info.FullName);
+            arr.Add (new _FileElt (info));
          }
          EXIT_RTN:
-         return arr;
+         return SortElts(arr);
       }
-
-      //private static String[] getFilesFromFileSpec(String file)
-      //{
-      //   if (file.IndexOf('*') < 0 && file.IndexOf('?') < 0)
-      //   {
-      //      String[] arr = new String[1];
-      //      arr[0] = file;
-      //      return arr;
-      //   }
-      //   String dir = Path.GetDirectoryName(file);
-      //   String spec = Path.GetFileName(file);
-      //   if (!Directory.Exists(dir)) return new String[0];
-      //   return Directory.GetFiles(dir, spec);
-      //}
-
-
-      //public static class WildcardMatch
-      //{
-      //   #region Public Methods
-      //   public static bool IsLike(string pattern, string text, bool caseSensitive = false)
-      //   {
-      //      pattern = pattern.Replace(".", @"\.");
-      //      pattern = pattern.Replace("?", ".");
-      //      pattern = pattern.Replace("*", ".*?");
-      //      pattern = pattern.Replace(@"\", @"\\");
-      //      pattern = pattern.Replace(" ", @"\s");
-      //      return new Regex(pattern, caseSensitive ? RegexOptions.None : RegexOptions.IgnoreCase).IsMatch(text);
-      //   }
-      //   #endregion
-      //}
 
       private DateTime getMinDate ()
       {
@@ -151,21 +188,31 @@ namespace Bitmanager.ImportPipeline
       {
          if (file != null)
          {
-            foreach (var s in getFilesFromFileSpec2(file, getMinDate(), DateTime.MaxValue))
+            foreach (var s in SortElts(getFilesFromFileSpec2(file, getMinDate(), DateTime.MaxValue)))
             {
                //Logs.ErrorLog.Log("File=" + s);
-               yield return new FileNameFeederElement(ctxNode, s);
+               yield return new FileNameFeederElement(ctxNode, rootLen, s.Name, virtualRoot);
             }
          }
          else
          {
+            var list = new List<_FileElt>();
             tree.MinUtcDate = getMinDate ();
-            tree.ReadFiles(root, recursive ? (_ReadFileFlags.rfStoreFiles | _ReadFileFlags.rfSubdirs) : (_ReadFileFlags.rfStoreFiles));
+            tree.OnFile += tree_OnFile;
+            tree.UserTag = list;
+            tree.ReadFiles(root, recursive ? _ReadFileFlags.rfSubdirs : 0);
             if (_ctx != null) _ctx.ImportLog.Log("-- Found {0} files.", tree.Files.Count);
 
-            for (int i = 0; i < tree.Files.Count; i++)
-               yield return new FileNameFeederElement(ctxNode, tree, tree.Files[i], virtualRoot);
+            SortElts(list);
+            for (int i = 0; i < list.Count; i++)
+               yield return new FileNameFeederElement(ctxNode, rootLen, list[i].Name, virtualRoot);
          }
+      }
+
+      void tree_OnFile(FileTree sender, string RelativeFName, FileSystemInfo info, object userTag)
+      {
+         var list = (List<_FileElt>)userTag;
+         list.Add(new _FileElt(info));
       }
 
       System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
@@ -181,10 +228,10 @@ namespace Bitmanager.ImportPipeline
       public readonly String VirtualRoot;
       public readonly String VirtualFileName;
 
-      public FileNameFeederElement(XmlNode ctx, FileTree tree, String relname, String virtualRoot)
-         : base(ctx, tree.GetFullName(relname))
+      public FileNameFeederElement(XmlNode ctx, int rootLen, String fullName, String virtualRoot)
+         : base(ctx, fullName)
       {
-         RelativeName = relname;
+         RelativeName = fullName.Substring(rootLen);
          FileName = (String)Element;
          VirtualRoot = virtualRoot;
          if (virtualRoot == null)
@@ -192,16 +239,8 @@ namespace Bitmanager.ImportPipeline
          else
          {
             VirtualRoot = virtualRoot;
-            VirtualFileName = Path.Combine(virtualRoot, relname);
+            VirtualFileName = Path.Combine(virtualRoot, RelativeName);
          }
-      }
-
-      public FileNameFeederElement(XmlNode ctx, String name)
-         : base(ctx, name)
-      {
-         RelativeName = Path.GetFullPath(name);
-         FileName = RelativeName;
-         VirtualRoot = RelativeName;
       }
 
    }

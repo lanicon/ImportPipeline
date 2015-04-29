@@ -137,7 +137,14 @@ namespace Bitmanager.ImportPipeline
             ImportLog.Log("MAX EMITS EXCEEDED, {0}", GetStats());
             throw Exceeded = new MaxAddsExceededException(Emitted, "emits");
          }
-         ++Emitted;
+         switch ((++Emitted) % LogAdds)
+         {
+            case 0: 
+               if ((this.ImportFlags & _ImportFlags.LogEmits) == 0)
+                  if (Added != 0) break;
+               ImportFlags |= _ImportFlags.LogEmits;
+               ImportLog.Log(_LogType.ltTimer, "Emitted {0} records", Added); break;
+         }
       }
 
       public void IncrementAndLogAdd()

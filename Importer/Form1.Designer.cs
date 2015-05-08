@@ -75,6 +75,7 @@
          this.comboBox1.Size = new System.Drawing.Size(587, 23);
          this.comboBox1.TabIndex = 0;
          this.comboBox1.SelectedIndexChanged += new System.EventHandler(this.comboBox1_SelectedIndexChanged);
+         this.comboBox1.TextUpdate += new System.EventHandler(this.comboBox1_TextUpdate);
          // 
          // btnImport
          // 
@@ -377,7 +378,6 @@
          this.cbEndpoints.Name = "cbEndpoints";
          this.cbEndpoints.Size = new System.Drawing.Size(167, 23);
          this.cbEndpoints.TabIndex = 26;
-         this.cbEndpoints.SelectedValueChanged += new System.EventHandler(this.cbEndpoints_SelectedValueChanged);
          // 
          // cbPipeLines
          // 

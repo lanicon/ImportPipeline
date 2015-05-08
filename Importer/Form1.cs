@@ -48,6 +48,13 @@ namespace Bitmanager.Importer
 
       private Logger importLog = Logs.CreateLogger("import", "importer");
       private Logger errorLog = Logs.CreateLogger("error", "importer");
+
+      private static void optAddItemToCombo (ComboBox cb, StringDict set, String f)
+      {
+         if (set.ContainsKey(f)) return;
+         cb.Items.Add(f);
+         set.Add(f, null);
+      }
       private void Form1_Load(object sender, EventArgs e)
       {
          try
@@ -57,6 +64,9 @@ namespace Bitmanager.Importer
             trySetIcon();
             String dir = Assembly.GetExecutingAssembly().Location;
 
+            StringDict set = new StringDict();
+            foreach (var f in History.LoadHistory(HISTORY_KEY)) optAddItemToCombo (comboBox1, set, f);
+
             dir = IOUtils.FindDirectoryToRoot(Path.GetDirectoryName(dir), "ImportDirs");
             if (dir != null)
             {
@@ -65,11 +75,12 @@ namespace Bitmanager.Importer
                tree.ReadFiles(dir);
                if (tree.Files.Count != 0)
                {
-                  History.LoadHistory(comboBox1, HISTORY_KEY, tree.Files.Select(f => tree.GetFullName(f)).ToList());
-                  return;
+                  tree.Files.Sort();
+                  foreach (var relfile in tree.Files) optAddItemToCombo(comboBox1, set, tree.GetFullName(relfile));
                }
             }
-            History.LoadHistory(comboBox1, HISTORY_KEY);
+            if (comboBox1.Items.Count > 0)
+               comboBox1.SelectedIndex = 0;
          }
          catch (Exception ex)
          {
@@ -195,7 +206,7 @@ namespace Bitmanager.Importer
 
       private void import2()
       {
-         if (comboBox1.SelectedIndex < 0) return;
+         if (comboBox1.SelectedIndex < 0) throw new BMException("No entry selected.");
 
          History.SaveHistory(comboBox1, HISTORY_KEY);
          String[] activeDSses = null;
@@ -402,10 +413,27 @@ namespace Bitmanager.Importer
          textBox2.Visible = cb.Checked;
       }
 
-      private void cbEndpoints_SelectedValueChanged(object sender, EventArgs e)
+      //private void cbEndpoints_SelectedValueChanged(object sender, EventArgs e)
+      //{
+      //   //ComboBox cb = (ComboBox)sender;
+      //   //if (cb.SelectedItem > 0)
+      //}
+
+      private void comboBox1_TextUpdate(object sender, EventArgs e)
       {
-         //ComboBox cb = (ComboBox)sender;
-         //if (cb.SelectedItem > 0)
+         //importLog.Log("text update");
+         var cb = sender as ComboBox;
+         String fn = cb.Text;
+         if (File.Exists (fn))
+         {
+            fn = Path.GetFullPath(fn);
+            foreach (var item in cb.Items)
+               if (fn.Equals(item.ToString(), StringComparison.InvariantCultureIgnoreCase)) return;
+            int selIndex = cb.Items.Count;
+            cb.Items.Add(fn);
+            cb.SelectedIndex = selIndex;
+         }
+
       }
    }
 }

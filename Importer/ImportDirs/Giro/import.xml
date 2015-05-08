@@ -2,7 +2,7 @@
 <root importflags="fullimport">
    <script file="script.cs" />
    <endpoints>
-      <endpoint name="es" type="ESEndpoint" url="http://localhost:9200/" cache="500" maxparallel="2">
+      <endpoint name="es" type="ESEndpoint" url="http://bm:9200/" cache="500" maxparallel="2">
          <index name="peter" indexname="gpeter" config="index.config.js" >
             <type name="doc" _keyfield="_id" />  
          </index>
@@ -64,10 +64,10 @@
    </pipelines>
 
    <datasources endpoint="es.*">
-      <datasource name="bitmanager"  type="csv" trim="All" active="false" file="bitmanager\*.csv"  headers="true" dlm="," quote='"'/>
-      <datasource name="peter"  type="csv" trim="All" active="false" file="peter\*.csv"  headers="true" dlm="," quote='"'/>
-      <datasource name="francien"  type="csv" trim="All" active="false" file="francien\*.csv"  headers="true" dlm="," quote='"'/>
-      <datasource name="wilma"  type="csv" trim="All" active="false" file="wilma\*.csv"  headers="true" dlm="," quote='"'/>
+      <datasource name="bitmanager"  type="csv" trim="All" active="false" file="bitmanager\*.csv" filesort='filename|desc'  headers="true" dlm="," quote='"'/>
+      <datasource name="peter"  type="csv" trim="All" active="false" file="peter\*.csv" filesort='filename|desc'  headers="true" dlm="," quote='"'/>
+      <datasource name="francien"  type="csv" trim="All" active="false" file="francien\*.csv" filesort='filename|desc'  headers="true" dlm="," quote='"'/>
+      <datasource name="wilma"  type="csv" trim="All" active="false" file="wilma\*.csv" filesort='filename|desc'  headers="true" dlm="," quote='"'/>
    </datasources>
    
 </root>

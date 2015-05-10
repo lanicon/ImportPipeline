@@ -1,8 +1,9 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+﻿$$#define SERVER=localhost$$
+<?xml version="1.0" encoding="utf-8" ?>
 <root importflags="fullimport">
    <script file="script.cs" />
    <endpoints>
-      <endpoint name="es" type="ESEndpoint" url="http://bm:9200/" cache="500" maxparallel="2">
+      <endpoint name="es" type="ESEndpoint" url="http://$$server$$:9200/" cache="500" maxparallel="2">
          <index name="peter" indexname="gpeter" config="index.config.js" >
             <type name="doc" _keyfield="_id" />  
          </index>

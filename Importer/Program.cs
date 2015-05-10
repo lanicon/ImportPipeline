@@ -36,6 +36,7 @@ namespace Bitmanager.Importer
          Logs.ErrorLog.Log(_LogType.ltError, msg);
          Console.WriteLine(msg);
       }
+
       private static int runAsConsole(String[] args)
       {
          try
@@ -49,15 +50,17 @@ namespace Bitmanager.Importer
          {
             Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
             var cmd = new CommandLineParms(args);
+            String responseFile = cmd.NamedArgs.OptGetItem("resp");
+            if (responseFile != null) {
+               if (cmd.Args.Count != 0) goto WRITE_SYNTAX;
+               cmd = new CommandLineParms(responseFile);
+            }
+
             _ImportFlags flags = Invariant.ToEnum<_ImportFlags>(cmd.NamedArgs.OptGetItem("flags"), _ImportFlags.UseFlagsFromXml);
             int maxAdds = Invariant.ToInt32(cmd.NamedArgs.OptGetItem("maxadds"), -1);
             int maxEmits = Invariant.ToInt32(cmd.NamedArgs.OptGetItem("maxemits"), -1);
-            if (cmd.Args.Count == 0)
-            {
-               logError("Invalid commandline: {0}", Environment.CommandLine);
-               logError("Syntax: <importxml file> [list of datasources] [/flags:<importflags>] [/maxadds:<number>] [/maxemits:<number>]");
-               return 12;
-            }
+            if (cmd.Args.Count == 0) goto WRITE_SYNTAX;
+
             ImportEngine eng = new ImportEngine();
             eng.MaxAdds = maxAdds;
             eng.MaxEmits = maxEmits;
@@ -71,6 +74,12 @@ namespace Bitmanager.Importer
                eng.ImportFlags = flags;
             eng.Import(dsList);
             return 0;
+
+            WRITE_SYNTAX:
+            logError("Invalid commandline: {0}", Environment.CommandLine);
+            logError("Syntax: <importxml file> [list of datasources] [/flags:<importflags>] [/maxadds:<number>] [/maxemits:<number>] [/$$xxxx$$:<value>");
+            logError("    or: /resp:<responsefile> with 1 option per line");
+            return 12;
          }
          catch (Exception e)
          {

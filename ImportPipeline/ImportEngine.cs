@@ -1,5 +1,6 @@
 ﻿using Bitmanager.Core;
 using Bitmanager.Elastic;
+using Bitmanager.ImportPipeline.Template;
 using Bitmanager.IO;
 using Bitmanager.Xml;
 using System;
@@ -26,7 +27,15 @@ namespace Bitmanager.ImportPipeline
       Silent = 1 << 6,
       RetryErrors = 1 << 7,
       MaxAddsToMaxEmits = 1 << 8,
-      LogEmits = 1 << 9
+      LogEmits = 1 << 9,
+      /// <summary>
+      /// Load the XML without using a template
+      /// </summary>
+      LoadRawXml = 1<<10,
+      /// <summary>
+      /// Dump the generated XML to &lt;xmlfile&gt;.generated.xml
+      /// </summary>
+      DebugXml = 1 << 11
    }
    public class ImportEngine
    {
@@ -85,8 +94,22 @@ namespace Bitmanager.ImportPipeline
             createLogs();
          }
 
-         XmlHelper xml = new XmlHelper(fileName);
-         Load(xml);
+         Load(loadXml (fileName));
+      }
+
+      private XmlHelper loadXml(String fileName)
+      {
+         ImportLog.Log("Flgas before load={0}", ImportFlags);
+         if ((ImportFlags & _ImportFlags.LoadRawXml)!=0)
+            return new XmlHelper(fileName);
+
+         XmlHelper xml = new XmlHelper();
+         TemplateEngine eng = new TemplateEngine();
+         if ((ImportFlags & _ImportFlags.DebugXml) != 0) eng.DebugLevel = 1;
+         
+         eng.LoadFromFile(fileName);
+         xml.Load (eng.ResultAsReader(), fileName);
+         return xml;
       }
 
       public void Load(XmlHelper xml)

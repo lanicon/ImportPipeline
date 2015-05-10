@@ -63,6 +63,9 @@
          this.label7 = new System.Windows.Forms.Label();
          this.cbEndpoints = new System.Windows.Forms.ComboBox();
          this.cbPipeLines = new System.Windows.Forms.ComboBox();
+         this.checkBox3 = new System.Windows.Forms.CheckBox();
+         this.checkBox4 = new System.Windows.Forms.CheckBox();
+         this.checkBox5 = new System.Windows.Forms.CheckBox();
          this.grpFlags.SuspendLayout();
          this.SuspendLayout();
          // 
@@ -123,6 +126,9 @@
          // 
          // grpFlags
          // 
+         this.grpFlags.Controls.Add(this.checkBox5);
+         this.grpFlags.Controls.Add(this.checkBox4);
+         this.grpFlags.Controls.Add(this.checkBox3);
          this.grpFlags.Controls.Add(this.checkBox2);
          this.grpFlags.Controls.Add(this.cbRetryErrors);
          this.grpFlags.Controls.Add(this.cbIgnoreErrors);
@@ -132,7 +138,7 @@
          this.grpFlags.Controls.Add(this.CbFullImport);
          this.grpFlags.Location = new System.Drawing.Point(30, 126);
          this.grpFlags.Name = "grpFlags";
-         this.grpFlags.Size = new System.Drawing.Size(165, 197);
+         this.grpFlags.Size = new System.Drawing.Size(165, 288);
          this.grpFlags.TabIndex = 7;
          this.grpFlags.TabStop = false;
          this.grpFlags.Text = "Flags";
@@ -267,7 +273,7 @@
          // label3
          // 
          this.label3.AutoSize = true;
-         this.label3.Location = new System.Drawing.Point(27, 340);
+         this.label3.Location = new System.Drawing.Point(233, 325);
          this.label3.Name = "label3";
          this.label3.Size = new System.Drawing.Size(71, 15);
          this.label3.TabIndex = 13;
@@ -275,9 +281,9 @@
          // 
          // txtMaxRecords
          // 
-         this.txtMaxRecords.Location = new System.Drawing.Point(104, 337);
+         this.txtMaxRecords.Location = new System.Drawing.Point(310, 322);
          this.txtMaxRecords.Name = "txtMaxRecords";
-         this.txtMaxRecords.Size = new System.Drawing.Size(94, 23);
+         this.txtMaxRecords.Size = new System.Drawing.Size(71, 23);
          this.txtMaxRecords.TabIndex = 14;
          this.txtMaxRecords.Text = "-1";
          // 
@@ -329,7 +335,7 @@
          // label4
          // 
          this.label4.AutoSize = true;
-         this.label4.Location = new System.Drawing.Point(214, 340);
+         this.label4.Location = new System.Drawing.Point(387, 325);
          this.label4.Name = "label4";
          this.label4.Size = new System.Drawing.Size(58, 15);
          this.label4.TabIndex = 20;
@@ -337,9 +343,9 @@
          // 
          // txtMaxEmits
          // 
-         this.txtMaxEmits.Location = new System.Drawing.Point(278, 337);
+         this.txtMaxEmits.Location = new System.Drawing.Point(451, 322);
          this.txtMaxEmits.Name = "txtMaxEmits";
-         this.txtMaxEmits.Size = new System.Drawing.Size(94, 23);
+         this.txtMaxEmits.Size = new System.Drawing.Size(70, 23);
          this.txtMaxEmits.TabIndex = 21;
          this.txtMaxEmits.Text = "-1";
          // 
@@ -356,7 +362,7 @@
          // label6
          // 
          this.label6.AutoSize = true;
-         this.label6.Location = new System.Drawing.Point(27, 369);
+         this.label6.Location = new System.Drawing.Point(233, 354);
          this.label6.Name = "label6";
          this.label6.Size = new System.Drawing.Size(55, 15);
          this.label6.TabIndex = 24;
@@ -365,7 +371,7 @@
          // label7
          // 
          this.label7.AutoSize = true;
-         this.label7.Location = new System.Drawing.Point(27, 398);
+         this.label7.Location = new System.Drawing.Point(233, 383);
          this.label7.Name = "label7";
          this.label7.Size = new System.Drawing.Size(49, 15);
          this.label7.TabIndex = 25;
@@ -374,7 +380,7 @@
          // cbEndpoints
          // 
          this.cbEndpoints.FormattingEnabled = true;
-         this.cbEndpoints.Location = new System.Drawing.Point(103, 366);
+         this.cbEndpoints.Location = new System.Drawing.Point(309, 351);
          this.cbEndpoints.Name = "cbEndpoints";
          this.cbEndpoints.Size = new System.Drawing.Size(167, 23);
          this.cbEndpoints.TabIndex = 26;
@@ -383,10 +389,40 @@
          // 
          this.cbPipeLines.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
          this.cbPipeLines.FormattingEnabled = true;
-         this.cbPipeLines.Location = new System.Drawing.Point(103, 395);
+         this.cbPipeLines.Location = new System.Drawing.Point(309, 380);
          this.cbPipeLines.Name = "cbPipeLines";
          this.cbPipeLines.Size = new System.Drawing.Size(169, 23);
          this.cbPipeLines.TabIndex = 27;
+         // 
+         // checkBox3
+         // 
+         this.checkBox3.AutoSize = true;
+         this.checkBox3.Location = new System.Drawing.Point(17, 198);
+         this.checkBox3.Name = "checkBox3";
+         this.checkBox3.Size = new System.Drawing.Size(95, 19);
+         this.checkBox3.TabIndex = 17;
+         this.checkBox3.Text = "LoadRawXml";
+         this.checkBox3.UseVisualStyleBackColor = true;
+         // 
+         // checkBox4
+         // 
+         this.checkBox4.AutoSize = true;
+         this.checkBox4.Location = new System.Drawing.Point(17, 223);
+         this.checkBox4.Name = "checkBox4";
+         this.checkBox4.Size = new System.Drawing.Size(82, 19);
+         this.checkBox4.TabIndex = 18;
+         this.checkBox4.Text = "DebugXml";
+         this.checkBox4.UseVisualStyleBackColor = true;
+         // 
+         // checkBox5
+         // 
+         this.checkBox5.AutoSize = true;
+         this.checkBox5.Location = new System.Drawing.Point(17, 249);
+         this.checkBox5.Name = "checkBox5";
+         this.checkBox5.Size = new System.Drawing.Size(75, 19);
+         this.checkBox5.TabIndex = 19;
+         this.checkBox5.Text = "LogEmits";
+         this.checkBox5.UseVisualStyleBackColor = true;
          // 
          // Form1
          // 
@@ -468,6 +504,9 @@
       private System.Windows.Forms.Label label7;
       private System.Windows.Forms.ComboBox cbEndpoints;
       private System.Windows.Forms.ComboBox cbPipeLines;
+      private System.Windows.Forms.CheckBox checkBox4;
+      private System.Windows.Forms.CheckBox checkBox3;
+      private System.Windows.Forms.CheckBox checkBox5;
    }
 }
 

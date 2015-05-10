@@ -23,7 +23,7 @@ namespace UnitTests
          sel.SetAttribute ("field", "name");
          sel.SetAttribute ("expr", "weerd");
 
-         Category cat = Category.Create (xml.DocumentElement);
+         Category cat = Category.Create (xml.DocumentElement); 
 
          PipelineContext ctx = new PipelineContext(eng);
          EndpointWrapper ep = new EndpointWrapper(eng, xml.DocumentElement);

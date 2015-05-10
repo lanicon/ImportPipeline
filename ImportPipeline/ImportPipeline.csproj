@@ -114,6 +114,8 @@
     <Compile Include="Datasources\TestDatasource.cs" />
     <Compile Include="Datasources\TikaWorker.cs" />
     <Compile Include="Datasources\TikaDataSource.cs" />
+    <Compile Include="Template\TemplateEngine.cs" />
+    <Compile Include="Template\Variables.cs" />
     <Compile Include="UrlProvider.cs" />
     <Compile Include="ValueFilter.cs" />
     <Compile Include="Datasources\XmlDatasource.cs" />

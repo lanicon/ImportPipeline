@@ -82,7 +82,7 @@ namespace Bitmanager.ImportPipeline
          if (!Selector.IsSelected(rec)) return false;
 
          if (SubCats != null) HandleSubcats(ctx, ep, rec);
-         if (Value != null) ep.SetField(Field, Value, FieldFlags.ToArray);
+         if (Value != 0) ep.SetField(Field, Value, FieldFlags.ToArray);
          return true;
       }
    }

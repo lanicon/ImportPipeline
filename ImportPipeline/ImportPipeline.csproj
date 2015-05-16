@@ -55,6 +55,7 @@
     <Reference Include="System.Core" />
     <Reference Include="System.DirectoryServices.AccountManagement" />
     <Reference Include="System.Web" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Data" />
@@ -78,6 +79,7 @@
     <Compile Include="Categorizer\JsEvaluator.cs" />
     <Compile Include="ComplexConverters.cs" />
     <Compile Include="AsyncEndpointRequestQueue.cs" />
+    <Compile Include="Datasources\NopDatasource.cs" />
     <Compile Include="ImportReport.cs" />
     <Compile Include="Datasources\JsonDatasource.cs" />
     <Compile Include="Credentials.cs" />
@@ -114,6 +116,12 @@
     <Compile Include="Datasources\TestDatasource.cs" />
     <Compile Include="Datasources\TikaWorker.cs" />
     <Compile Include="Datasources\TikaDataSource.cs" />
+    <Compile Include="StreamProviders\GenericStreamProvider.cs" />
+    <Compile Include="StreamProviders\StreamProvider.cs" />
+    <Compile Include="StreamProviders\StreamProviderBase.cs" />
+    <Compile Include="StreamProviders\StreamWrapper.cs" />
+    <Compile Include="StreamProviders\FileStreamProvider.cs" />
+    <Compile Include="StreamProviders\WebStreamProvider.cs" />
     <Compile Include="Template\TemplateEngine.cs" />
     <Compile Include="Template\Variables.cs" />
     <Compile Include="UrlProvider.cs" />

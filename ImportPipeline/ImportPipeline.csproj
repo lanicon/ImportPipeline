@@ -77,7 +77,7 @@
     <Compile Include="Categorizer\CatergorySelectorOperators.cs" />
     <Compile Include="Categorizer\Catergory.cs" />
     <Compile Include="Categorizer\JsEvaluator.cs" />
-    <Compile Include="ComplexConverters.cs" />
+    <Compile Include="Converters\ComplexConverters.cs" />
     <Compile Include="AsyncEndpointRequestQueue.cs" />
     <Compile Include="Datasources\NopDatasource.cs" />
     <Compile Include="ImportReport.cs" />
@@ -89,7 +89,7 @@
     <Compile Include="PerlRegex.cs" />
     <Compile Include="Actions\PipelineExceptionAction.cs" />
     <Compile Include="ProcessHost.cs" />
-    <Compile Include="Converters.cs" />
+    <Compile Include="Converters\Converters.cs" />
     <Compile Include="Datasources\CsvDatasource.cs" />
     <Compile Include="Datasources\Datasource.cs" />
     <Compile Include="DatasourceContentProvider.cs" />
@@ -134,6 +134,7 @@
       <SubType>Designer</SubType>
     </Content>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PreBuildEvent>

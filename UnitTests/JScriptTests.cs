@@ -28,7 +28,11 @@ namespace UnitTests
          c = (Closure)dump("(function (aa) {return aa[\"x\"]<'acc';})");
          var obj = new JObject();
          obj["x"] = "abc";
+         Console.WriteLine("args=" + c.arguments);
+         Console.WriteLine("args=" + (c.arguments==null? null : c.arguments.GetType().FullName));
          dump(c, obj);
+         Console.WriteLine("args=" + c.arguments);
+         Console.WriteLine("args=" + (c.arguments == null ? null : c.arguments.GetType().FullName));
 
       }
 

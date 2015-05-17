@@ -66,6 +66,7 @@
     <Compile Include="Actions\PipelineAddAction.cs" />
     <Compile Include="Actions\PipelineEmitAction.cs" />
     <Compile Include="Actions\PipelineErrorAction.cs" />
+    <Compile Include="Actions\PipelineCheckExistAction.cs" />
     <Compile Include="Actions\PipelineFieldAction.cs" />
     <Compile Include="Actions\PipelineNopAction.cs" />
     <Compile Include="admincollections.cs" />
@@ -79,6 +80,7 @@
     <Compile Include="Categorizer\JsEvaluator.cs" />
     <Compile Include="Converters\ComplexConverters.cs" />
     <Compile Include="AsyncEndpointRequestQueue.cs" />
+    <Compile Include="Converters\Selector.cs" />
     <Compile Include="Datasources\NopDatasource.cs" />
     <Compile Include="ImportReport.cs" />
     <Compile Include="Datasources\JsonDatasource.cs" />

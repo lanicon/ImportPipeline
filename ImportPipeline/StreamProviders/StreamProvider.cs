@@ -38,6 +38,29 @@ namespace Bitmanager.ImportPipeline.StreamProviders
       CredentialCache Credentials { get; }
       DateTime LastModified { get; }
       long Size { get; }
+
+      //public static Object EmitSubValues (IStreamProvider p, PipelineContext ctx, String pfx)
+      //{
+      //   if (String.IsNullOrEmpty(pfx)) 
+      //      pfx = "_item/_start/";
+      //   else
+      //   {
+      //      if (pfx[pfx.Length-1]!='/') pfx += '/';
+      //   }
+
+      //   Object tmp;
+      //   Pipeline pipeline = ctx.Pipeline;
+      //   Object ret = pipeline.HandleValue(ctx, pfx + "FullName", p.FullName);
+      //   tmp = pipeline.HandleValue(ctx, pfx + "VirtualName", p.VirtualName);
+      //   if (ret == null) ret = tmp;
+      //   tmp = pipeline.HandleValue(ctx, pfx + "RelativeName", p.RelativeName);
+      //   if (ret == null) ret = tmp;
+      //   tmp = pipeline.HandleValue(ctx, pfx + "Uri", p.Uri);
+      //   if (ret == null) ret = tmp;
+      //   tmp = pipeline.HandleValue(ctx, pfx + "LastModified", p.LastModified);
+      //   if (ret == null) ret = tmp;
+      //   return ret != null ? ret : tmp;
+      //}
    }
 
    public interface IStreamProvidersRoot

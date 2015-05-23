@@ -18,7 +18,9 @@ namespace Bitmanager.ImportPipeline.Template
 
       public int DebugLevel {get; set;}
       private Logger logger;
-      public IVariables Variables {get; set;}
+      private IVariables fileVariables;
+      public IVariables Variables { get; set; }
+      public IVariables FileVariables { get {return fileVariables; } }
 
       public TemplateEngine()
       {
@@ -49,14 +51,15 @@ namespace Bitmanager.ImportPipeline.Template
          var ctx = new ParseContextFile(null, Variables, fn);
          FileName = ctx.FileName;
          evaluateContent(ctx);
+         fileVariables = ctx.Vars;
          memWtr.Flush();
+      }
 
-         if (DebugLevel > 0)
+      public void WriteDebugOutput ()
+      {
+         using (var fs = File.Create(FileName + ".generated.xml"))
          {
-            using (var fs=File.Create (ctx.FileName + ".generated.xml"))
-            {
-               fs.Write(mem.GetBuffer(), 0, (int)mem.Length);
-            }
+            fs.Write(mem.GetBuffer(), 0, (int)mem.Length);
          }
       }
 

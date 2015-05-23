@@ -99,18 +99,28 @@ namespace Bitmanager.ImportPipeline
 
       private XmlHelper loadXml(String fileName)
       {
-         ImportLog.Log("Flgas before load={0}", ImportFlags);
+         ImportLog.Log("Flags before load={0}", ImportFlags);
          if ((ImportFlags & _ImportFlags.LoadRawXml)!=0)
             return new XmlHelper(fileName);
 
          XmlHelper xml = new XmlHelper();
          TemplateEngine eng = new TemplateEngine();
+
          if ((ImportFlags & _ImportFlags.DebugXml) != 0) eng.DebugLevel = 1;
          
          eng.LoadFromFile(fileName);
+         MainVariables = eng.Variables;
+         FileVariables = eng.FileVariables;
+
          xml.Load (eng.ResultAsReader(), fileName);
+         _ImportFlags flagsFromXml = xml.ReadEnum("@importflags", ImportFlags) | ImportFlags;
+         if ((flagsFromXml & _ImportFlags.DebugXml) != 0) eng.WriteDebugOutput();
+
          return xml;
       }
+
+      public IVariables MainVariables {get; set;}
+      public IVariables FileVariables { get; set; }
 
       public void Load(XmlHelper xml)
       {

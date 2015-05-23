@@ -45,7 +45,7 @@ namespace Bitmanager.ImportPipeline
       public NamedAdminCollection<DatasourceAdmin> Datasources;
       public NamedAdminCollection<Pipeline> Pipelines;
       public NamedAdminCollection<CategoryCollection> Categories;
-      public ProcessHostCollection JavaHostCollection;
+      public ProcessHostCollection ProcessHostCollection;
       public ScriptHost ScriptHost;
       public Logger ImportLog;
       public Logger DebugLog;
@@ -149,7 +149,7 @@ namespace Bitmanager.ImportPipeline
          }
 
          ImportLog.Log(_LogType.ltTimer, "loading: helper process definitions ");
-         JavaHostCollection = new ProcessHostCollection(this, xml.SelectSingleNode("processes"));
+         ProcessHostCollection = new ProcessHostCollection(this, xml.SelectSingleNode("processes"));
 
          ImportLog.Log(_LogType.ltTimer, "loading: endpoints");
          Endpoints = new Endpoints(this, xml.SelectMandatoryNode("endpoints"));
@@ -297,7 +297,7 @@ namespace Bitmanager.ImportPipeline
                foreach (var c in Converters) c.DumpMissed(ctx);
             }
             ImportLog.Log(_LogType.ltProgress, "Import ended");
-            JavaHostCollection.StopAll();
+            ProcessHostCollection.StopAll();
             Endpoints.Close(mainCtx);
          }
          catch (Exception err2)
@@ -310,7 +310,7 @@ namespace Bitmanager.ImportPipeline
             try
             {
                Endpoints.CloseFinally(mainCtx);
-               JavaHostCollection.StopAll();
+               ProcessHostCollection.StopAll();
             }
             catch (Exception e2)
             {

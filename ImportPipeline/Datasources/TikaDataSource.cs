@@ -237,7 +237,7 @@ namespace Bitmanager.ImportPipeline
       private void ensureTikaServiceStarted(PipelineContext ctx)
       {
          ctx.ImportLog.Log(_LogType.ltTimerStart, "xx starting tika");
-         ctx.ImportEngine.JavaHostCollection.EnsureStarted(this.processName);
+         ctx.ImportEngine.ProcessHostCollection.EnsureStarted(this.processName);
          if (pingUrl == null)
          {
             ctx.ImportLog.Log("No pingurl specified. Just waiting for 10s.");

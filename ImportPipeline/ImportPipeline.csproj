@@ -90,6 +90,7 @@
     <Compile Include="Endpoints\JsonEndPoint.cs" />
     <Compile Include="PerlRegex.cs" />
     <Compile Include="Actions\PipelineExceptionAction.cs" />
+    <Compile Include="PostProcessors\PostProcessorBase.cs" />
     <Compile Include="ProcessHost.cs" />
     <Compile Include="Converters\Converters.cs" />
     <Compile Include="Datasources\CsvDatasource.cs" />
@@ -125,6 +126,7 @@
     <Compile Include="StreamProviders\FileStreamProvider.cs" />
     <Compile Include="StreamProviders\WebStreamProvider.cs" />
     <Compile Include="Template\TemplateEngine.cs" />
+    <Compile Include="Template\TemplateSettings.cs" />
     <Compile Include="Template\Variables.cs" />
     <Compile Include="UrlProvider.cs" />
     <Compile Include="ValueFilter.cs" />

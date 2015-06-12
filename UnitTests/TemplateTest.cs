@@ -33,8 +33,7 @@ namespace UnitTests
       [TestMethod]
       public void TestSimple()
       {
-         Variables v = new Variables();
-         TemplateEngine eng = new TemplateEngine(v);
+         TemplateEngine eng = new TemplateEngine(new TemplateSettings());
 
          eng.LoadFromFile(root + "templates\\simple.txt");
          Assert.AreEqual(" included regel met 'abc'| this line is in between| included regel met ''| ", resultAsString(eng));
@@ -44,8 +43,9 @@ namespace UnitTests
       [TestMethod]
       public void TestSimpleRecursive()
       {
-         Variables v = new Variables();
-         TemplateEngine eng = new TemplateEngine(v, 10);
+         var settings = new TemplateSettings(true, 10);
+         TemplateEngine eng = new TemplateEngine(settings);
+         var v = eng.Variables;
          v.Set("boe", "bah");
          v.Set("var", "Dit is $$boe$$");
          eng.LoadFromFile(root + "templates\\simple.txt");
@@ -56,8 +56,9 @@ namespace UnitTests
       [ExpectedException(typeof(BMException))]
       public void TestVarRecursionToDeep()
       {
-         Variables v = new Variables();
-         TemplateEngine eng = new TemplateEngine(v, 10);
+         var settings = new TemplateSettings(true, 10);
+         TemplateEngine eng = new TemplateEngine(settings);
+         var v = eng.Variables;
          v.Set("boe", "bah");
          v.Set("var", "Dit is $$var$$");
          eng.LoadFromFile(root + "templates\\simple.txt");

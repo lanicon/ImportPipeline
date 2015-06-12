@@ -10,6 +10,7 @@ using System.Reflection;
 using System.CodeDom.Compiler;
 using System.Runtime.InteropServices;
 using Microsoft.CSharp;
+using Bitmanager.ImportPipeline.Template;
 
 namespace Bitmanager.ImportPipeline
 {
@@ -37,17 +38,18 @@ namespace Bitmanager.ImportPipeline
       public CompilerResults CompilerResults { get { return _cr; } }
       public CompilerParameters CompilerParameters { get { return _cp; } }
 
+      private ITemplateSettings templateSettings;
       static ScriptHost()
       {
          logger = Logs.CreateLogger("C# Scripts", "Scripthost");
       }
 
-      public ScriptHost() : this(ScriptHostFlags.Default) { }
-      public ScriptHost(ScriptHostFlags flags)
+      public ScriptHost(ScriptHostFlags flags, ITemplateSettings templateSettings)
       {
          Flags = flags;
          Clear();
          ClearCompilerParms();
+         this.templateSettings = templateSettings == null ? new TemplateSettings() : templateSettings;
       }
       public void Clear()
       {
@@ -159,7 +161,7 @@ namespace Bitmanager.ImportPipeline
          String fullName = Path.GetFullPath(filename);
          if (scripts.ContainsKey(fullName)) return;
 
-         ScriptFileAdmin a = new ScriptFileAdmin(fullName);
+         ScriptFileAdmin a = new ScriptFileAdmin(fullName, templateSettings);
          scripts.Add(a.FileName, a);
 
          foreach (var asm in a.References) AddReference(asm);
@@ -258,7 +260,7 @@ namespace Bitmanager.ImportPipeline
             return;
          }
 
-         int errLine = err.Line;
+         int errLine = err.Line - 1; //Make it zero-based
          int from = errLine - numLines / 2;
          int to = errLine + (numLines+1) / 2;
          if (from < 0) from = 0;
@@ -272,7 +274,7 @@ namespace Bitmanager.ImportPipeline
          StringBuilder b = new StringBuilder();
          for (int i=from; i<to; i++)
          {
-            b.AppendFormat ("[{0}] {1}\r\n", i, lines[i]);
+            b.AppendFormat ("[{0}] {1}\r\n", i+1, lines[i]); //i+1: make it 1 based again
          }
          logger.Log (b.ToString());
       }
@@ -332,24 +334,28 @@ namespace Bitmanager.ImportPipeline
    public class ScriptFileAdmin
    {
       public readonly String FileName;
-      public readonly List<String> Lines;
+      public readonly String SrcFileName;
       public readonly List<String> References;
       public readonly List<String> Includes;
 
-      public ScriptFileAdmin(String file)
+      public ScriptFileAdmin(String file, ITemplateSettings templateSettings)
       {
-         FileName = Path.GetFullPath(file);
-         Lines = new List<string>();
+         SrcFileName = Path.GetFullPath(file);
          References = new List<string>();
          Includes = new List<string>();
-         load(FileName);
+         FileName = load(SrcFileName, templateSettings);
       }
 
-      private void load(String fn)
+      private String load(String fn, ITemplateSettings templateSettings)
       {
          Regex refExpr = new Regex ("^//@ref=(.*)$", RegexOptions.IgnoreCase | RegexOptions.IgnoreCase); 
-         Regex inclExpr = new Regex ("^//@incl=(.*)$", RegexOptions.IgnoreCase | RegexOptions.IgnoreCase); 
-         var rdr = new StringReader (IOUtils.LoadFromFile(fn));
+         Regex inclExpr = new Regex ("^//@incl=(.*)$", RegexOptions.IgnoreCase | RegexOptions.IgnoreCase);
+
+         TemplateEngine template = new TemplateEngine(templateSettings);
+         template.LoadFromFile(fn);
+         String outputFile = template.WriteGeneratedOutput();
+         var rdr = template.ResultAsReader();
+
          String dir = Path.GetDirectoryName (fn);
          while (true)
          {
@@ -357,7 +363,6 @@ namespace Bitmanager.ImportPipeline
             String val1;
             if (line==null) break;
 
-            Lines.Add(line);
             if (line.Length < 5) continue;
             if (line[0] != '/') continue;
             if (refExpr.IsMatch (line))
@@ -378,6 +383,7 @@ namespace Bitmanager.ImportPipeline
                continue;
             }
          }
+         return outputFile;
       }
    }
 }

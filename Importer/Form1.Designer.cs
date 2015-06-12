@@ -36,6 +36,8 @@
          this.label1 = new System.Windows.Forms.Label();
          this.label2 = new System.Windows.Forms.Label();
          this.grpFlags = new System.Windows.Forms.GroupBox();
+         this.checkBox5 = new System.Windows.Forms.CheckBox();
+         this.checkBox4 = new System.Windows.Forms.CheckBox();
          this.checkBox2 = new System.Windows.Forms.CheckBox();
          this.cbRetryErrors = new System.Windows.Forms.CheckBox();
          this.cbIgnoreErrors = new System.Windows.Forms.CheckBox();
@@ -63,9 +65,6 @@
          this.label7 = new System.Windows.Forms.Label();
          this.cbEndpoints = new System.Windows.Forms.ComboBox();
          this.cbPipeLines = new System.Windows.Forms.ComboBox();
-         this.checkBox3 = new System.Windows.Forms.CheckBox();
-         this.checkBox4 = new System.Windows.Forms.CheckBox();
-         this.checkBox5 = new System.Windows.Forms.CheckBox();
          this.grpFlags.SuspendLayout();
          this.SuspendLayout();
          // 
@@ -128,7 +127,6 @@
          // 
          this.grpFlags.Controls.Add(this.checkBox5);
          this.grpFlags.Controls.Add(this.checkBox4);
-         this.grpFlags.Controls.Add(this.checkBox3);
          this.grpFlags.Controls.Add(this.checkBox2);
          this.grpFlags.Controls.Add(this.cbRetryErrors);
          this.grpFlags.Controls.Add(this.cbIgnoreErrors);
@@ -142,6 +140,26 @@
          this.grpFlags.TabIndex = 7;
          this.grpFlags.TabStop = false;
          this.grpFlags.Text = "Flags";
+         // 
+         // checkBox5
+         // 
+         this.checkBox5.AutoSize = true;
+         this.checkBox5.Location = new System.Drawing.Point(17, 227);
+         this.checkBox5.Name = "checkBox5";
+         this.checkBox5.Size = new System.Drawing.Size(75, 19);
+         this.checkBox5.TabIndex = 19;
+         this.checkBox5.Text = "LogEmits";
+         this.checkBox5.UseVisualStyleBackColor = true;
+         // 
+         // checkBox4
+         // 
+         this.checkBox4.AutoSize = true;
+         this.checkBox4.Location = new System.Drawing.Point(16, 200);
+         this.checkBox4.Name = "checkBox4";
+         this.checkBox4.Size = new System.Drawing.Size(111, 19);
+         this.checkBox4.TabIndex = 18;
+         this.checkBox4.Text = "DebugTemplate";
+         this.checkBox4.UseVisualStyleBackColor = true;
          // 
          // checkBox2
          // 
@@ -394,36 +412,6 @@
          this.cbPipeLines.Size = new System.Drawing.Size(169, 23);
          this.cbPipeLines.TabIndex = 27;
          // 
-         // checkBox3
-         // 
-         this.checkBox3.AutoSize = true;
-         this.checkBox3.Location = new System.Drawing.Point(17, 198);
-         this.checkBox3.Name = "checkBox3";
-         this.checkBox3.Size = new System.Drawing.Size(95, 19);
-         this.checkBox3.TabIndex = 17;
-         this.checkBox3.Text = "LoadRawXml";
-         this.checkBox3.UseVisualStyleBackColor = true;
-         // 
-         // checkBox4
-         // 
-         this.checkBox4.AutoSize = true;
-         this.checkBox4.Location = new System.Drawing.Point(17, 223);
-         this.checkBox4.Name = "checkBox4";
-         this.checkBox4.Size = new System.Drawing.Size(82, 19);
-         this.checkBox4.TabIndex = 18;
-         this.checkBox4.Text = "DebugXml";
-         this.checkBox4.UseVisualStyleBackColor = true;
-         // 
-         // checkBox5
-         // 
-         this.checkBox5.AutoSize = true;
-         this.checkBox5.Location = new System.Drawing.Point(17, 249);
-         this.checkBox5.Name = "checkBox5";
-         this.checkBox5.Size = new System.Drawing.Size(75, 19);
-         this.checkBox5.TabIndex = 19;
-         this.checkBox5.Text = "LogEmits";
-         this.checkBox5.UseVisualStyleBackColor = true;
-         // 
          // Form1
          // 
          this.AcceptButton = this.btnImport;
@@ -505,7 +493,6 @@
       private System.Windows.Forms.ComboBox cbEndpoints;
       private System.Windows.Forms.ComboBox cbPipeLines;
       private System.Windows.Forms.CheckBox checkBox4;
-      private System.Windows.Forms.CheckBox checkBox3;
       private System.Windows.Forms.CheckBox checkBox5;
    }
 }

@@ -29,13 +29,9 @@ namespace Bitmanager.ImportPipeline
       MaxAddsToMaxEmits = 1 << 8,
       LogEmits = 1 << 9,
       /// <summary>
-      /// Load the XML without using a template
+      /// Dump the generated template output
       /// </summary>
-      LoadRawXml = 1<<10,
-      /// <summary>
-      /// Dump the generated XML to &lt;xmlfile&gt;.generated.xml
-      /// </summary>
-      DebugXml = 1 << 11
+      DebugTemplate = 1 << 11
    }
    public class ImportEngine
    {
@@ -97,24 +93,28 @@ namespace Bitmanager.ImportPipeline
          Load(loadXml (fileName));
       }
 
+      private ITemplateSettings templateSettings;
       private XmlHelper loadXml(String fileName)
       {
+         templateSettings = new TemplateSettings();
+         if ((ImportFlags & _ImportFlags.DebugTemplate) != 0) { templateSettings.AutoWriteGenerated = true; }
          ImportLog.Log("Flags before load={0}", ImportFlags);
-         if ((ImportFlags & _ImportFlags.LoadRawXml)!=0)
-            return new XmlHelper(fileName);
 
          XmlHelper xml = new XmlHelper();
-         TemplateEngine eng = new TemplateEngine();
+         TemplateEngine eng = new TemplateEngine(templateSettings);
 
-         if ((ImportFlags & _ImportFlags.DebugXml) != 0) eng.DebugLevel = 1;
-         
          eng.LoadFromFile(fileName);
          MainVariables = eng.Variables;
          FileVariables = eng.FileVariables;
+         templateSettings.InitialVariables = FileVariables;
 
          xml.Load (eng.ResultAsReader(), fileName);
-         _ImportFlags flagsFromXml = xml.ReadEnum("@importflags", ImportFlags) | ImportFlags;
-         if ((flagsFromXml & _ImportFlags.DebugXml) != 0) eng.WriteDebugOutput();
+         _ImportFlags flagsFromXml = xml.ReadEnum("@importflags", (_ImportFlags)0);
+         if ((flagsFromXml & _ImportFlags.DebugTemplate) != 0 && (ImportFlags & _ImportFlags.DebugTemplate) == 0)
+         {
+            eng.WriteGeneratedOutput();
+            templateSettings.AutoWriteGenerated = true; //for future use
+         }
 
          return xml;
       }
@@ -141,7 +141,7 @@ namespace Bitmanager.ImportPipeline
          XmlNode scriptNode = xml.SelectSingleNode("script");
          if (scriptNode != null)
          {
-            ScriptHost = new ScriptHost();
+            ScriptHost = new ScriptHost(ScriptHostFlags.Default, templateSettings);
             String fn = xml.CombinePath (scriptNode.ReadStr("@file"));
             ScriptHost.AddFile(fn);
             ScriptHost.AddReference(Assembly.GetExecutingAssembly());

@@ -15,28 +15,25 @@ namespace Bitmanager.ImportPipeline.Template
       private MemoryStream mem;
       private TextWriter memWtr;
       public String FileName { get; set; }
+      public String OutputFileName { get { return FileName == null ? null : FileName + ".generated.txt"; } }
 
-      public int DebugLevel {get; set;}
+      public int DebugLevel { get; set; }
+      public bool AutoWriteGenerated { get; set; }
       private Logger logger;
       private IVariables fileVariables;
       public IVariables Variables { get; set; }
       public IVariables FileVariables { get {return fileVariables; } }
 
-      public TemplateEngine()
+      public TemplateEngine(ITemplateSettings settings)
       {
-         Variables = new Variables();
+         if (settings != null)
+         {
+            Variables = settings.InitialVariables;
+            DebugLevel = settings.DebugLevel;
+            AutoWriteGenerated = settings.AutoWriteGenerated;
+         }
+         if (Variables==null) Variables = new Variables();
          logger = Logs.DebugLog.Clone("TemplateEngine");
-      }
-      public TemplateEngine(int debugLevel)
-         : this()
-      {
-         DebugLevel = debugLevel;
-      }
-      public TemplateEngine(IVariables vars, int debugLevel=0)
-      {
-         logger = Logs.DebugLog.Clone("TemplateEngine");
-         Variables = vars != null ? vars : new Variables();
-         DebugLevel = debugLevel;
       }
 
       public void LoadFromFile (String fn)
@@ -53,14 +50,17 @@ namespace Bitmanager.ImportPipeline.Template
          evaluateContent(ctx);
          fileVariables = ctx.Vars;
          memWtr.Flush();
+         if (AutoWriteGenerated) WriteGeneratedOutput();
       }
 
-      public void WriteDebugOutput ()
+      public String WriteGeneratedOutput ()
       {
-         using (var fs = File.Create(FileName + ".generated.xml"))
+         String outputFn = OutputFileName;
+         using (var fs = File.Create(outputFn))
          {
             fs.Write(mem.GetBuffer(), 0, (int)mem.Length);
          }
+         return outputFn;
       }
 
       public String ResultAsString()
@@ -165,16 +165,23 @@ namespace Bitmanager.ImportPipeline.Template
 
          if (key == "#restore")
             ctx.RestoreVars();
+         else if (key.StartsWith("#debug "))
+            processDebug (ctx, key, sub(key, 7));
          else if (key.StartsWith("#define "))
-            processDefine(ctx, key, sub(key,8));
+            processDefine(ctx, key, sub(key, 8));
          else if (key.StartsWith("#undefine "))
             processDefine(ctx, key, sub(key, 10));
          else if (key.StartsWith("#undef "))
             processUnDefine(ctx, key, sub(key, 7));
          else if (key.StartsWith("#include "))
-            processInclude(ctx, key, sub(key,9));
+            processInclude(ctx, key, sub(key, 9));
+         else if (key.StartsWith("//")) //comment
+            goto EXIT_RTN;
+         else if (key.StartsWith("_")) //comment
+            goto EXIT_RTN;
          else
             ctx.Throw("Unknown template directive '{0}'.", key);
+         EXIT_RTN:
          return true;
       }
       private static String sub (String s, int offset)
@@ -188,16 +195,30 @@ namespace Bitmanager.ImportPipeline.Template
          evaluateContent(new ParseContextFile(ctx, ctx.Vars, fn));
       }
 
+      private void processDebug(ParseContext ctx, String rawDirective, String directive)
+      {
+         AutoWriteGenerated = true;
+         Match m = defineExpr1.Match(directive);
+         if (m.Success)
+         {
+            String k = m.Groups[1].Value;
+            if (!String.Equals("lvl", k, StringComparison.OrdinalIgnoreCase) && !String.Equals("level", k, StringComparison.OrdinalIgnoreCase))
+               throw new BMException("Invalid #debug directive {0}. Only lvl or level is allowed.", rawDirective);
+            DebugLevel = Invariant.ToInt32(m.Groups[1].Value, 0);
+            return;
+         }
+      }
+
       private void processUnDefine(ParseContext ctx, String rawDirective, String directive)
       {
          if (ctx.Vars == ctx.OrgVars) return;
          String key = directive;
-         ctx.Vars.Set (key, ctx.OrgVars.Get (key));
+         ctx.Vars.Set(key, ctx.OrgVars.Get(key));
          //if (Debug) logger.Log("{0} {1} restored to {2}", getPrefix(1 + 2 * ctx.Level), key, ctx.OrgVars.Get(key));
       }
 
-      static Regex defineExpr1 = new Regex(@"^\s*([^\s]*)\s*[:=]\s*(.*)\s*$");
-      static Regex defineExpr2 = new Regex(@"^\s*([^\s]*)\s*$");
+      static Regex defineExpr1 = new Regex(@"^\s*([^:=\s]*)\s*[:=]\s*(.*)\s*$");
+      static Regex defineExpr2 = new Regex(@"^\s*([^:=\s]*)\s*$");
       private void processDefine(ParseContext ctx, String rawDirective, String directive)
       {
          Match m = defineExpr1.Match(directive);

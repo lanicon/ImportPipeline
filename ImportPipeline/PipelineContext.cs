@@ -143,7 +143,7 @@ namespace Bitmanager.ImportPipeline
                if ((this.ImportFlags & _ImportFlags.LogEmits) == 0)
                   if (Added != 0) break;
                ImportFlags |= _ImportFlags.LogEmits;
-               ImportLog.Log(_LogType.ltTimer, "Emitted {0} records", Added); break;
+               ImportLog.Log(_LogType.ltTimer, "Emitted {0} records", Emitted); break;
          }
       }
 

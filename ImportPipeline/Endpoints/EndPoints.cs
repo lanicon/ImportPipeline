@@ -360,7 +360,6 @@ namespace Bitmanager.ImportPipeline
    public class JsonEndpointBase<T> : IDataEndpoint, IEndpointResolver where T : Endpoint
    {
       public readonly T Endpoint;
-      protected Logger addLogger;
       protected JObject accumulator;
       protected Endpoint.DebugFlags flags;
 
@@ -368,8 +367,17 @@ namespace Bitmanager.ImportPipeline
       {
          Endpoint = endpoint;
          flags = endpoint.Flags;
-         addLogger = Logs.CreateLogger("pipelineAdder", GetType().Name);
          Clear();
+      }
+
+      private Logger _addLogger;
+      protected Logger addLogger
+      {
+         get
+         {
+            if (_addLogger != null) return _addLogger;
+            return _addLogger = Logs.CreateLogger("pipelineAdder", GetType().Name);
+         }
       }
 
       public virtual void Clear()

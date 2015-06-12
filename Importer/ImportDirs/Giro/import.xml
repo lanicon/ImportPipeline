@@ -1,4 +1,4 @@
-﻿$$#define SERVER=localhost$$
+﻿$$#define SERVER=bm$$
 <?xml version="1.0" encoding="utf-8" ?>
 <root importflags="fullimport">
    <script file="script.cs" />

@@ -72,7 +72,7 @@ namespace Bitmanager.Importer
             eng.Load(cmd.Args[0]);
             if (flags != _ImportFlags.UseFlagsFromXml)
                eng.ImportFlags = flags;
-            eng.Import(dsList);
+            eng.Import(dsList.Length==0 ? null : dsList);
             return 0;
 
             WRITE_SYNTAX:

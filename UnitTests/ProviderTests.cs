@@ -18,37 +18,38 @@ namespace UnitTests
       [TestMethod]
       public void TestMethod1()
       {
-         ImportEngine eng = new ImportEngine();
-         eng.Load(root + "providers.xml");
-         
-         PipelineContext ctx = new PipelineContext(eng, eng.Datasources[0]);
-         XmlHelper xml = new XmlHelper(root+"providers.xml");
-
-         using (FileStream actual = new FileStream(root + "actual.txt", FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite, 4096))
+         using (ImportEngine eng = new ImportEngine())
          {
-            using (TextWriter w = actual.CreateTextWriter())
+            eng.Load(root + "providers.xml");
+
+            PipelineContext ctx = new PipelineContext(eng, eng.Datasources[0]);
+            XmlHelper xml = new XmlHelper(root + "providers.xml");
+
+            using (FileStream actual = new FileStream(root + "actual.txt", FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite, 4096))
             {
-               foreach (XmlNode node in xml.SelectSingleNode("tests").ChildNodes)
+               using (TextWriter w = actual.CreateTextWriter())
                {
-                  if (node.NodeType != XmlNodeType.Element) continue;
-                  GenericStreamProvider p = new GenericStreamProvider();
-                  p.Init(ctx, node);
-                  dumpProvider(w, p, ctx, node.LocalName);
+                  foreach (XmlNode node in xml.SelectSingleNode("tests").ChildNodes)
+                  {
+                     if (node.NodeType != XmlNodeType.Element) continue;
+                     GenericStreamProvider p = new GenericStreamProvider();
+                     p.Init(ctx, node);
+                     dumpProvider(w, p, ctx, node.LocalName);
+                  }
+
+                  w.Flush();
+                  byte[] exp = File.ReadAllBytes(root + "expected.txt");
+                  actual.Position = 0;
+                  byte[] act = actual.ReadAllBytes();
+                  Assert.AreEqual(exp.Length, act.Length);
+                  for (int i = 0; i < exp.Length; i++)
+                     Assert.AreEqual(exp[i], act[i]);
                }
-
-               w.Flush();
-               byte[] exp = File.ReadAllBytes(root + "expected.txt");
-               actual.Position = 0;
-               byte[] act = actual.ReadAllBytes();
-               Assert.AreEqual(exp.Length, act.Length);
-               for (int i = 0; i < exp.Length; i++)
-                  Assert.AreEqual(exp[i], act[i]);
             }
-
          }
       }
 
-      private static String toString (IStreamProvider p)
+      private static String toString(IStreamProvider p)
       {
          FileStreamProvider fsp = p as FileStreamProvider;
          if (fsp == null) return p.ToString();
@@ -70,7 +71,7 @@ namespace UnitTests
             w.WriteLine("-- " + r);
          w.WriteLine("Dumping leafs");
          foreach (var r in p.GetElements(ctx))
-            w.WriteLine("-- " + toString (r));
+            w.WriteLine("-- " + toString(r));
       }
    }
 }

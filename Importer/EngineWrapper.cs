@@ -15,13 +15,15 @@ namespace Bitmanager.Importer
       {
          try
          {
-            ImportEngine engine = new ImportEngine();
-            engine.ImportFlags = flags;
-            engine.Load(xml);
-            engine.ImportFlags = flags;
-            engine.MaxAdds = maxAdds;
-            engine.MaxEmits = maxEmits;
-            return engine.Import(activeDS);
+            using (ImportEngine engine = new ImportEngine())
+            {
+               engine.ImportFlags = flags;
+               engine.Load(xml);
+               engine.ImportFlags = flags;
+               engine.MaxAdds = maxAdds;
+               engine.MaxEmits = maxEmits;
+               return engine.Import(activeDS);
+            }
          }
          catch (Exception e)
          {

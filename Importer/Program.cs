@@ -63,18 +63,19 @@ namespace Bitmanager.Importer
             int maxEmits = Invariant.ToInt32(cmd.NamedArgs.OptGetItem("maxemits"), -1);
             if (cmd.Args.Count == 0) goto WRITE_SYNTAX_ERR;
 
-            ImportEngine eng = new ImportEngine();
-            eng.MaxAdds = maxAdds;
-            eng.MaxEmits = maxEmits;
-            String[] dsList = new String[cmd.Args.Count - 1];
-            for (int i=1; i<cmd.Args.Count; i++)
-               dsList[i-1] = cmd.Args[i];
+            using (ImportEngine eng = new ImportEngine())
+            {
+               eng.MaxAdds = maxAdds;
+               eng.MaxEmits = maxEmits;
+               String[] dsList = new String[cmd.Args.Count - 1];
+               for (int i = 1; i < cmd.Args.Count; i++)
+                  dsList[i - 1] = cmd.Args[i];
 
-            Logs.DebugLog.Log("4");
-            eng.Load(cmd.Args[0]);
-            if (flags != _ImportFlags.UseFlagsFromXml)
-               eng.ImportFlags = flags;
-            eng.Import(dsList.Length==0 ? null : dsList);
+               eng.Load(cmd.Args[0]);
+               if (flags != _ImportFlags.UseFlagsFromXml)
+                  eng.ImportFlags = flags;
+               eng.Import(dsList.Length == 0 ? null : dsList);
+            }
             return 0;
 
             WRITE_SYNTAX_ERR:

@@ -33,7 +33,7 @@ namespace Bitmanager.ImportPipeline
       /// </summary>
       DebugTemplate = 1 << 11
    }
-   public class ImportEngine
+   public class ImportEngine: IDisposable
    {
       public XmlHelper Xml { get; private set; }
       public Endpoints Endpoints;
@@ -54,7 +54,7 @@ namespace Bitmanager.ImportPipeline
       public _ImportFlags ImportFlags { get; set; }
       public String OverrideEndpoint { get; set; }
       public String OverridePipeline { get; set; }
-
+      private String binDir;
 
       public ImportEngine()
       {
@@ -62,6 +62,12 @@ namespace Bitmanager.ImportPipeline
          LogAdds = 50000;
          MaxAdds = -1;
          MaxEmits = -1;
+         AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
+      }
+
+      public void Dispose()
+      {
+         AppDomain.CurrentDomain.AssemblyResolve -= CurrentDomain_AssemblyResolve;
       }
 
       private void createLogs()
@@ -73,6 +79,23 @@ namespace Bitmanager.ImportPipeline
          Logs.DebugLog.Log(((InternalLogger)ImportLog)._Logger.Name);
          ImportLog.Log();
          ErrorLog.Log();
+      }
+
+      private Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
+      {
+         if (binDir == null) return null;
+         String fn = Path.Combine(binDir, args.Name);
+         if (!File.Exists(fn)) fn = fn + ".dll";
+         ImportLog.Log(_LogType.ltInfo, "Assembly '{0}' not resolved. Trying '{1}'...", args.Name, fn);
+         try
+         {
+            return Assembly.LoadFrom(fn);
+         }
+         catch (Exception err)
+         {
+            Logs.ErrorLog.Log(err);
+            return null;
+         }
       }
 
       public void Load(String fileName)
@@ -136,6 +159,15 @@ namespace Bitmanager.ImportPipeline
          MaxAdds = xml.ReadInt("@maxadds", MaxAdds);
          ImportLog.Log("Loading import xml: flags={0}, logadds={1}, maxadds={2}", ImportFlags, LogAdds, MaxAdds);
 
+         binDir = Xml.CombinePath("bin");
+         if (Directory.Exists(binDir))
+            ImportLog.Log(_LogType.ltInfo, "Using extra bin dir: {0}", binDir);
+         else
+         {
+            binDir = null;
+            ImportLog.Log(_LogType.ltInfo, "No bin dir found... All executables are loaded from {0}.", Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
+         }
+
          //Load the supplied script
          ImportLog.Log(_LogType.ltTimerStart, "loading: scripts"); 
          XmlNode scriptNode = xml.SelectSingleNode("script");
@@ -143,6 +175,7 @@ namespace Bitmanager.ImportPipeline
          {
             ScriptHost = new ScriptHost(ScriptHostFlags.Default, templateSettings);
             String fn = xml.CombinePath (scriptNode.ReadStr("@file"));
+            ScriptHost.ExtraSearchPath = binDir;
             ScriptHost.AddFile(fn);
             ScriptHost.AddReference(Assembly.GetExecutingAssembly());
             ScriptHost.Compile();
@@ -238,6 +271,8 @@ namespace Bitmanager.ImportPipeline
       {
          return Import(enabledDSses.SplitStandard());
       }
+
+
       public ImportReport Import(String[] enabledDSses = null)
       {
          var ret = new ImportReport();
@@ -248,13 +283,13 @@ namespace Bitmanager.ImportPipeline
          ImportLog.Log(_LogType.ltProgress, "Starting import. VirtMem={3:F1}GB, Flags={0}, MaxAdds={1}, ActiveDS's='{2}'.", ImportFlags, MaxAdds, enabledDSses == null ? null : String.Join(", ", enabledDSses), OS.GetTotalVirtualMemory() / (1024 * 1024 * 1024.0));
 
          PipelineContext mainCtx = new PipelineContext(this);
-         Endpoints.Open(mainCtx);
-
          try
          {
             _ErrorState stateFilter = _ErrorState.All;
             if ((ImportFlags & _ImportFlags.IgnoreLimited) != 0) stateFilter &= ~_ErrorState.Limited;
-            if ((ImportFlags & _ImportFlags.IgnoreErrors) != 0) stateFilter &= ~_ErrorState.Error; 
+            if ((ImportFlags & _ImportFlags.IgnoreErrors) != 0) stateFilter &= ~_ErrorState.Error;
+
+            Endpoints.Open(mainCtx);
 
             for (int i = 0; i < Datasources.Count; i++)
             {
@@ -362,5 +397,6 @@ namespace Bitmanager.ImportPipeline
       {
          return Objects.CreateObject<T>(replaceKnownTypes(node), parms);
       }
+
    }
 }

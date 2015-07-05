@@ -116,42 +116,6 @@ namespace Bitmanager.Importer
          }
       }
 
-      private void import()
-      {
-         if (comboBox1.SelectedIndex < 0) return;
-
-         Cursor.Current = Cursors.WaitCursor;
-         UseWaitCursor = true;
-         Application.DoEvents();
-         try
-         {
-            History.SaveHistory(comboBox1, HISTORY_KEY);
-
-            String settingsFile = comboBox1.Text;
-            ImportEngine engine = new ImportEngine();
-            engine.Load(settingsFile);
-            uiToFlags(engine);
-
-            String[] activeDSses = null;
-            var items = dsList.Items;
-            if (items.Count > 0)
-            {
-               var list = new List<String>();
-               for (int i = 0; i < items.Count; i++)
-               {
-                  if (!dsList.GetItemChecked(i)) continue;
-                  list.Add((String)items[i]);
-               }
-               activeDSses = list.ToArray();
-            }
-            engine.Import(activeDSses);
-         }
-         finally
-         {
-            UseWaitCursor = false;
-         }
-      }
-
       private AsyncAdmin asyncAdmin;
       private void btnCancel_Click(object sender, EventArgs e)
       {
@@ -268,25 +232,27 @@ namespace Bitmanager.Importer
       private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
       {
          dsList.Items.Clear();
-         ImportEngine engine = new ImportEngine();
-         engine.Load(comboBox1.Text);
-         cbEndpoints.Items.Clear();
-         cbEndpoints.Items.Add(String.Empty);
-         foreach (var item in engine.Endpoints) cbEndpoints.Items.Add(item.Name);
-
-
-         cbPipeLines.Items.Clear();
-         cbPipeLines.Items.Add(String.Empty);
-         foreach (var item in engine.Pipelines) cbPipeLines.Items.Add(item.Name);
-
-         
-         uiFromFlags(engine);
-         txtMaxRecords.Text = engine.MaxAdds.ToString();
-         txtMaxEmits.Text = engine.MaxEmits.ToString();
-
-         foreach (var ds in engine.Datasources)
+         using (ImportEngine engine = new ImportEngine())
          {
-            dsList.Items.Add(ds.Name, ds.Active);
+            engine.Load(comboBox1.Text);
+            cbEndpoints.Items.Clear();
+            cbEndpoints.Items.Add(String.Empty);
+            foreach (var item in engine.Endpoints) cbEndpoints.Items.Add(item.Name);
+
+
+            cbPipeLines.Items.Clear();
+            cbPipeLines.Items.Add(String.Empty);
+            foreach (var item in engine.Pipelines) cbPipeLines.Items.Add(item.Name);
+
+
+            uiFromFlags(engine);
+            txtMaxRecords.Text = engine.MaxAdds.ToString();
+            txtMaxEmits.Text = engine.MaxEmits.ToString();
+
+            foreach (var ds in engine.Datasources)
+            {
+               dsList.Items.Add(ds.Name, ds.Active);
+            }
          }
       }
 

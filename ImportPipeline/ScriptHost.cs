@@ -37,6 +37,7 @@ namespace Bitmanager.ImportPipeline
       public Assembly CompiledAssembly { get { return _compiledAssembly; } }
       public CompilerResults CompilerResults { get { return _cr; } }
       public CompilerParameters CompilerParameters { get { return _cp; } }
+      public String ExtraSearchPath { get; set; }
 
       private ITemplateSettings templateSettings;
       static ScriptHost()
@@ -80,6 +81,9 @@ namespace Bitmanager.ImportPipeline
             relPath = Path.Combine(domain.BaseDirectory, relPath);
             pathes[IOUtils.DelSlash(relPath)] = null;
          }
+         if (ExtraSearchPath != null)
+            pathes[ExtraSearchPath] = null;
+
  
          var list = _cp.ReferencedAssemblies;
          for (int i = 0; i < list.Count; i++)
@@ -94,6 +98,7 @@ namespace Bitmanager.ImportPipeline
       }
       private void resolveAssemblies(String path)
       {
+         logger.Log("Try to resolve DLL's via '{0}'.", path);
          var list = _cp.ReferencedAssemblies;
          for (int i = 0; i < list.Count; i++)
          {

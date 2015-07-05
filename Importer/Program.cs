@@ -50,16 +50,18 @@ namespace Bitmanager.Importer
          {
             Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
             var cmd = new CommandLineParms(args);
+            if (cmd.NamedArgs.ContainsKey("?") || cmd.NamedArgs.ContainsKey("help")) goto WRITE_SYNTAX;
+
             String responseFile = cmd.NamedArgs.OptGetItem("resp");
             if (responseFile != null) {
-               if (cmd.Args.Count != 0) goto WRITE_SYNTAX;
+               if (cmd.Args.Count != 0) goto WRITE_SYNTAX_ERR;
                cmd = new CommandLineParms(responseFile);
             }
 
             _ImportFlags flags = Invariant.ToEnum<_ImportFlags>(cmd.NamedArgs.OptGetItem("flags"), _ImportFlags.UseFlagsFromXml);
             int maxAdds = Invariant.ToInt32(cmd.NamedArgs.OptGetItem("maxadds"), -1);
             int maxEmits = Invariant.ToInt32(cmd.NamedArgs.OptGetItem("maxemits"), -1);
-            if (cmd.Args.Count == 0) goto WRITE_SYNTAX;
+            if (cmd.Args.Count == 0) goto WRITE_SYNTAX_ERR;
 
             ImportEngine eng = new ImportEngine();
             eng.MaxAdds = maxAdds;
@@ -75,8 +77,10 @@ namespace Bitmanager.Importer
             eng.Import(dsList.Length==0 ? null : dsList);
             return 0;
 
-            WRITE_SYNTAX:
+            WRITE_SYNTAX_ERR:
             logError("Invalid commandline: {0}", Environment.CommandLine);
+            WRITE_SYNTAX:
+            logError("");
             logError("Syntax: <importxml file> [list of datasources] [/flags:<importflags>] [/maxadds:<number>] [/maxemits:<number>] [/$$xxxx$$:<value>");
             logError("    or: /resp:<responsefile> with 1 option per line");
             return 12;

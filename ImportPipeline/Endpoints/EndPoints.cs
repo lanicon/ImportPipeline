@@ -402,22 +402,18 @@ namespace Bitmanager.ImportPipeline
       }
       public virtual int GetFieldAsInt32(String fld)
       {
-         checkField(fld);
          return accumulator.ReadInt(checkField(fld));
       }
       public virtual long GetFieldAsInt64(String fld)
       {
-         checkField(fld);
          return accumulator.ReadInt(checkField(fld));
       }
       public virtual double GetFieldAsDbl(String fld)
       {
-         checkField(fld);
          return accumulator.ReadDbl(checkField(fld));
       }
       public virtual DateTime GetFieldAsDate(String fld)
       {
-         checkField(fld);
          return accumulator.ReadDate(checkField(fld));
       }
       private static String checkField(String fld)

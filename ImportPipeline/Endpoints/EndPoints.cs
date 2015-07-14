@@ -28,7 +28,7 @@ namespace Bitmanager.ImportPipeline
       private static Endpoint create (ImportEngine engine, XmlNode n)
       {
          String type = n.ReadStr("@type");
-         if (String.Equals("nop", type, StringComparison.InvariantCultureIgnoreCase)) return new Endpoint(n);
+         if (String.Equals("nop", type, StringComparison.InvariantCultureIgnoreCase)) return new Endpoint(engine, n);
          return ImportEngine.CreateObject<Endpoint>(n, engine, n);
       }
 
@@ -152,6 +152,7 @@ namespace Bitmanager.ImportPipeline
       public readonly ActiveMode ActiveMode;
       public readonly DebugFlags Flags;
       public readonly CloseMode CloseMode;
+      public readonly ImportEngine Engine;
 
       internal Endpoint(String name)
          : base(name)
@@ -160,10 +161,11 @@ namespace Bitmanager.ImportPipeline
          ActiveMode = ImportPipeline.ActiveMode.Lazy | ImportPipeline.ActiveMode.Global;
          CloseMode = ImportPipeline.CloseMode.Normal;
       }
-      public Endpoint(ImportEngine engine, XmlNode node) : this(node) { }
-      public Endpoint(XmlNode node, ImportPipeline.ActiveMode defActiveMode = 0)
+      //pw public Endpoint(ImportEngine engine, XmlNode node) : this(node) { }
+      public Endpoint (ImportEngine engine, XmlNode node, ImportPipeline.ActiveMode defActiveMode = 0)
          : base(node)
       {
+         Engine = engine;
          if (defActiveMode == 0) defActiveMode = ImportPipeline.ActiveMode.Lazy | ImportPipeline.ActiveMode.Global;
          if ((defActiveMode & (ImportPipeline.ActiveMode.Local | ImportPipeline.ActiveMode.Global)) != 0)
             defActiveMode |= ImportPipeline.ActiveMode.Global;

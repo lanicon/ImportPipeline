@@ -82,6 +82,8 @@
     <Compile Include="AsyncEndpointRequestQueue.cs" />
     <Compile Include="Converters\Selector.cs" />
     <Compile Include="Datasources\NopDatasource.cs" />
+    <Compile Include="Endpoints\ESIndexDefinitions.cs" />
+    <Compile Include="Endpoints\ESIndexDocType.cs" />
     <Compile Include="ImportReport.cs" />
     <Compile Include="Datasources\JsonDatasource.cs" />
     <Compile Include="Credentials.cs" />

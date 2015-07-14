@@ -117,6 +117,7 @@ namespace Bitmanager.ImportPipeline
       }
 
       private ITemplateSettings templateSettings;
+      public ITemplateSettings TemplateSettings { get { return templateSettings; } }
       private XmlHelper loadXml(String fileName)
       {
          templateSettings = new TemplateSettings();

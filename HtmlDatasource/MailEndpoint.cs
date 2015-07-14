@@ -71,7 +71,7 @@ namespace BeursGorilla
       public readonly _StockSort SortMethod;
       public  bool debug;
       public MailEndpoint(ImportEngine engine, XmlNode node)
-         : base(node)
+         : base(engine, node)
       {
          toMail = new List<JObject>();
          toMailForced = new List<JObject>();

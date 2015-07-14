@@ -10,15 +10,16 @@ using Bitmanager.Json;
 using Bitmanager.Core;
 using System.Xml;
 using System.Collections;
+using System.IO;
+using Bitmanager.IO;
+using Bitmanager.ImportPipeline.Template;
 
 namespace Bitmanager.ImportPipeline
 {
    public class ESEndpoint : Endpoint
    {
       public readonly ESConnection Connection;
-      public readonly IndexDefinitionTypes IndexTypes;
-      public readonly IndexDefinitions Indexes;
-      //public readonly IndexDocTypes IndexDocTypes;
+      public readonly ESIndexDefinitions Indexes;
       public readonly int CacheSize;
       public readonly int MaxParallel;
 
@@ -30,19 +31,16 @@ namespace Bitmanager.ImportPipeline
 
 
       public ESEndpoint(ImportEngine engine, XmlNode node)
-         : base(node)
+         : base(engine, node)
       {
          Connection = new ESConnection(node.ReadStr("@url"));
          CacheSize = node.ReadInt("@cache", -1);
          MaxParallel = node.ReadInt("@maxparallel", 0);
          ReadOnly = node.ReadBool("@readonly", false);
-         XmlNode typesNode = node.SelectSingleNode("indextypes");
-         if (typesNode != null)
-            IndexTypes = new IndexDefinitionTypes(engine.Xml, typesNode);
          XmlNode root = node.SelectSingleNode("indexes");
          if (root == null) root = node;
 
-         Indexes = new IndexDefinitions(IndexTypes, engine.Xml, root, false);
+         Indexes = new ESIndexDefinitions(engine.Xml, root, _loadConfig);
          if (Indexes.Count == 0)
             throw new BMNodeException(node, "At least 1 index+type is required!");
 
@@ -58,7 +56,7 @@ namespace Bitmanager.ImportPipeline
          ctx.ImportLog.Log("ESEndpoint '{0}' [cache={1}, maxparallel={2}, readonly={3}, url={4}]", Name, CacheSize, MaxParallel, ReadOnly, Connection.BaseUri);
       }
 
-      internal void OpenIndex(PipelineContext ctx, IndexDefinition index)
+      internal void OpenIndex(PipelineContext ctx, ESIndexDefinition index)
       {
          if (index.IsOpen) return;
          ESIndexCmd._CheckIndexFlags flags = ESIndexCmd._CheckIndexFlags.AppendDate;
@@ -66,6 +64,17 @@ namespace Bitmanager.ImportPipeline
          index.Create (Connection, flags);
          WaitForStatus();
       }
+
+      private JObject _loadConfig(ESIndexDefinition index, String fn, out DateTime fileUtcDate)
+      {
+         Engine.ImportLog.Log("Loading config via template. fn={0}", fn);
+         fileUtcDate = File.GetLastWriteTimeUtc(fn);
+         TemplateEngine template = new TemplateEngine(Engine.TemplateSettings);
+         template.LoadFromFile(fn);
+         var rdr = template.ResultAsStream().CreateJsonReader();
+         return JObject.Load(rdr);
+      }
+
 
       protected override void Close(PipelineContext ctx)
       {
@@ -111,9 +120,9 @@ namespace Bitmanager.ImportPipeline
          return cmd.WaitForStatus(WaitFor, WaitForTimeout*1000, WaitForMustExcept);
       }
 
-      protected IndexDocType getDocType(String name, bool mustExcept)
+      protected ESIndexDocType getDocType(String name, bool mustExcept)
       {
-         IndexDocType ret = null;
+         ESIndexDocType ret = null;
          int ix=-1;
          int cnt = 0;
          if (name != null && 0 <= (ix = name.IndexOf('.')))
@@ -125,7 +134,7 @@ namespace Bitmanager.ImportPipeline
 
          if (String.IsNullOrEmpty(name))
          {
-            IndexDefinition def = null;
+            ESIndexDefinition def = null;
             if (Indexes.Count == 1)
             {
                def = Indexes[0];
@@ -165,7 +174,7 @@ namespace Bitmanager.ImportPipeline
          }
          throw new BMException("Cannot find endpoint [{0}]. It is not found or ambiguous.", name);
       }
-      protected IndexDocType getDocType(String indexName, String typeName)
+      protected ESIndexDocType getDocType(String indexName, String typeName)
       {
          foreach (var index in Indexes)
          {
@@ -210,11 +219,11 @@ namespace Bitmanager.ImportPipeline
    public class ESDataEndpoint : JsonEndpointBase<ESEndpoint>, IAdminEndpoint, IErrorEndpoint
    {
       public readonly ESConnection Connection;
-      public readonly IndexDocType DocType;
+      public readonly ESIndexDocType DocType;
       private readonly int cacheSize;
       private List<ESBulkEntry> cache;
       private AsyncRequestQueue asyncQ;
-      public ESDataEndpoint(ESEndpoint endpoint, IndexDocType doctype)
+      public ESDataEndpoint(ESEndpoint endpoint, ESIndexDocType doctype)
          : base(endpoint)
       {
          this.Connection = endpoint.Connection;

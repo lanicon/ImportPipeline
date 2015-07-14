@@ -29,7 +29,7 @@ namespace Bitmanager.ImportPipeline
       bool trim, lenient;
 
       public CsvEndpoint(ImportEngine engine, XmlNode node)
-         : base(node, ActiveMode.Lazy | ActiveMode.Local)
+         : base(engine, node, ActiveMode.Lazy | ActiveMode.Local)
       {
          MaxGenerations = node.ReadInt("@generations", int.MinValue);
          if (MaxGenerations != int.MinValue)

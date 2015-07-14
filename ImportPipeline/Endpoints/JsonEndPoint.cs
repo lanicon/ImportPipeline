@@ -27,7 +27,7 @@ namespace Bitmanager.ImportPipeline
       private JsonWriter jsonWtr;
 
       public JsonEndpoint(ImportEngine engine, XmlNode node)
-         : base(node)
+         : base(engine, node)
       {
          FileName = engine.Xml.CombinePath(node.ReadStr("@file"));
          LineSeparator = node.ReadStr("@linesep", "\r\n");

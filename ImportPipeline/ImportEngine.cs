@@ -42,6 +42,7 @@ namespace Bitmanager.ImportPipeline
       public NamedAdminCollection<Pipeline> Pipelines;
       public NamedAdminCollection<CategoryCollection> Categories;
       public ProcessHostCollection ProcessHostCollection;
+      public PostProcessors PostProcessors;
       public ScriptHost ScriptHost;
       public Logger ImportLog;
       public Logger DebugLog;
@@ -187,6 +188,9 @@ namespace Bitmanager.ImportPipeline
 
          ImportLog.Log(_LogType.ltTimer, "loading: endpoints");
          Endpoints = new Endpoints(this, xml.SelectMandatoryNode("endpoints"));
+
+         ImportLog.Log(_LogType.ltTimer, "loading: post-processors");
+         PostProcessors = new PostProcessors(this, xml.SelectSingleNode("postprocessors"));
 
          ImportLog.Log(_LogType.ltTimer, "loading: converters");
          Converters = new Converters(

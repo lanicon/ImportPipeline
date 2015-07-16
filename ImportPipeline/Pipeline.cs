@@ -40,6 +40,7 @@ namespace Bitmanager.ImportPipeline
       public readonly String DefaultConverters;
       public readonly ImportEngine ImportEngine;
       public readonly String ScriptTypeName;
+      public readonly String DefaultPostProcessors;
 
       public Object ScriptObject { get; private set; }
 
@@ -67,6 +68,7 @@ namespace Bitmanager.ImportPipeline
 
          ScriptTypeName = node.ReadStr("@script", null);
          DefaultConverters = node.ReadStr("@converters", null);
+         DefaultPostProcessors = node.ReadStr("@postprocessors", null);
          DefaultEndpoint = node.ReadStr("@endpoint", null);
          if (DefaultEndpoint == null)
          {
@@ -168,7 +170,7 @@ namespace Bitmanager.ImportPipeline
             foreach (var kvp in this.endPointCache) {
                kvp.Value.Start(ctx);
                var resolver = kvp.Value as IEndpointResolver;
-               if (ctx.AdminEndpoint==null) ctx.AdminEndpoint = resolver.GetAdminEndpoint(ctx);
+               if (ctx.AdminEndpoint==null && resolver != null) ctx.AdminEndpoint = resolver.GetAdminEndpoint(ctx);
             }
 
          if (ctx.AdminEndpoint == null)
@@ -186,6 +188,14 @@ namespace Bitmanager.ImportPipeline
 
       public void Stop(PipelineContext ctx)
       {
+         foreach (var kvp in endPointCache)
+         {
+            var proc = kvp.Value as IPostProcessor;
+            if (proc == null) continue;
+            ctx.ImportLog.Log(_LogType.ltTimerStart, "Processing post-processors for endpoint '{0}'. First processor is '{1}'.", kvp.Key, proc.Name);
+            proc.CallNextPostProcessor(ctx);
+            ctx.ImportLog.Log(_LogType.ltTimerStop, "Processing post-processors finished");
+         }
          ctx.MissedLog.Log();
          ctx.MissedLog.Log("Datasource [{0}] missed {1} keys.", ctx.DatasourceAdmin.Name, missed.Count);
          List<string> lines = new List<string>();
@@ -256,11 +266,29 @@ namespace Bitmanager.ImportPipeline
          if (endPointCache.TryGetValue(endpointName, out ret)) return ret;
 
          ret = this.ImportEngine.Endpoints.GetDataEndpoint(ctx, endpointName);
+         ret = wrapPostProcessors(ctx, ret, null);
          endPointCache.Add(endpointName, ret);
          if (started) ret.Start(ctx); 
          return ret;
       }
 
+      //Optional wraps an existing endpoint with a set of post-processors
+      private IDataEndpoint wrapPostProcessors (PipelineContext ctx, IDataEndpoint ep, String processors)
+      {
+         if (processors == null) processors = DefaultPostProcessors;
+         if (String.IsNullOrEmpty(processors)) return ep;
+
+         String[] arr = processors.SplitStandard();
+         if (arr.Length == 0) return ep;
+
+         IDataEndpoint wrapped = ep;
+         for (int i=arr.Length-1; i>=0; i--)
+         {
+            IPostProcessor p = ctx.ImportEngine.PostProcessors.GetPostProcessor(arr[i]);
+            wrapped = (IDataEndpoint)p.Clone(wrapped); 
+         }
+         return wrapped;
+      }
 
       /// <summary>
       /// Check if we don't have unresolved action endpoints

@@ -131,7 +131,8 @@ namespace Bitmanager.ImportPipeline
                }
                sink.HandleValue(ctx, "record", null);
             }
-            ctx.ImportLog.Log("Invalid records: {0}", csvRdr.NumInvalidRecords);
+            if (csvRdr.NumInvalidRecords>0)
+               ctx.ImportLog.Log(_LogType.ltWarning, "Invalid records detected: {0}", csvRdr.NumInvalidRecords);
          }
          ctx.SendItemStop();
       }

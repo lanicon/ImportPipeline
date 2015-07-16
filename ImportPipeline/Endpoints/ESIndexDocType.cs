@@ -51,7 +51,6 @@ namespace Bitmanager.ImportPipeline
       public ExistState Exists(ESConnection conn, String key, DateTime? timeStamp = null)
       {
          JObject record = null;
-         JToken date = null;
          ESMainResponse resp;
          bool dateNeeded = DateFieldName != null && timeStamp != null;
 

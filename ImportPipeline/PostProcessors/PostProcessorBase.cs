@@ -1,4 +1,5 @@
 ﻿using Bitmanager.Core;
+using Bitmanager.Elastic;
 using Bitmanager.IO;
 using Bitmanager.Json;
 using Bitmanager.Xml;
@@ -18,6 +19,7 @@ namespace Bitmanager.ImportPipeline
       String Name { get; }
       void CallNextPostProcessor(PipelineContext ctx);
       IPostProcessor Clone(IDataEndpoint epOrnextProcessor);
+      IDataEndpoint GetLastEndPoint();
    }
 
    public abstract class PostProcessorBase : JsonEndpointBase, IPostProcessor
@@ -44,7 +46,12 @@ namespace Bitmanager.ImportPipeline
       {
          if (nextProcessor != null) nextProcessor.CallNextPostProcessor(ctx);
       }
+      public virtual IDataEndpoint GetLastEndPoint()
+      {
+         return nextProcessor == null ? nextEndpoint : nextProcessor.GetLastEndPoint();
+      }
 
+      #region Passing through important methods of the endpoint
       public override void Start(PipelineContext ctx)
       {
          nextEndpoint.Start(ctx);
@@ -54,6 +61,24 @@ namespace Bitmanager.ImportPipeline
       {
          nextEndpoint.Stop(ctx);
       }
+
+      public override ExistState Exists(PipelineContext ctx, string key, DateTime? timeStamp)
+      {
+         return nextEndpoint.Exists(ctx, key, timeStamp);
+      }
+
+      public override Object LoadRecord(PipelineContext ctx, String key)
+      {
+         return nextEndpoint.LoadRecord(ctx, key);
+      }
+
+      public override IAdminEndpoint GetAdminEndpoint(PipelineContext ctx)
+      {
+         IEndpointResolver epr = nextEndpoint as IEndpointResolver;
+         return epr == null ? null : epr.GetAdminEndpoint(ctx);
+      }
+      #endregion
+
 
       public override abstract void Add(PipelineContext ctx);
       public abstract IPostProcessor Clone(IDataEndpoint epOrnextProcessor);

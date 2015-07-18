@@ -31,7 +31,7 @@ namespace Bitmanager.ImportPipeline
             case 1: return Create(keyAndTypes[0]);
             case 2: return new Comparer2(Create(keyAndTypes[0]), Create(keyAndTypes[1]));
             default:
-               JComparer[] comparers = new JComparer[keyAndTypes.Count];
+               var comparers = new JComparer[keyAndTypes.Count];
                for (int i = 0; i < keyAndTypes.Count; i++)
                   comparers[i] = Create(keyAndTypes[i]);
                return new ComparerN(comparers);

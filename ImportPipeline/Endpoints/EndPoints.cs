@@ -359,7 +359,7 @@ namespace Bitmanager.ImportPipeline
       IAdminEndpoint GetAdminEndpoint(PipelineContext ctx);
    }
 
-   public class JsonEndpointBase: IDataEndpoint
+   public class JsonEndpointBase: IDataEndpoint, IEndpointResolver
    {
       protected JObject accumulator;
       protected Endpoint.DebugFlags flags;
@@ -562,6 +562,14 @@ namespace Bitmanager.ImportPipeline
       public virtual void EmitRecord(PipelineContext ctx, String recordKey, String recordField, IDatasourceSink sink, String eventKey, int maxLevel)
       {
       }
+
+      #region IEndpointResolver
+      public virtual IAdminEndpoint GetAdminEndpoint(PipelineContext ctx)
+      {
+         return null;
+      }
+      #endregion
+
    }
 
 
@@ -577,9 +585,9 @@ namespace Bitmanager.ImportPipeline
       }
 
       #region IEndpointResolver
-      public virtual IAdminEndpoint GetAdminEndpoint(PipelineContext ctx)
+      public override IAdminEndpoint GetAdminEndpoint(PipelineContext ctx)
       {
-         return Endpoint.GetAdminEndpoint(ctx);
+         return Endpoint==null ? null : Endpoint.GetAdminEndpoint(ctx);
       }
       #endregion
    }

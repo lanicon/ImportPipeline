@@ -37,13 +37,16 @@ namespace Bitmanager.ImportPipeline
          for (int i = 0; i < cnt; i++)
          {
             fileNames[i] = String.Format("{0}_{1}.tmp", part1, i);
-            writers[i] = createWriter(fileNames[i], compress);
+            writers[i] = createWriter(fileNames[i], compress, keepFiles);
          }
       }
 
-      private static StreamWriter createWriter(String fn, bool compress)
+      private static StreamWriter createWriter(String fn, bool compress, bool keepFiles)
       {
-         Stream strm = new FileStream(fn, FileMode.Create, FileAccess.ReadWrite, FileShare.Read, 4096);
+         FileOptions options = FileOptions.SequentialScan;
+         if (!keepFiles) options |= FileOptions.DeleteOnClose;
+
+         Stream strm = new FileStream(fn, FileMode.Create, FileAccess.ReadWrite, FileShare.Read, 4096, options);
          try
          {
             if (compress)
@@ -165,21 +168,21 @@ namespace Bitmanager.ImportPipeline
                Logs.ErrorLog.Log("Cannot close {0}: {1}", fileNames[i], e.Message);
             }
          }
-         if (keepFiles) return;
-         for (int i = 0; i < fileNames.Length; i++)
-         {
-            var name = fileNames[i];
-            if (name == null) continue;
-            fileNames[i] = null;
-            try
-            {
-               File.Delete(name);
-            }
-            catch (Exception e)
-            {
-               Logs.ErrorLog.Log("Cannot delete {0}: {1}", fileNames[i], e.Message);
-            }
-         }
+         //if (keepFiles) return;
+         //for (int i = 0; i < fileNames.Length; i++)
+         //{
+         //   var name = fileNames[i];
+         //   if (name == null) continue;
+         //   fileNames[i] = null;
+         //   try
+         //   {
+         //      File.Delete(name);
+         //   }
+         //   catch (Exception e)
+         //   {
+         //      Logs.ErrorLog.Log("Cannot delete {0}: {1}", fileNames[i], e.Message);
+         //   }
+         //}
       }
 
       int curReadFile = -1;

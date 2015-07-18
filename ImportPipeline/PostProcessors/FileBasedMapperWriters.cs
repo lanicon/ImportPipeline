@@ -139,11 +139,11 @@ namespace Bitmanager.ImportPipeline
       /// 
       /// The returnvalue reflects whether has been written or not.
       /// </summary>
-      public bool OptWrite(JObject data, int minNullIndex = 0)
+      public bool OptWrite(JObject data, int maxNullIndex = -1)
       {
          int nullIndex;
          uint hash = (uint)hasher.GetHash(data, out nullIndex);
-         if (nullIndex >= minNullIndex) return false;
+         if (nullIndex > maxNullIndex) return false;
          uint file = (hash % (uint)writers.Length);
          var wtr = writers[file];
          data.WriteTo(wtr, Newtonsoft.Json.Formatting.None);

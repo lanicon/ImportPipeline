@@ -28,6 +28,7 @@ namespace Bitmanager.ImportPipeline
       private readonly JComparer comparer;
 
       private readonly int numFiles;
+      private readonly int maxNullIndex;
       private readonly bool keepFiles, compress;
 
       private FileBasedMapperWriters mapper = null;
@@ -37,6 +38,7 @@ namespace Bitmanager.ImportPipeline
          directory = engine.Xml.CombinePath(node.ReadStr("dir/@name"));
          keepFiles = node.ReadBool("dir/@keepfiles", false);
          compress = node.ReadBool("dir/@compress", true);
+         maxNullIndex = node.ReadInt("dir/@max_null_index", -1);
          numFiles = node.ReadInt("dir/@count", 100);
          if (numFiles <= 0) throw new BMNodeException(node, "Count should be > 0.");
 
@@ -63,6 +65,7 @@ namespace Bitmanager.ImportPipeline
          keepFiles = other.keepFiles;
          numFiles = other.numFiles;
          compress = other.compress;
+         maxNullIndex = other.maxNullIndex;
       }
 
 
@@ -89,8 +92,16 @@ namespace Bitmanager.ImportPipeline
       public override void Add(PipelineContext ctx)
       {
          if (mapper == null) mapper = new FileBasedMapperWriters(hasher, comparer, directory, Name, numFiles, compress, keepFiles);
-         if (accumulator.Count > 0) mapper.Write (accumulator);
-         Clear();
+         if (accumulator.Count > 0)
+         {
+            if (!mapper.OptWrite(accumulator, maxNullIndex))
+            {
+               //Just passthrough to the next endpoint if this record had a failing hash-value
+               nextEndpoint.SetField(null, accumulator);
+               nextEndpoint.Add(ctx);
+            }
+            Clear();
+         }
       }
    }
 }

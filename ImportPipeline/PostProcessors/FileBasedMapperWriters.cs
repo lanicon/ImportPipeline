@@ -18,8 +18,6 @@ namespace Bitmanager.ImportPipeline
       readonly JHasher hasher;
       String[] fileNames;
       StreamWriter[] writers;
-      StreamReader reader;
-      String readerFile;
       private readonly bool compress, keepFiles;
 
       public FileBasedMapperWriters(JHasher hasher, JComparer comparer, String dir, String id, int cnt, bool compress, bool keepFiles=false)
@@ -75,50 +73,27 @@ namespace Bitmanager.ImportPipeline
          zipStream.Close();
          x.Close();
       }
-      private void closeReader()
-      {
-         if (reader == null) return;
-         var rdr = reader;
-         reader = null;
-         try
-         {
-            Stream x = rdr.BaseStream;
-            var zipStream = x as GZipStream;
-            if (zipStream == null)
-            {
-               rdr.Close();
-               return;
-            }
-            x = zipStream.BaseStream;
-            zipStream.Close();
-            x.Close();
-         }
-         catch (Exception e)
-         {
-            Logs.ErrorLog.Log("Cannot close {0}: {1}", readerFile, e.Message);
-         }
-      }
 
       private StreamReader createReaderFromWriter(StreamWriter wtr, int idx)
       {
-         closeReader();
-         readerFile = this.fileNames[idx];
          wtr.Flush();
          Stream x = wtr.BaseStream;
          var zipStream = x as GZipStream;
          if (zipStream == null)
          {
+            if (wtr.BaseStream == null) return null;
             wtr.BaseStream.Position = 0;
-            return reader = wtr.BaseStream.CreateTextReader();
+            return wtr.BaseStream.CreateTextReader();
          }
 
          //We had a zip-stream. Close the writing stream, and create a zip reader
          x = zipStream.BaseStream;
+         if (x == null) return null;
          zipStream.Close();
          x.Position = 0;
          zipStream = new GZipStream(x, CompressionMode.Decompress, true);
 
-         return reader = zipStream.CreateTextReader();
+         return zipStream.CreateTextReader();
       }
 
       /// <summary>
@@ -153,7 +128,6 @@ namespace Bitmanager.ImportPipeline
 
       public void Dispose()
       {
-         closeReader();
          for (int i = 0; i < writers.Length; i++)
          {
             var wtr = writers[i];
@@ -185,40 +159,38 @@ namespace Bitmanager.ImportPipeline
          //}
       }
 
-      int curReadFile = -1;
-      //JToken curFrbr = null;
-      //public String DiagnosticInfo { get { return curReadFile < 0 ? null : String.Format("{0}, [frbr {1}].", this.fileNames[curReadFile], curFrbr); } }
+      public FileBasedMapperEnumerator GetObjectEnumerator(int index)
+      {
+         if (index < 0 || index >= writers.Length) return null;
+         String fn = fileNames[index];
+         var wtr = writers[index];
+         if (wtr == null) throw new BMException ("File already closed: {0}.", fn);
+
+         var rdr = createReaderFromWriter(wtr, index);
+         if (rdr == null) throw new BMException("File cannot be enumerator more than once. File={0}.", fn);
+         return comparer == null ? new FileBasedMapperUnsortedEnumerator(rdr, fn, index) : new FileBasedMapperSortedEnumerator(rdr, fn, index, comparer);
+      }
 
       public IEnumerator<JObject> GetEnumerator()
       {
          Logger lg = Logs.CreateLogger("import", "script");
-         for (curReadFile = 0; curReadFile < writers.Length; curReadFile++)
+         for (int index = 0; index < writers.Length; index++)
          {
-
-            var wtr = writers[curReadFile];
-            if (wtr == null) continue;
-
-            closeReader();
-            var textRdr = createReaderFromWriter(wtr, curReadFile);
-            if (textRdr.EndOfStream) continue;
-
-            List<JObject> objects = new List<JObject>(70000);
-            while (true)
+            var e = GetObjectEnumerator(index);
+            try 
             {
-               String line = textRdr.ReadLine();
-               if (line == null) break;
-               objects.Add((JObject)JToken.Parse(line));
+               while (true)
+               {
+                  var obj = e.GetNext();
+                  if (obj==null) break;
+                  yield return obj;
+               }
             }
-            if (comparer != null) objects.Sort(comparer);
-            //curFrbr = null;
-            for (int j = 0; j < objects.Count; j++)
+            finally
             {
-               var tmp = objects[j];
-               //curFrbr = tmp["frbr"];
-               yield return tmp;
+               Utils.FreeAndNil (ref e);
             }
          }
-         closeReader();
       }
 
       System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
@@ -227,4 +199,96 @@ namespace Bitmanager.ImportPipeline
       }
    }
 
+   public abstract class FileBasedMapperEnumerator : IDisposable//, IEnumerable<JObject>
+   {
+      protected String readerFile;
+      protected int index;
+      public FileBasedMapperEnumerator(String filename, int index)
+      {
+         this.index = index;
+         //this.reader = rdr;
+         this.readerFile = filename;
+      }
+
+      public abstract JObject GetNext();
+      public abstract void Close();
+
+      public abstract void Dispose();
+   }
+
+   public class FileBasedMapperUnsortedEnumerator : FileBasedMapperEnumerator
+   {
+      private StreamReader reader;
+      public FileBasedMapperUnsortedEnumerator(StreamReader rdr, String filename, int index): base (filename, index)
+      {
+         this.reader = rdr;
+      }
+
+      public override JObject GetNext()
+      {
+         String line = reader.ReadLine();
+         return (line == null) ? null : (JObject)JToken.Parse(line);
+      }
+
+      public override void Close()
+      {
+         closeReader();
+      }
+
+
+
+      public override void Dispose()
+      {
+         closeReader();
+      }
+
+      private void closeReader()
+      {
+         if (reader == null) return;
+         var rdr = reader;
+         reader = null;
+         try
+         {
+            Stream x = rdr.BaseStream;
+            var zipStream = x as GZipStream;
+            if (zipStream == null)
+            {
+               rdr.Close();
+               return;
+            }
+            x = zipStream.BaseStream;
+            zipStream.Close();
+            x.Close();
+         }
+         catch (Exception e)
+         {
+            Logs.ErrorLog.Log("Cannot close {0}: {1}", readerFile, e.Message);
+         }
+      }
+   }
+   public class FileBasedMapperSortedEnumerator : FileBasedMapperUnsortedEnumerator
+   {
+      private JComparer sorter;
+      private List<JObject> buffer;
+      private int bufferIndex, bufferLast;
+      public FileBasedMapperSortedEnumerator(StreamReader rdr, String filename, int index, JComparer sorter) :  base (rdr, filename, index)
+      {
+         this.sorter = sorter;
+         buffer = new List<JObject>(7000);
+         while (true)
+         {
+            var o = base.GetNext();
+            if (o == null) break;
+            buffer.Add(o);
+         }
+         bufferLast = buffer.Count - 1;
+         bufferIndex = -1;
+      }
+
+      public override JObject GetNext()
+      {
+         if (bufferIndex >= bufferLast) return null;
+         return buffer[++bufferIndex];
+      }
+   }
 }

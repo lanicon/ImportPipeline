@@ -42,16 +42,20 @@ namespace Bitmanager.ImportPipeline
          numFiles = node.ReadInt("dir/@count", 100);
          if (numFiles <= 0) throw new BMNodeException(node, "Count should be > 0.");
 
-         XmlNode sortNode = node.SelectSingleNode("sorter");
-         bool sameAsHash = (sortNode != null && sortNode.ReadBool("@same_as_hash", false));
          List<KeyAndType> list = KeyAndType.CreateKeyList(node.SelectMandatoryNode("hasher"), "key", true);
          hasher = JComparer.Create(list);
 
-         if (sortNode != null)
+         XmlNode sortNode = node.SelectSingleNode("sorter");
+         if (sortNode == null)
+            comparer = hasher;
+         else
          {
-            if (!sameAsHash)
+            comparer = hasher.Clone (sortNode.ReadStr("@from_hash", null));
+            if (comparer==null)
+            {
                list = KeyAndType.CreateKeyList(sortNode, "key", true);
-            comparer = JComparer.Create(list);
+               comparer = JComparer.Create(list);
+            }
          }
       }
 

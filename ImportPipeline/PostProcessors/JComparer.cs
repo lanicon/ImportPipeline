@@ -45,6 +45,35 @@ namespace Bitmanager.ImportPipeline
          return 0;
       }
 
+      /// <summary>
+      /// Return a clone of this comparer
+      /// If numComparers=0, just this object will be returned.
+      /// if numComparers is negative, the last numComparers entries are removed from the copy
+      /// if numComparers is positive, the first numComparers are kept in the copy
+      /// </summary>
+      /// <param name="numComparers">Determines what sub-comparers to keep</param>
+      public virtual JComparer Clone(int numComparers)
+      {
+         if (numComparers == 0) return this;
+         throw new BMException("Cannot change the #comparers on a no-op comparer.");
+      }
+      /// <summary>
+      /// Return a clone of this comparer
+      /// If numComparers="" or "false", null is returned
+      /// If numComparers=0 or "true", just this object will be returned.
+      /// if numComparers is negative, the last numComparers entries are removed from the copy
+      /// if numComparers is positive, the first numComparers are kept in the copy
+      /// </summary>
+      /// <param name="numComparers">Determines what sub-comparers to keep</param>
+      public virtual JComparer Clone(String numComparers)
+      {
+         if (String.IsNullOrEmpty(numComparers)) return null;
+         String lc = numComparers.ToLowerInvariant();
+         if ("true" == lc) return this;
+         if ("false" == lc) return null;
+         return Clone(Invariant.ToInt32(numComparers));
+      }
+
 
       public static JComparer Create(List<KeyAndType> keyAndTypes)
       {
@@ -105,6 +134,19 @@ namespace Bitmanager.ImportPipeline
          this.path = keyAndType.Key;
          this.reverse = (keyAndType.Type & CompareType.Descending) != 0;
       }
+      public override JComparer Clone(int numComparers)
+      {
+         int toKeep = numComparers;
+         if (numComparers<0) toKeep++;
+         switch (toKeep)
+         {
+            case 0: return new JComparer();
+            case 1: return this;
+         }
+         throw new BMException("Invalid resulting #sub-comparers: {0}. #comparers={1}, numComparers={2}.", toKeep, 1, numComparers);
+      }
+
+
 
       internal virtual JToken _GetKey(JObject obj)
       {
@@ -504,6 +546,20 @@ namespace Bitmanager.ImportPipeline
          this.cmp1 = cmp1;
          this.cmp2 = cmp2;
       }
+
+      public override JComparer Clone(int numComparers)
+      {
+         int toKeep = numComparers;
+         if (numComparers < 0) toKeep+=2;
+         switch (toKeep)
+         {
+            case 0: return new JComparer();
+            case 1: return cmp1;
+            case 2: return this;
+         }
+         throw new BMException("Invalid resulting #sub-comparers: {0}. #comparers={1}, numComparers={2}.", toKeep, 2, numComparers);
+      }
+
       public override int Compare(JObject a, JObject b)
       {
          int rc = cmp1.Compare(a, b);
@@ -542,6 +598,27 @@ namespace Bitmanager.ImportPipeline
       {
          this.cmps = cmps;
       }
+
+      public override JComparer Clone(int numComparers)
+      {
+         int toKeep = numComparers;
+         if (numComparers < 0) toKeep += 2;
+         switch (toKeep)
+         {
+            case 0: return new JComparer();
+            case 1: return cmps[0];
+         }
+         if (toKeep > 0 && toKeep < cmps.Length)
+         {
+            Comparer1Base[] ret = new Comparer1Base[toKeep];
+            Array.Copy(cmps, ret, toKeep);
+            return new ComparerN(ret);
+         }
+
+         throw new BMException("Invalid resulting #sub-comparers: {0}. #comparers={1}, numComparers={2}.", toKeep, cmps.Length, numComparers);
+      }
+
+
       public override int Compare(JObject a, JObject b)
       {
          for (int i = 0; i < cmps.Length; i++)

@@ -15,12 +15,12 @@ namespace Bitmanager.ImportPipeline
    public class FileBasedMapperWriters : IDisposable, IEnumerable<JObject>
    {
       readonly JComparer comparer;
-      readonly JHasher hasher;
+      readonly JComparer hasher;
       String[] fileNames;
       StreamWriter[] writers;
       private readonly bool compress, keepFiles;
 
-      public FileBasedMapperWriters(JHasher hasher, JComparer comparer, String dir, String id, int cnt, bool compress, bool keepFiles=false)
+      public FileBasedMapperWriters(JComparer hasher, JComparer comparer, String dir, String id, int cnt, bool compress, bool keepFiles = false)
       {
          this.hasher = hasher;
          this.comparer = comparer;

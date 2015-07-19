@@ -95,7 +95,6 @@
     <Compile Include="Actions\PipelineExceptionAction.cs" />
     <Compile Include="PostProcessors\JComparer.cs" />
     <Compile Include="PostProcessors\FileBasedMapperProcessor.cs" />
-    <Compile Include="PostProcessors\JHasher.cs" />
     <Compile Include="PostProcessors\FileBasedMapperWriters.cs" />
     <Compile Include="PostProcessors\KeyAndType.cs" />
     <Compile Include="PostProcessors\PostProcessorBase.cs" />

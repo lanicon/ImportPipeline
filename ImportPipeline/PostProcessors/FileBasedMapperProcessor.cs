@@ -24,7 +24,7 @@ namespace Bitmanager.ImportPipeline
    public class FileBasedMapperProcessor : PostProcessorBase
    {
       private readonly String directory;
-      private readonly JHasher hasher;
+      private readonly JComparer hasher;
       private readonly JComparer comparer;
 
       private readonly int numFiles;
@@ -45,7 +45,7 @@ namespace Bitmanager.ImportPipeline
          XmlNode sortNode = node.SelectSingleNode("sorter");
          bool sameAsHash = (sortNode != null && sortNode.ReadBool("@same_as_hash", false));
          List<KeyAndType> list = KeyAndType.CreateKeyList(node.SelectMandatoryNode("hasher"), "key", true);
-         hasher = JHasher.Create(list);
+         hasher = JComparer.Create(list);
 
          if (sortNode != null)
          {

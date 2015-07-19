@@ -13,25 +13,25 @@ namespace UnitTests
    public class FileBasedMapReduceWritersTests
    {
       String dir;
-      JHasher hasher0, hasher1, hasher2, hasher3;
+      JComparer hasher0, hasher1, hasher2, hasher3;
       JComparer cmp0, cmp1, cmp2, cmp3;
       public FileBasedMapReduceWritersTests()
       {
          dir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
          var keyAndTypes = new List<KeyAndType>();
-         hasher0 = JHasher.Create(keyAndTypes);
+         hasher0 = JComparer.Create(keyAndTypes);
          cmp0 = JComparer.Create(keyAndTypes);
 
          keyAndTypes.Add (new KeyAndType ("k1", CompareType.Int));
-         hasher1 = JHasher.Create(keyAndTypes);
+         hasher1 = JComparer.Create(keyAndTypes);
          cmp1 = JComparer.Create(keyAndTypes);
 
          keyAndTypes.Add(new KeyAndType("k2", CompareType.String));
-         hasher2 = JHasher.Create(keyAndTypes);
+         hasher2 = JComparer.Create(keyAndTypes);
          cmp2 = JComparer.Create(keyAndTypes);
 
          keyAndTypes.Add(new KeyAndType("k3", CompareType.Double));
-         hasher3 = JHasher.Create(keyAndTypes);
+         hasher3 = JComparer.Create(keyAndTypes);
          cmp3 = JComparer.Create(keyAndTypes);
 
          Console.WriteLine("Hasher0={0}, cmp0={1}", hasher0, cmp0);
@@ -223,7 +223,7 @@ namespace UnitTests
          return ret;
       }
 
-      private static void checkHash(JObject o, JHasher hasher, int expHash, int expNullIndex)
+      private static void checkHash(JObject o, JComparer hasher, int expHash, int expNullIndex)
       {
          int nullIndex;
          int h = hasher.GetHash(o, out nullIndex);

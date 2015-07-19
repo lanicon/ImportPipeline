@@ -100,18 +100,20 @@ namespace UnitTests
          sortAndDump(list, cmpI, "Case-in-sens");
       }
 
-      private void sortAndDump(List<JObject> list, JComparer cmp, string p)
+      private List<JObject> sortAndDump(List<JObject> list, JComparer cmp, string p)
       {
          Console.WriteLine("Dumping entries after sorting {0}...", p);
          list.Sort(cmp);
          foreach (var o in list)
             Console.WriteLine("-- " + o.ToString(Newtonsoft.Json.Formatting.None));
+         return list;
       }
-      private void dump(List<JObject> list, string p)
+      private List<JObject> dump(List<JObject> list, string p)
       {
          Console.WriteLine("Dumping entries. {0}.", p);
          foreach (var o in list)
             Console.WriteLine("-- " + o.ToString(Newtonsoft.Json.Formatting.None));
+         return list;
       }
       [TestMethod]
       public void TestHashes()
@@ -124,12 +126,12 @@ namespace UnitTests
          checkHash(o1, hasher0, 0, -1);
          checkHash(o1, hasher1, 1, -1);
          checkHash(o1, hasher2, -843532401, -1);
-         checkHash(o1, hasher3, -843532392, -1);
+         checkHash(o1, hasher3, -1919961201, -1);
 
          checkHash(o2, hasher0, 0, -1);
          checkHash(o2, hasher1, 0, 0);
          checkHash(o2, hasher2, -843532402, 0);
-         checkHash(o2, hasher3, -843532391, 0);
+         checkHash(o2, hasher3, -1919961202, 0);
 
          checkHash(o3, hasher0, 0, -1);
          checkHash(o3, hasher1, 1, -1);
@@ -139,12 +141,12 @@ namespace UnitTests
          checkHash(o4, hasher0, 0, -1);
          checkHash(o4, hasher1, 1, -1);
          checkHash(o4, hasher2, 1, 1);
-         checkHash(o4, hasher3, 22, 1);
+         checkHash(o4, hasher3, 1077346305, 1);
 
          checkHash(o5, hasher0, 0, -1);
          checkHash(o5, hasher1, 1, -1);
          checkHash(o5, hasher2, 1, 1);
-         checkHash(o5, hasher3, 22, 1);
+         checkHash(o5, hasher3, 1077346305, 1);
 
          checkCompare(o1, o1, cmp1, 0);
          checkCompare(o1, o1, cmp2, 0);
@@ -161,10 +163,14 @@ namespace UnitTests
          checkCompare(o1, o2, cmp1, 1);
          checkCompare(o1, o2, cmp2, 1);
          checkCompare(o1, o2, cmp3, 1);
-
-         
       }
 
+      private static String _tos (JObject obj)
+      {
+         if (obj == null) return "NULL";
+         String tmp = obj.ToString(Newtonsoft.Json.Formatting.None);
+         return tmp.Replace ('\"', '\'');
+      }
       [TestMethod]
       public void TestMapReduce()
       {
@@ -181,18 +187,29 @@ namespace UnitTests
          list.Add(Create("C", 23));
 
          var wtrs = new FileBasedMapperWriters(hasher3, cmp3, Path.Combine(dir, "data"), "foobar", 1, true, false);
-         dump(mapReduce(wtrs, list), "1 file");
+         var outList = dump(mapReduce(wtrs, list), "1 file");
          wtrs.Dispose();
+         Assert.AreEqual("{'k2':'22','k3':23}", _tos(outList[0]));
+         Assert.AreEqual("{'k1':1,'k2':'22','k3':23}", _tos(outList[9]));
+
          wtrs = new FileBasedMapperWriters(hasher3, cmp3, Path.Combine(dir, "data"), "foobar", 3, true, false);
-         dump(mapReduce(wtrs, list), "1 file");
-         wtrs.Dispose();
+         outList = dump(mapReduce(wtrs, list), "3 files");
+         Assert.AreEqual("{'k2':'22','k3':23}", _tos(outList[0]));
+         Assert.AreEqual("{'k2':'bB','k3':23}", _tos(outList[9]));
+         wtrs.Dispose(); 
+
 
          wtrs = new FileBasedMapperWriters(hasher3, cmp3, Path.Combine(dir, "data"), "foobar", 1, false, false);
-         dump(mapReduce(wtrs, list), "1 file");
+         outList = dump(mapReduce(wtrs, list), "1 file");
          wtrs.Dispose();
+         Assert.AreEqual("{'k2':'22','k3':23}", _tos(outList[0]));
+         Assert.AreEqual("{'k1':1,'k2':'22','k3':23}", _tos(outList[9]));
+
          wtrs = new FileBasedMapperWriters(hasher3, cmp3, Path.Combine(dir, "data"), "foobar", 3, false, false);
-         dump(mapReduce(wtrs, list), "1 file");
+         outList = dump(mapReduce(wtrs, list), "1 file");
          wtrs.Dispose();
+         Assert.AreEqual("{'k2':'22','k3':23}", _tos(outList[0]));
+         Assert.AreEqual("{'k2':'bB','k3':23}", _tos(outList[9]));
       }
 
       List<JObject> mapReduce (FileBasedMapperWriters wtrs, List<JObject> list)

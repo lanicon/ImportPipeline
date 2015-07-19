@@ -281,6 +281,7 @@ namespace Bitmanager.ImportPipeline
             if (o == null) break;
             buffer.Add(o);
          }
+         buffer.Sort(sorter);
          bufferLast = buffer.Count - 1;
          bufferIndex = -1;
       }

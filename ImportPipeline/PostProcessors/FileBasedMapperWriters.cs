@@ -159,7 +159,7 @@ namespace Bitmanager.ImportPipeline
          //}
       }
 
-      public FileBasedMapperEnumerator GetObjectEnumerator(int index, bool buffered=false)
+      public ObjectEnumerator GetObjectEnumerator(int index, bool buffered=false)
       {
          if (index < 0 || index >= writers.Length) return null;
          String fn = fileNames[index];
@@ -168,7 +168,7 @@ namespace Bitmanager.ImportPipeline
 
          var rdr = createReaderFromWriter(wtr, index);
          if (rdr == null) throw new BMException("File cannot be enumerator more than once. File={0}.", fn);
-         return (comparer != null || buffered) ?  new FileBasedMapperSortedEnumerator(rdr, fn, index, comparer) : new FileBasedMapperUnbufferedEnumerator(rdr, fn, index);
+         return (comparer != null || buffered) ?  new SortedObjectEnumerator(rdr, fn, index, comparer) : new UnbufferedObjectEnumerator(rdr, fn, index);
       }
 
       public IEnumerator<JObject> GetEnumerator()
@@ -199,11 +199,11 @@ namespace Bitmanager.ImportPipeline
       }
    }
 
-   public abstract class FileBasedMapperEnumerator : IDisposable//, IEnumerable<JObject>
+   public abstract class ObjectEnumerator : IDisposable//, IEnumerable<JObject>
    {
       protected String readerFile;
       protected int index;
-      public FileBasedMapperEnumerator(String filename, int index)
+      public ObjectEnumerator(String filename, int index)
       {
          this.index = index;
          //this.reader = rdr;
@@ -211,15 +211,16 @@ namespace Bitmanager.ImportPipeline
       }
 
       public abstract JObject GetNext();
+      public abstract List<JObject> GetAll();
       public abstract void Close();
 
       public abstract void Dispose();
    }
 
-   public class FileBasedMapperUnbufferedEnumerator : FileBasedMapperEnumerator
+   public class UnbufferedObjectEnumerator : ObjectEnumerator
    {
       private StreamReader reader;
-      public FileBasedMapperUnbufferedEnumerator(StreamReader rdr, String filename, int index): base (filename, index)
+      public UnbufferedObjectEnumerator(StreamReader rdr, String filename, int index): base (filename, index)
       {
          this.reader = rdr;
       }
@@ -229,13 +230,22 @@ namespace Bitmanager.ImportPipeline
          String line = reader.ReadLine();
          return (line == null) ? null : (JObject)JToken.Parse(line);
       }
+      public override List<JObject> GetAll()
+      {
+         var ret = new List<JObject>(4000);
+         while (true)
+         {
+            String line = reader.ReadLine();
+            if (line == null) break;
+            ret.Add ((JObject)JToken.Parse(line));
+         }
+         return ret;
+      }
 
       public override void Close()
       {
          closeReader();
       }
-
-
 
       public override void Dispose()
       {
@@ -266,21 +276,15 @@ namespace Bitmanager.ImportPipeline
          }
       }
    }
-   public class FileBasedMapperSortedEnumerator : FileBasedMapperUnbufferedEnumerator
+   public class SortedObjectEnumerator : UnbufferedObjectEnumerator
    {
       private JComparer sorter;
       private List<JObject> buffer;
       private int bufferIndex, bufferLast;
-      public FileBasedMapperSortedEnumerator(StreamReader rdr, String filename, int index, JComparer sorter) :  base (rdr, filename, index)
+      public SortedObjectEnumerator(StreamReader rdr, String filename, int index, JComparer sorter) :  base (rdr, filename, index)
       {
          this.sorter = sorter;
-         buffer = new List<JObject>(7000);
-         while (true)
-         {
-            var o = base.GetNext();
-            if (o == null) break;
-            buffer.Add(o);
-         }
+         buffer = base.GetAll();
          if (sorter != null) buffer.Sort(sorter);
          bufferLast = buffer.Count - 1;
          bufferIndex = -1;
@@ -291,5 +295,11 @@ namespace Bitmanager.ImportPipeline
          if (bufferIndex >= bufferLast) return null;
          return buffer[++bufferIndex];
       }
+
+      public override List<JObject> GetAll()
+      {
+         return buffer;
+      }
+
    }
 }

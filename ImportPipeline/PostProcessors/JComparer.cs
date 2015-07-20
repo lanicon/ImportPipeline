@@ -163,6 +163,14 @@ namespace Bitmanager.ImportPipeline
          return CompareKey(a[0], b[0]);
       }
 
+      protected string _toString(String cls)
+      {
+         String x1 = cls + "[" + path; 
+         if (reverse) x1 += ",R";
+         return x1 + "]";
+      }
+
+
    }
 
    class Comparer1Str : Comparer1Base
@@ -226,6 +234,17 @@ namespace Bitmanager.ImportPipeline
       RET_NULL:
          nullIndex = 0;
          return NULLHASH;
+      }
+
+      public override string ToString()
+      {
+         StringBuilder sb = new StringBuilder();
+         sb.Append("Str[");
+         sb.Append(path);
+         sb.Append((comparison == StringComparison.OrdinalIgnoreCase) ? ", IC" : ", CS");
+         if (reverse) sb.Append(", R");
+         sb.Append("]");
+         return sb.ToString();
       }
    }
 
@@ -301,6 +320,11 @@ namespace Bitmanager.ImportPipeline
       RET_NULL:
          nullIndex = 0;
          return NULLHASH;
+      }
+
+      public override string ToString()
+      {
+         return _toString("Int");
       }
    }
 
@@ -380,6 +404,11 @@ namespace Bitmanager.ImportPipeline
          nullIndex = 0;
          return NULLHASH;
       }
+
+      public override string ToString()
+      {
+         return _toString("Long");
+      }
    }
 
 
@@ -457,6 +486,11 @@ namespace Bitmanager.ImportPipeline
       RET_NULL:
          nullIndex = 0;
          return NULLHASH;
+      }
+
+      public override string ToString()
+      {
+         return _toString("Double");
       }
    }
 
@@ -536,6 +570,11 @@ namespace Bitmanager.ImportPipeline
          nullIndex = 0;
          return NULLHASH;
       }
+
+      public override string ToString()
+      {
+         return _toString("Date");
+      }
    }
 
    class Comparer2 : JComparer
@@ -588,6 +627,11 @@ namespace Bitmanager.ImportPipeline
          if (n2 >= 0 && nullIndex < 0)
             nullIndex = 1;
          return ret;
+      }
+
+      public override string ToString()
+      {
+         return cmp1 + ", " + cmp2;
       }
    }
 
@@ -669,6 +713,18 @@ namespace Bitmanager.ImportPipeline
             if (ni >= 0) nullIndex = i;
          }
          return ret;
+      }
+
+      public override string ToString()
+      {
+         StringBuilder sb = new StringBuilder();
+         for (int i = 0; i < cmps.Length; i++)
+         {
+            if (i > 0) sb.Append(", ");
+            sb.Append (cmps[i]);
+         }
+
+         return sb.ToString();
       }
    }
 }

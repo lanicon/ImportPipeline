@@ -14,6 +14,7 @@ namespace Bitmanager.ImportPipeline
 {
    public class FileBasedMapperWriters : IDisposable, IEnumerable<JObject>
    {
+      static Logger dbgLogger = null;//Logs.CreateLogger("import", "map");
       readonly JComparer comparer;
       readonly JComparer hasher;
       String[] fileNames;
@@ -76,6 +77,7 @@ namespace Bitmanager.ImportPipeline
 
       private StreamReader createReaderFromWriter(StreamWriter wtr, int idx)
       {
+         if (dbgLogger != null) dbgLogger.Log("createReaderFromWriter ({0}, {1})", idx, fileNames[idx]);
          wtr.Flush();
          Stream x = wtr.BaseStream;
          var zipStream = x as GZipStream;
@@ -103,10 +105,18 @@ namespace Bitmanager.ImportPipeline
       {
          uint hash = (uint)hasher.GetHash(data);
          uint file = (hash % (uint)writers.Length);
-         var wtr = writers[file];
-         data.WriteTo(wtr, Newtonsoft.Json.Formatting.None);
-         wtr.WriteLine();
+         try
+         {
+            var wtr = writers[file];
+            data.WriteTo(wtr, Newtonsoft.Json.Formatting.None);
+            wtr.WriteLine();
+         }
+         catch (Exception e)
+         {
+            throw WrapWithFile(e, file);
+         }
       }
+
 
       /// <summary>
       /// Optional writes the data to the appropriate file (designed by the hash)
@@ -120,11 +130,24 @@ namespace Bitmanager.ImportPipeline
          uint hash = (uint)hasher.GetHash(data, out nullIndex);
          if (nullIndex > maxNullIndex) return false;
          uint file = (hash % (uint)writers.Length);
-         var wtr = writers[file];
-         data.WriteTo(wtr, Newtonsoft.Json.Formatting.None);
-         wtr.WriteLine();
-         return true;
+         try
+         {
+            var wtr = writers[file];
+            data.WriteTo(wtr, Newtonsoft.Json.Formatting.None);
+            wtr.WriteLine();
+            return true;
+         }
+         catch (Exception e)
+         {
+            throw WrapWithFile(e, file);
+         }
       }
+
+      private Exception WrapWithFile (Exception e, uint file)
+      {
+         return new BMException(e, "{0}\nFile #={1} name={2}.", e.Message, file, fileNames[file]);
+      }
+
 
       public void Dispose()
       {
@@ -135,6 +158,7 @@ namespace Bitmanager.ImportPipeline
             writers[i] = null;
             try
             {
+               if (dbgLogger != null) dbgLogger.Log("closeWriter ({0}, {1})", i, fileNames[i]);
                closeWriter(wtr);
             }
             catch (Exception e)
@@ -142,21 +166,6 @@ namespace Bitmanager.ImportPipeline
                Logs.ErrorLog.Log("Cannot close {0}: {1}", fileNames[i], e.Message);
             }
          }
-         //if (keepFiles) return;
-         //for (int i = 0; i < fileNames.Length; i++)
-         //{
-         //   var name = fileNames[i];
-         //   if (name == null) continue;
-         //   fileNames[i] = null;
-         //   try
-         //   {
-         //      File.Delete(name);
-         //   }
-         //   catch (Exception e)
-         //   {
-         //      Logs.ErrorLog.Log("Cannot delete {0}: {1}", fileNames[i], e.Message);
-         //   }
-         //}
       }
 
       public ObjectEnumerator GetObjectEnumerator(int index, bool buffered=false)

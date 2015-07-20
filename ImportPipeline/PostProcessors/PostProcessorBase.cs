@@ -28,10 +28,12 @@ namespace Bitmanager.ImportPipeline
       public String Name { get { return name; } }
       protected readonly IDataEndpoint nextEndpoint;
       protected readonly IPostProcessor nextProcessor;
-      private bool autoCallNextPostProcessor;
+      private int instanceNo; //Unique number per clone
+      public int InstanceNo { get { return instanceNo; } } 
 
       public PostProcessorBase(ImportEngine engine, XmlNode node) {
          name = node.ReadStr("@name");
+         instanceNo = -1;
       }
 
       public PostProcessorBase(PostProcessorBase other, IDataEndpoint epOrnextProcessor)
@@ -39,7 +41,7 @@ namespace Bitmanager.ImportPipeline
          this.name = other.name;
          this.nextEndpoint = epOrnextProcessor;
          this.nextProcessor = epOrnextProcessor as IPostProcessor;
-         this.autoCallNextPostProcessor = other.autoCallNextPostProcessor;
+         instanceNo = ++other.instanceNo;
       }
 
       public virtual void CallNextPostProcessor(PipelineContext ctx)

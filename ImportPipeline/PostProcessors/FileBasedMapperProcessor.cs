@@ -27,14 +27,25 @@ namespace Bitmanager.ImportPipeline
       private readonly JComparer hasher;
       private readonly JComparer comparer;
 
+      private List<JObject> buffer;
+      private AsyncRequestQueue asyncQ;
+
       private readonly int numFiles;
       private readonly int maxNullIndex;
+      private readonly int bufferSize;
+      private readonly int readMaxParallel;
       private readonly bool keepFiles, compress;
 
       private FileBasedMapperWriters mapper = null;
 
       public FileBasedMapperProcessor(ImportEngine engine, XmlNode node): base (engine, node)
       {
+         if (node.ReadInt("write/@maxparallel", 1) > 0)
+         {
+            bufferSize = node.ReadInt("write/@buffer", 100);
+         }
+         readMaxParallel = node.ReadInt("read/@maxparallel", 1);
+
          directory = engine.Xml.CombinePath(node.ReadStr("dir/@name"));
          keepFiles = node.ReadBool("dir/@keepfiles", false);
          compress = node.ReadBool("dir/@compress", true);
@@ -69,6 +80,13 @@ namespace Bitmanager.ImportPipeline
          numFiles = other.numFiles;
          compress = other.compress;
          maxNullIndex = other.maxNullIndex;
+         bufferSize = other.bufferSize;
+         readMaxParallel = other.readMaxParallel;
+         if (bufferSize > 0)
+         {
+            buffer = new List<JObject>(bufferSize);
+            asyncQ = AsyncRequestQueue.Create(1); 
+         }
       }
 
 
@@ -77,20 +95,87 @@ namespace Bitmanager.ImportPipeline
          return new FileBasedMapperProcessor(this, epOrnextProcessor);
       }
 
+      private void getEnum(AsyncRequestElement ctx)
+      {
+         int i = (int)ctx.Context;
+         ctx.Result = mapper.GetObjectEnumerator (i, true);
+      }
+
       public override void CallNextPostProcessor(PipelineContext ctx)
       {
          if (mapper!=null)
          {
-            foreach (var o in mapper)
+            ctx.ImportLog.Log("CallNextPostProcessor mp={0}, numF={1}, sort={2}", readMaxParallel, numFiles, comparer);
+            AsyncRequestQueue q = (readMaxParallel == 0 || numFiles <= 1) ? null : AsyncRequestQueue.Create(readMaxParallel);
+            int total = 0;
+            int parts = 0;
+
+            FileBasedMapperEnumerator e;
+            if (q == null)
             {
-               nextEndpoint.SetField(null, o);
-               nextEndpoint.Add(ctx);
+               for (int i = 0; true; i++)
+               {
+                  e = mapper.GetObjectEnumerator(i);
+                  if (e == null) break;
+                  total += enumeratePartialAndClose(ctx, e);
+                  parts++;
+               }
             }
+            else
+            {
+               for (int i = 0; true; i++)
+               {
+                  var x = q.PushAndOptionalPop(new AsyncRequestElement(i, getEnum));
+                  if (x == null) continue;
+                  e = (FileBasedMapperEnumerator)x.Result;
+                  if (e == null) break;
+
+                  total += enumeratePartialAndClose(ctx, e);
+                  parts++;
+               }
+
+               while (true)
+               {
+                  var x = q.Pop();
+                  if (x == null) break;
+                  e = (FileBasedMapperEnumerator)x.Result;
+                  if (e == null) continue; ;
+
+                  total += enumeratePartialAndClose(ctx, e);
+                  parts++;
+               }
+            }
+
+            ctx.ImportLog.Log ("Reduce phase emitted {0} recs, parts={1}, q={2}", total, parts, q);
+
+
          }
 
          base.CallNextPostProcessor(ctx);
       }
 
+      private int enumeratePartialAndClose(PipelineContext ctx, FileBasedMapperEnumerator e)
+      {
+         try
+         {
+            ctx.ImportLog.Log("enumeratePartial e={0}", e.GetType().Name);
+            int cnt = 0;
+            while (true)
+            {
+               var obj = e.GetNext();
+               if (obj == null) break;
+               nextEndpoint.SetField(null, obj);
+               nextEndpoint.Add(ctx);
+               ++cnt;
+            }
+            base.CallNextPostProcessor(ctx);
+            return cnt;
+         }
+         finally
+         {
+            e.Close();
+         }
+      }
 
       public override void Add(PipelineContext ctx)
       {
@@ -106,5 +191,32 @@ namespace Bitmanager.ImportPipeline
             Clear();
          }
       }
+
+      private void asyncAdd(AsyncRequestElement ctx)
+      {
+         List<JObject> list = ctx.Context as List<JObject>;
+         if (list != null)
+         {
+            foreach (var obj in list)
+            {
+               if (!mapper.OptWrite(accumulator, maxNullIndex))
+               {
+                  //Just passthrough to the next endpoint if this record had a failing hash-value
+                  nextEndpoint.SetField(null, accumulator);
+                  nextEndpoint.Add(null);
+               }
+
+            }
+         }
+      }
+
+      public void FlushCache()
+      {
+         if (buffer.Count == 0) return;
+         asyncQ.PushAndOptionalPop(new AsyncRequestElement(buffer, asyncAdd));
+
+         buffer = new List<JObject>();
+      }
+
    }
 }

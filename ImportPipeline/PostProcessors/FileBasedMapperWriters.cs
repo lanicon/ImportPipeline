@@ -159,7 +159,7 @@ namespace Bitmanager.ImportPipeline
          //}
       }
 
-      public FileBasedMapperEnumerator GetObjectEnumerator(int index)
+      public FileBasedMapperEnumerator GetObjectEnumerator(int index, bool buffered=false)
       {
          if (index < 0 || index >= writers.Length) return null;
          String fn = fileNames[index];
@@ -168,7 +168,7 @@ namespace Bitmanager.ImportPipeline
 
          var rdr = createReaderFromWriter(wtr, index);
          if (rdr == null) throw new BMException("File cannot be enumerator more than once. File={0}.", fn);
-         return comparer == null ? new FileBasedMapperUnsortedEnumerator(rdr, fn, index) : new FileBasedMapperSortedEnumerator(rdr, fn, index, comparer);
+         return (comparer != null || buffered) ?  new FileBasedMapperSortedEnumerator(rdr, fn, index, comparer) : new FileBasedMapperUnbufferedEnumerator(rdr, fn, index);
       }
 
       public IEnumerator<JObject> GetEnumerator()
@@ -216,10 +216,10 @@ namespace Bitmanager.ImportPipeline
       public abstract void Dispose();
    }
 
-   public class FileBasedMapperUnsortedEnumerator : FileBasedMapperEnumerator
+   public class FileBasedMapperUnbufferedEnumerator : FileBasedMapperEnumerator
    {
       private StreamReader reader;
-      public FileBasedMapperUnsortedEnumerator(StreamReader rdr, String filename, int index): base (filename, index)
+      public FileBasedMapperUnbufferedEnumerator(StreamReader rdr, String filename, int index): base (filename, index)
       {
          this.reader = rdr;
       }
@@ -266,7 +266,7 @@ namespace Bitmanager.ImportPipeline
          }
       }
    }
-   public class FileBasedMapperSortedEnumerator : FileBasedMapperUnsortedEnumerator
+   public class FileBasedMapperSortedEnumerator : FileBasedMapperUnbufferedEnumerator
    {
       private JComparer sorter;
       private List<JObject> buffer;
@@ -281,7 +281,7 @@ namespace Bitmanager.ImportPipeline
             if (o == null) break;
             buffer.Add(o);
          }
-         buffer.Sort(sorter);
+         if (sorter != null) buffer.Sort(sorter);
          bufferLast = buffer.Count - 1;
          bufferIndex = -1;
       }

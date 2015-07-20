@@ -12,6 +12,7 @@ namespace Bitmanager.ImportPipeline
    public class AsyncRequestElement
    {
       public readonly Object Context;
+      public Object Result;
       private IAsyncResult asyncResult;
       protected Action<AsyncRequestElement> action;
       public Exception Exception { get; private set; }

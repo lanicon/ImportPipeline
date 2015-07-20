@@ -282,6 +282,8 @@ namespace Bitmanager.ImportPipeline
          if (arr.Length == 0) return ep;
 
          IDataEndpoint wrapped = ep;
+         //Warning: always wrap from the back to the front! This will lead to String results in case of duplicate postprocessors:
+         //         the last one has the lowest instanceId. But it is the right way! 
          for (int i=arr.Length-1; i>=0; i--)
          {
             IPostProcessor p = ctx.ImportEngine.PostProcessors.GetPostProcessor(arr[i]);

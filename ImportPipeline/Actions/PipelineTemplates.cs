@@ -37,6 +37,7 @@ namespace Bitmanager.ImportPipeline
             case _ActionType.Field: return new PipelineFieldTemplate(pipeline, node);
             case _ActionType.Emit: return new PipelineEmitTemplate(pipeline, node);
             case _ActionType.Except: return new PipelineExceptionTemplate(pipeline, node);
+            case _ActionType.Skip: return new PipelineSkipTemplate(pipeline, node);
          }
          act.ThrowUnexpected();
          return null;

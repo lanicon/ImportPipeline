@@ -63,6 +63,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Actions\PipelineSkipAction.cs" />
     <Compile Include="Actions\PipelineClearAction.cs" />
     <Compile Include="Actions\PipelineAddAction.cs" />
     <Compile Include="Actions\PipelineEmitAction.cs" />
@@ -97,6 +98,7 @@
     <Compile Include="PostProcessors\FileBasedMapperProcessor.cs" />
     <Compile Include="PostProcessors\FileBasedMapperWriters.cs" />
     <Compile Include="PostProcessors\KeyAndType.cs" />
+    <Compile Include="PostProcessors\PostProcessorAction.cs" />
     <Compile Include="PostProcessors\PostProcessorBase.cs" />
     <Compile Include="PostProcessors\PostProcessors.cs" />
     <Compile Include="ProcessHost.cs" />

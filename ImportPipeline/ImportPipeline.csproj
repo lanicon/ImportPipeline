@@ -63,7 +63,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Actions\PipelineSkipAction.cs" />
+    <Compile Include="Actions\PipelineCatAction.cs" />
+    <Compile Include="Actions\PipelineDeleteAction.cs" />
     <Compile Include="Actions\PipelineClearAction.cs" />
     <Compile Include="Actions\PipelineAddAction.cs" />
     <Compile Include="Actions\PipelineEmitAction.cs" />

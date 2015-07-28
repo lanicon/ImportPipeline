@@ -23,7 +23,10 @@ namespace Bitmanager.ImportPipeline
       Except = 6,
       Clear = 7,
       Clr = 7,
-      Skip=8,
+      Delete = 8,
+      Del = 8,
+      Category = 9,
+      Cat = 9,
    }
    public delegate Object ScriptDelegate(PipelineContext ctx, String key, Object value); 
    public abstract class PipelineAction : NamedItem
@@ -198,7 +201,8 @@ namespace Bitmanager.ImportPipeline
             case _ActionType.Emit: return new PipelineEmitAction(pipeline, node);
             case _ActionType.ErrorHandler: return new PipelineErrorAction(pipeline, node);
             case _ActionType.Except: return new PipelineExceptionAction(pipeline, node);
-            case _ActionType.Skip: return new PipelineSkipAction(pipeline, node);
+            case _ActionType.Del: return new PipelineDeleteAction(pipeline, node);
+            case _ActionType.Cat: return new PipelineCategorieAction(pipeline, node);
          }
          act.ThrowUnexpected();
          return null; //Keep compiler happy

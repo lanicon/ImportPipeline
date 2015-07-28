@@ -324,7 +324,7 @@ namespace Bitmanager.ImportPipeline
             if (ctx.SkipUntilKey != null)
             {
                ctx.ActionFlags |= _ActionFlags.Skipped;
-               if (ctx.SkipUntilKey.Length == keyLen && lcKey.Equals(ctx.SkipUntilKey, StringComparison.InvariantCultureIgnoreCase))
+               if (ctx.SkipUntilKey.Length == keyLen && lcKey.Equals(ctx.SkipUntilKey, StringComparison.OrdinalIgnoreCase))
                   ctx.SkipUntilKey = null;
                goto EXIT_RTN;
             }
@@ -353,6 +353,10 @@ namespace Bitmanager.ImportPipeline
                if ((ctx.ActionFlags & _ActionFlags.SkipRest) != 0)
                   break;
             }
+
+            //Make sure the skipUntil can also be set from the last action in a chain...
+            if (ctx.SkipUntilKey != null && ctx.SkipUntilKey.Length == keyLen && lcKey.Equals(ctx.SkipUntilKey, StringComparison.OrdinalIgnoreCase))
+               ctx.SkipUntilKey = null;
 
             EXIT_RTN: return ret;
          }

@@ -33,7 +33,7 @@ namespace Bitmanager.ImportPipeline
       public override Object HandleValue(PipelineContext ctx, String key, Object value)
       {
          value = ConvertAndCallScript(ctx, key, value);
-         if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) { ctx.Skipped++; goto EXIT_RTN; }
+         if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) goto EXIT_RTN;
 
          Exception err = value as Exception;
          if (err == null)

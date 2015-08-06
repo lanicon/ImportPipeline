@@ -30,6 +30,14 @@ namespace Bitmanager.ImportPipeline
          cond = node.ReadEnum("@cond", testVal == null ? _Condition.NonEmpty: _Condition.Test);
          genericSkipUntil = skipUntil == "*";
          fromField = node.ReadStr("@fromfield", null);
+         switch (cond)
+         {
+            case _Condition.Always:
+            case _Condition.NonEmpty: break;
+            default:
+               if (testVal == null) node.ReadStr("@test");
+               break;
+         }
          if (cond == _Condition.Regex) expr = new Regex(testVal, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
       }
 
@@ -49,28 +57,22 @@ namespace Bitmanager.ImportPipeline
          value = ConvertAndCallScript(ctx, key, value);
          if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) goto EXIT_RTN;
 
-         String v;
+         if (fromField != null) value = endPoint.GetFieldAsStr(fromField);
+         String v = value == null ? null : value.ToString();
+         ctx.ImportLog.Log("del cond={0}, v={1} ff={2}", cond, v, fromField);
          switch (cond)
          {
             case _Condition.Always: goto SKIP;
             case _Condition.NonEmpty:
-               if (fromField != null) value = endPoint.GetFieldAsStr(fromField);
-               if (value==null) goto EXIT_RTN;
-               if (String.IsNullOrEmpty(value.ToString())) goto EXIT_RTN;
+               if (String.IsNullOrEmpty(v)) goto EXIT_RTN;
                goto SKIP;
             case _Condition.Test:
-               if (fromField != null) value = endPoint.GetFieldAsStr(fromField);
-               v = value == null ? null : value.ToString();
                if (v == testVal) goto SKIP;
                goto EXIT_RTN;
             case _Condition.Regex:
-               if (fromField != null) value = endPoint.GetFieldAsStr(fromField);
-               v = value == null ? null : value.ToString();
-               if (expr.IsMatch(testVal)) goto SKIP;
+               if (expr.IsMatch(v)) goto SKIP;
                goto EXIT_RTN;
             case _Condition.Substring:
-               if (fromField != null) value = endPoint.GetFieldAsStr(fromField);
-               v = value == null ? null : value.ToString();
                if (v!=null && v.IndexOf (testVal, StringComparison.OrdinalIgnoreCase) >= 0) goto SKIP;
                goto EXIT_RTN;
             default:

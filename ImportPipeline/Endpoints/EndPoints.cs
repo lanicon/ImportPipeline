@@ -161,8 +161,8 @@ namespace Bitmanager.ImportPipeline
          ActiveMode = ImportPipeline.ActiveMode.Lazy | ImportPipeline.ActiveMode.Global;
          CloseMode = ImportPipeline.CloseMode.Normal;
       }
-      //pw public Endpoint(ImportEngine engine, XmlNode node) : this(node) { }
-      public Endpoint (ImportEngine engine, XmlNode node, ImportPipeline.ActiveMode defActiveMode = 0)
+      public Endpoint(ImportEngine engine, XmlNode node) : this(engine, node, 0) { }
+      public Endpoint (ImportEngine engine, XmlNode node, ImportPipeline.ActiveMode defActiveMode=0)
          : base(node)
       {
          Engine = engine;

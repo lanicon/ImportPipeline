@@ -20,8 +20,8 @@ namespace Bitmanager.ImportPipeline
    public class Selector : Converter
    {
       private enum ProviderField { FullName, VirtualName, RelativeName, LastModified, Uri, None };
-      private static Dictionary<Type, String> selectorDict;
-      private Dictionary<Type, Type> typeFilter;
+      //private static Dictionary<Type, String> selectorDict;
+      //private Dictionary<Type, Type> typeFilter;
       private String field;
       private JPath jsonExpr;
       private JEvaluateFlags jsonFlags;

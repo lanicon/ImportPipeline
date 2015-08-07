@@ -27,6 +27,7 @@ namespace Bitmanager.ImportPipeline
       private readonly JComparer hasher;
       private readonly JComparer sorter;
       private readonly JComparer undupper;
+      private readonly PostProcessorActions undupActions;
 
       private List<JObject> buffer;
       private AsyncRequestQueue asyncQ;
@@ -74,7 +75,7 @@ namespace Bitmanager.ImportPipeline
             }
          }
 
-         XmlNode undupNode = node.SelectSingleNode("undup");
+         XmlNode undupNode = node.SelectSingleNode("undupper");
          if (undupNode != null)
          {
             undupper = sorter.Clone(undupNode.ReadStr("@from_sort", null));
@@ -83,6 +84,10 @@ namespace Bitmanager.ImportPipeline
                list = KeyAndType.CreateKeyList(undupNode, "key", true);
                undupper = JComparer.Create(list);
             }
+
+            XmlNode actionsNode = undupNode.SelectSingleNode("actions");
+            if (actionsNode != null)
+               undupActions = new PostProcessorActions(this, actionsNode);
          }
 
       }
@@ -100,6 +105,7 @@ namespace Bitmanager.ImportPipeline
          maxNullIndex = other.maxNullIndex;
          bufferSize = other.bufferSize;
          readMaxParallel = other.readMaxParallel;
+         undupActions = other.undupActions;
          if (bufferSize > 0)
          {
             buffer = new List<JObject>(bufferSize);
@@ -146,8 +152,6 @@ namespace Bitmanager.ImportPipeline
          if (mapper!=null)
          {
             AsyncRequestQueue q = (readMaxParallel == 0 || fanOut <= 1) ? null : AsyncRequestQueue.Create(readMaxParallel);
-            int total = 0;
-            int parts = 0;
 
             ObjectEnumerator e;
             if (q == null)
@@ -156,8 +160,7 @@ namespace Bitmanager.ImportPipeline
                {
                   e = mapper.GetObjectEnumerator(i);
                   if (e == null) break;
-                  total += enumeratePartialAndClose(ctx, e);
-                  parts++;
+                  ctx.Added += enumeratePartialAndClose(ctx, e);
                }
             }
             else
@@ -170,8 +173,7 @@ namespace Bitmanager.ImportPipeline
                   e = (ObjectEnumerator)x.Result;
                   if (e == null) break;
 
-                  total += enumeratePartialAndClose(ctx, e);
-                  parts++;
+                  ctx.Added += enumeratePartialAndClose(ctx, e);
                }
 
                //Pop all existing from the Q and process them
@@ -182,8 +184,7 @@ namespace Bitmanager.ImportPipeline
                   e = (ObjectEnumerator)x.Result;
                   if (e == null) continue; ;
 
-                  total += enumeratePartialAndClose(ctx, e);
-                  parts++;
+                  ctx.Added += enumeratePartialAndClose(ctx, e);
                }
             }
          }
@@ -197,18 +198,59 @@ namespace Bitmanager.ImportPipeline
          {
             //ctx.ImportLog.Log("enumeratePartial e={0}", e.GetType().Name);
             int cnt = 0;
-            while (true)
+            int exp = 0;
+            if (this.undupper != null)
             {
-               var obj = e.GetNext();
-               if (obj == null) break;
-               nextEndpoint.SetField(null, obj);
-               nextEndpoint.Add(ctx);
-               ++cnt;
+               List<JObject> list = e.GetAll();
+               if (list.Count == 0) goto NEXT_PROC;
+
+               cnt = list.Count;
+               JObject prev = list[0];
+               JToken[] prevKeys = undupper.GetKeys(prev);
+               int prevIdx = 0;
+               for (int i = 1; i < list.Count; i++)
+               {
+                  JObject cur = list[i];
+                  JToken[] keys = undupper.GetKeys(cur);
+                  if (undupper.CompareKeys(prevKeys, keys) == 0) continue;
+
+                  if (undupActions != null)
+                     undupActions.ProcessRecords(ctx, list, prevIdx, i - prevIdx);
+                  nextEndpoint.SetField(null, prev);
+                  nextEndpoint.Add(ctx);
+                  ++exp;
+
+                  prevIdx = i;
+                  prev = cur;
+                  prevKeys = keys;
+               }
+               if (prevIdx < list.Count)
+               {
+                  if (undupActions != null)
+                     undupActions.ProcessRecords(ctx, list, prevIdx, list.Count - prevIdx);
+                  nextEndpoint.SetField(null, prev);
+                  nextEndpoint.Add(ctx);
+                  ++exp;
+               }
             }
-            base.CallNextPostProcessor(ctx);
+            else
+            {
+               while (true)
+               {
+                  var obj = e.GetNext();
+                  if (obj == null) break;
+                  nextEndpoint.SetField(null, obj);
+                  nextEndpoint.Add(ctx);
+                  ++cnt;
+               }
+               exp = cnt;
+            }
+
+NEXT_PROC:
             numAfterSort += cnt;
-            numAfterUndup += cnt;
-            return cnt;
+            numAfterUndup += exp;
+            base.CallNextPostProcessor(ctx);
+            return exp;
          }
          finally
          {

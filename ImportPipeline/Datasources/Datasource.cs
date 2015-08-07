@@ -80,7 +80,7 @@ namespace Bitmanager.ImportPipeline
          try
          {
             Datasource.Import(ctx, Pipeline);
-            importLog.Log(_LogType.ltProgress | _LogType.ltTimerStop, "[{0}]: import ended. {1}.", Name, ctx.GetStats());
+            importLog.Log(_LogType.ltProgress | _LogType.ltTimerStop, "[{0}]: raw import ended. Partial stats={1}.", Name, ctx.GetStats());
             stopNeeded = true;
          }
 
@@ -130,6 +130,7 @@ namespace Bitmanager.ImportPipeline
                Pipeline.Stop(ctx);
             }
          }
+         importLog.Log(_LogType.ltProgress | _LogType.ltTimerStop, "[{0}]: import ended. {1}.", Name, ctx.GetStats());
       }
 
       static int computeRuntimeShift (String x)

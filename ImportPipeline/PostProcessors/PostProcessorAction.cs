@@ -16,7 +16,7 @@ namespace Bitmanager.ImportPipeline
 {
    public interface IPostProcessorAction
    {
-      void ProcessRecords(PipelineContext ctx, JObject[] records, int offset, int len);
+      void ProcessRecords(PipelineContext ctx, List<JObject> records, int offset, int len);
    }
 
 
@@ -36,10 +36,17 @@ namespace Bitmanager.ImportPipeline
 
       public static IPostProcessorAction CreateAction(IPostProcessor processor, XmlNode node)
       {
-         return new PostProcessorAddAction(processor, node);
+         String type = node.ReadStr("@type");
+         if ("add".Equals (type, StringComparison.OrdinalIgnoreCase)) return new PostProcessorAddAction(processor, node);
+         if ("max".Equals (type, StringComparison.OrdinalIgnoreCase)) return new PostProcessorMaxAction(processor, node);
+         if ("min".Equals (type, StringComparison.OrdinalIgnoreCase)) return new PostProcessorMinAction(processor, node);
+         if ("mean".Equals (type, StringComparison.OrdinalIgnoreCase)) return new PostProcessorMeanAction(processor, node);
+         if ("count".Equals (type, StringComparison.OrdinalIgnoreCase)) return new PostProcessorCountAction(processor, node);
+         throw new BMException("Unrecognized type [{0}] for a post process action.", type);
+         //TODO make this more generic
       }
 
-      void ProcessRecords(PipelineContext ctx, JObject[] records, int offset, int len)
+      public void ProcessRecords(PipelineContext ctx, List<JObject> records, int offset, int len)
       {
          foreach (var a in actions)
             a.ProcessRecords(ctx, records, offset, len);
@@ -47,23 +54,125 @@ namespace Bitmanager.ImportPipeline
 
    }
 
-   public class PostProcessorAddAction: PostProcessorNumericAction, IPostProcessorAction
+   public class PostProcessorAddAction : PostProcessorNumericAction, IPostProcessorAction
    {
-      public PostProcessorAddAction(IPostProcessor processor, XmlNode node): base (processor, node)
+      public PostProcessorAddAction(IPostProcessor processor, XmlNode node)
+         : base(processor, node)
       {
       }
 
-      public void ProcessRecords(PipelineContext ctx, JObject[] records, int offset, int len)
+      public override void ProcessRecords(PipelineContext ctx, List<JObject> records, int offset, int len)
       {
          if (numberMode == PostProcessorNumericAction.NumberMode.Int)
-            toField.WriteValue(records[offset], addLongs (records, offset, len), JEvaluateFlags.NoExceptMissing);
+            toField.WriteValue(records[offset], addLongs(records, offset, len), JEvaluateFlags.NoExceptMissing);
          else
-            toField.WriteValue(records[offset], addDoubles (records, offset, len), JEvaluateFlags.NoExceptMissing);
+            toField.WriteValue(records[offset], addDoubles(records, offset, len), JEvaluateFlags.NoExceptMissing);
+      }
+   }
+
+   public class PostProcessorMeanAction : PostProcessorNumericAction, IPostProcessorAction
+   {
+      public PostProcessorMeanAction(IPostProcessor processor, XmlNode node)
+         : base(processor, node)
+      {
+      }
+
+      public override void ProcessRecords(PipelineContext ctx, List<JObject> records, int offset, int len)
+      {
+         if (numberMode == PostProcessorNumericAction.NumberMode.Int)
+         {
+            long mean = len == 0 ? 0 : addLongs(records, offset, len) / len;
+            toField.WriteValue(records[offset], mean, JEvaluateFlags.NoExceptMissing);
+         }
+         else
+         {
+            double mean = len == 0 ? 0 : addDoubles(records, offset, len) / len;
+            toField.WriteValue(records[offset], mean, JEvaluateFlags.NoExceptMissing);
+         }
+      }
+   }
+
+   public class PostProcessorCountAction : IPostProcessorAction
+   {
+      protected JPath toField;
+
+      public PostProcessorCountAction(IPostProcessor processor, XmlNode node)
+      {
+         toField = new JPath(node.ReadStr("@tofield"));
+      }
+
+      public virtual void ProcessRecords(PipelineContext ctx, List<JObject> records, int offset, int len)
+      {
+         toField.WriteValue(records[offset], len, JEvaluateFlags.NoExceptMissing);
+      }
+   }
+
+   public class PostProcessorMaxAction : PostProcessorNumericAction, IPostProcessorAction
+   {
+      long defMaxLong;
+      double defMaxDouble;
+      public PostProcessorMaxAction(IPostProcessor processor, XmlNode node)
+         : base(processor, node)
+      {
+         defMaxLong = long.MinValue;
+         defMaxDouble = double.MinValue;
+         if (numberMode == PostProcessorNumericAction.NumberMode.Int)
+            defMaxLong = node.ReadInt64("@default", defMaxLong);
+         else
+            defMaxDouble = node.ReadFloat("@default", defMaxDouble);
+      }
+
+      public override void ProcessRecords(PipelineContext ctx, List<JObject> records, int offset, int len)
+      {
+         if (numberMode == PostProcessorNumericAction.NumberMode.Int)
+         {
+            long ml;
+            if (!maxLongs(records, offset, len, out ml)) ml = defMaxLong;
+            toField.WriteValue(records[offset], ml, JEvaluateFlags.NoExceptMissing);
+         }
+         else
+         {
+            double dl;
+            if (!maxDoubles(records, offset, len, out dl)) dl = defMaxDouble;
+            toField.WriteValue(records[offset], dl, JEvaluateFlags.NoExceptMissing);
+         }
+      }
+   }
+
+   public class PostProcessorMinAction : PostProcessorNumericAction, IPostProcessorAction
+   {
+      long defMinLong;
+      double defMinDouble;
+      public PostProcessorMinAction(IPostProcessor processor, XmlNode node)
+         : base(processor, node)
+      {
+         defMinLong = long.MaxValue;
+         defMinDouble = double.MaxValue;
+         if (numberMode == PostProcessorNumericAction.NumberMode.Int)
+            defMinLong = node.ReadInt64("@default", defMinLong);
+         else
+            defMinDouble = node.ReadFloat("@default", defMinDouble);
+      }
+
+      public override void ProcessRecords(PipelineContext ctx, List<JObject> records, int offset, int len)
+      {
+         if (numberMode == PostProcessorNumericAction.NumberMode.Int)
+         {
+            long ml;
+            if (!minLongs(records, offset, len, out ml)) ml = defMinLong;
+            toField.WriteValue(records[offset], ml, JEvaluateFlags.NoExceptMissing);
+         }
+         else
+         {
+            double dl;
+            if (!minDoubles(records, offset, len, out dl)) dl = defMinDouble;
+            toField.WriteValue(records[offset], dl, JEvaluateFlags.NoExceptMissing);
+         }
       }
    }
 
 
-   public class PostProcessorNumericAction
+   public abstract class PostProcessorNumericAction
    {
       public enum NumberMode {Float, Int};
       protected NumberMode numberMode;
@@ -78,6 +187,8 @@ namespace Bitmanager.ImportPipeline
          String to = node.ReadStr("tofield", null);
          toField = to == null ? fromField : new JPath(to);
       }
+
+      public abstract void ProcessRecords(PipelineContext ctx, List<JObject> records, int offset, int len);
 
       protected bool TryGetField(JObject rec, out double result)
       {
@@ -131,7 +242,7 @@ namespace Bitmanager.ImportPipeline
 
 
 
-      protected long addLongs(JObject[] records, int offset, int len)
+      protected long addLongs(List<JObject> records, int offset, int len)
       {
          long ret = 0;
          int end = offset + len;
@@ -142,7 +253,7 @@ namespace Bitmanager.ImportPipeline
          }
          return ret;
       }
-      protected bool maxLongs(JObject[] records, int offset, int len, out long value)
+      protected bool maxLongs(List<JObject> records, int offset, int len, out long value)
       {
          bool ret = false;
          long v = long.MinValue;
@@ -157,7 +268,7 @@ namespace Bitmanager.ImportPipeline
          value = v;
          return ret;
       }
-      protected bool minLongs(JObject[] records, int offset, int len, out long value)
+      protected bool minLongs(List<JObject> records, int offset, int len, out long value)
       {
          bool ret = false;
          long v = long.MaxValue;
@@ -172,7 +283,7 @@ namespace Bitmanager.ImportPipeline
          value = v;
          return ret;
       }
-      protected double addDoubles(JObject[] records, int offset, int len)
+      protected double addDoubles(List<JObject> records, int offset, int len)
       {
          double ret = 0;
          int end = offset + len;
@@ -183,7 +294,7 @@ namespace Bitmanager.ImportPipeline
          }
          return ret;
       }
-      protected bool maxDoubles(JObject[] records, int offset, int len, out double value)
+      protected bool maxDoubles(List<JObject> records, int offset, int len, out double value)
       {
          bool ret = false;
          double v = double.MinValue;
@@ -198,7 +309,7 @@ namespace Bitmanager.ImportPipeline
          value = v;
          return ret;
       }
-      protected bool minDoubles(JObject[] records, int offset, int len, out double value)
+      protected bool minDoubles(List<JObject> records, int offset, int len, out double value)
       {
          bool ret = false;
          double v = double.MaxValue;

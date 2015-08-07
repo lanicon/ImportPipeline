@@ -40,7 +40,8 @@ namespace Bitmanager.ImportPipeline
    {
       public String DatasourceName;
       public String ErrorMessage;
-      public int Added, Emitted, Deleted, Errors, Skipped;
+      public int Added, Emitted, Deleted, Errors, Skipped, PostProcessed;
+      public String Stats;
 
       public DatasourceReport(PipelineContext ctx)
       {
@@ -50,12 +51,14 @@ namespace Bitmanager.ImportPipeline
          Emitted = ctx.Emitted;
          Errors = ctx.Errors;
          Skipped = ctx.Skipped;
+         PostProcessed = ctx.PostProcessed;
          ErrorMessage = ctx.LastError == null ? null : ctx.LastError.Message;
+         Stats = ctx.GetStats();
       }
 
       public String GetStats()
       {
-         return String.Format("Emitted={3}, Added={0}, Skipped={2}, Errors={4}, Deleted={1}", Added, Deleted, Skipped, Emitted, Errors);
+         return Stats;// String.Format("Emitted={3}, Added={0}, Skipped={2}, Errors={4}, Deleted={1}", Added, Deleted, Skipped, Emitted, Errors);
       }
 
 

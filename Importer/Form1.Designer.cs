@@ -376,6 +376,7 @@
          this.lbStatus.ScrollAlwaysVisible = true;
          this.lbStatus.Size = new System.Drawing.Size(1095, 109);
          this.lbStatus.TabIndex = 22;
+         this.lbStatus.SelectedIndexChanged += new System.EventHandler(this.lbStatus_SelectedIndexChanged);
          // 
          // label6
          // 

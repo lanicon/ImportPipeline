@@ -14,34 +14,54 @@ using System.Xml;
 
 namespace Bitmanager.ImportPipeline
 {
-   public interface IPostProcessorAction
+   public interface IUndupAction
    {
+      IUndupAction Clone(PipelineContext ctx);
       void ProcessRecords(PipelineContext ctx, List<JObject> records, int offset, int len);
    }
 
-
-   public class PostProcessorActions
+   public abstract class UndupActionBase: IUndupAction
    {
-      enum PostProcessorActionType { Script, Add, Min, Max, Mean, Concat };
-      List<IPostProcessorAction> actions;
-      public PostProcessorActions(IPostProcessor processor, XmlNode node)
+      public virtual IUndupAction Clone(PipelineContext ctx)
+      {
+         return this;
+      }
+      public abstract void ProcessRecords(PipelineContext ctx, List<JObject> records, int offset, int len);
+   }
+
+   public class UndupActions
+   {
+      protected readonly List<IUndupAction> actions;
+      public UndupActions(IPostProcessor processor, XmlNode node)
       {
          XmlNodeList nodes = node.SelectNodes("action");
-         actions = new List<IPostProcessorAction>(nodes.Count);
+         actions = new List<IUndupAction>(nodes.Count);
          foreach (XmlNode child in nodes)
          {
             actions.Add(CreateAction(processor, child));
          }
       }
+      protected UndupActions(PipelineContext ctx, UndupActions other)
+      {
+         actions = new List<IUndupAction>(other.actions.Count);
+         foreach (var a in other.actions)
+            actions.Add (a.Clone(ctx));
+      }
 
-      public static IPostProcessorAction CreateAction(IPostProcessor processor, XmlNode node)
+      public UndupActions Clone(PipelineContext ctx)
+      {
+         return new UndupActions(ctx, this);
+      }
+
+      public static IUndupAction CreateAction(IPostProcessor processor, XmlNode node)
       {
          String type = node.ReadStr("@type");
-         if ("add".Equals (type, StringComparison.OrdinalIgnoreCase)) return new PostProcessorAddAction(processor, node);
-         if ("max".Equals (type, StringComparison.OrdinalIgnoreCase)) return new PostProcessorMaxAction(processor, node);
-         if ("min".Equals (type, StringComparison.OrdinalIgnoreCase)) return new PostProcessorMinAction(processor, node);
-         if ("mean".Equals (type, StringComparison.OrdinalIgnoreCase)) return new PostProcessorMeanAction(processor, node);
-         if ("count".Equals (type, StringComparison.OrdinalIgnoreCase)) return new PostProcessorCountAction(processor, node);
+         if ("add".Equals (type, StringComparison.OrdinalIgnoreCase)) return new UndupNumericAddAction(processor, node);
+         if ("max".Equals (type, StringComparison.OrdinalIgnoreCase)) return new UndupNumericMaxAction(processor, node);
+         if ("min".Equals (type, StringComparison.OrdinalIgnoreCase)) return new UndupNumericMinAction(processor, node);
+         if ("mean".Equals (type, StringComparison.OrdinalIgnoreCase)) return new UndupNumericMeanAction(processor, node);
+         if ("count".Equals(type, StringComparison.OrdinalIgnoreCase)) return new UndupCountAction(processor, node);
+         if ("script".Equals(type, StringComparison.OrdinalIgnoreCase)) return new UndupScriptAction(processor, node);
          throw new BMException("Unrecognized type [{0}] for a post process action.", type);
          //TODO make this more generic
       }
@@ -54,32 +74,59 @@ namespace Bitmanager.ImportPipeline
 
    }
 
-   public class PostProcessorAddAction : PostProcessorNumericAction, IPostProcessorAction
+   public class UndupScriptAction: UndupActionBase
    {
-      public PostProcessorAddAction(IPostProcessor processor, XmlNode node)
+      public delegate void ScriptDelegate(PipelineContext ctx, List<JObject> records, int offset, int len);
+      public readonly String ScriptName;
+      protected ScriptDelegate scriptDelegate;
+
+      public UndupScriptAction(IPostProcessor processor, XmlNode node)
+      {
+         ScriptName = node.ReadStr("@script");
+      }
+      protected UndupScriptAction(PipelineContext ctx, UndupScriptAction other)
+      {
+         ScriptName = other.ScriptName;
+         scriptDelegate = ctx.Pipeline.CreateScriptDelegate < ScriptDelegate>(ScriptName);
+      }
+      public override IUndupAction Clone(PipelineContext ctx)
+      {
+         return new UndupScriptAction(ctx, this);
+      }
+
+
+      public override void ProcessRecords(PipelineContext ctx, List<JObject> records, int offset, int len)
+      {
+         scriptDelegate(ctx, records, offset, len);
+      }
+   }
+
+   public class UndupNumericAddAction : UndupNumericNumericAction
+   {
+      public UndupNumericAddAction(IPostProcessor processor, XmlNode node)
          : base(processor, node)
       {
       }
 
       public override void ProcessRecords(PipelineContext ctx, List<JObject> records, int offset, int len)
       {
-         if (numberMode == PostProcessorNumericAction.NumberMode.Int)
+         if (numberMode == UndupNumericNumericAction.NumberMode.Int)
             toField.WriteValue(records[offset], addLongs(records, offset, len), JEvaluateFlags.NoExceptMissing);
          else
             toField.WriteValue(records[offset], addDoubles(records, offset, len), JEvaluateFlags.NoExceptMissing);
       }
    }
 
-   public class PostProcessorMeanAction : PostProcessorNumericAction, IPostProcessorAction
+   public class UndupNumericMeanAction : UndupNumericNumericAction, IUndupAction
    {
-      public PostProcessorMeanAction(IPostProcessor processor, XmlNode node)
+      public UndupNumericMeanAction(IPostProcessor processor, XmlNode node)
          : base(processor, node)
       {
       }
 
       public override void ProcessRecords(PipelineContext ctx, List<JObject> records, int offset, int len)
       {
-         if (numberMode == PostProcessorNumericAction.NumberMode.Int)
+         if (numberMode == UndupNumericNumericAction.NumberMode.Int)
          {
             long mean = len == 0 ? 0 : addLongs(records, offset, len) / len;
             toField.WriteValue(records[offset], mean, JEvaluateFlags.NoExceptMissing);
@@ -92,31 +139,31 @@ namespace Bitmanager.ImportPipeline
       }
    }
 
-   public class PostProcessorCountAction : IPostProcessorAction
+   public class UndupCountAction : UndupActionBase
    {
       protected JPath toField;
 
-      public PostProcessorCountAction(IPostProcessor processor, XmlNode node)
+      public UndupCountAction(IPostProcessor processor, XmlNode node)
       {
          toField = new JPath(node.ReadStr("@tofield"));
       }
 
-      public virtual void ProcessRecords(PipelineContext ctx, List<JObject> records, int offset, int len)
+      public override void ProcessRecords(PipelineContext ctx, List<JObject> records, int offset, int len)
       {
          toField.WriteValue(records[offset], len, JEvaluateFlags.NoExceptMissing);
       }
    }
 
-   public class PostProcessorMaxAction : PostProcessorNumericAction, IPostProcessorAction
+   public class UndupNumericMaxAction : UndupNumericNumericAction, IUndupAction
    {
       long defMaxLong;
       double defMaxDouble;
-      public PostProcessorMaxAction(IPostProcessor processor, XmlNode node)
+      public UndupNumericMaxAction(IPostProcessor processor, XmlNode node)
          : base(processor, node)
       {
          defMaxLong = long.MinValue;
          defMaxDouble = double.MinValue;
-         if (numberMode == PostProcessorNumericAction.NumberMode.Int)
+         if (numberMode == UndupNumericNumericAction.NumberMode.Int)
             defMaxLong = node.ReadInt64("@default", defMaxLong);
          else
             defMaxDouble = node.ReadFloat("@default", defMaxDouble);
@@ -124,7 +171,7 @@ namespace Bitmanager.ImportPipeline
 
       public override void ProcessRecords(PipelineContext ctx, List<JObject> records, int offset, int len)
       {
-         if (numberMode == PostProcessorNumericAction.NumberMode.Int)
+         if (numberMode == UndupNumericNumericAction.NumberMode.Int)
          {
             long ml;
             if (!maxLongs(records, offset, len, out ml)) ml = defMaxLong;
@@ -139,16 +186,16 @@ namespace Bitmanager.ImportPipeline
       }
    }
 
-   public class PostProcessorMinAction : PostProcessorNumericAction, IPostProcessorAction
+   public class UndupNumericMinAction : UndupNumericNumericAction, IUndupAction
    {
       long defMinLong;
       double defMinDouble;
-      public PostProcessorMinAction(IPostProcessor processor, XmlNode node)
+      public UndupNumericMinAction(IPostProcessor processor, XmlNode node)
          : base(processor, node)
       {
          defMinLong = long.MaxValue;
          defMinDouble = double.MaxValue;
-         if (numberMode == PostProcessorNumericAction.NumberMode.Int)
+         if (numberMode == UndupNumericNumericAction.NumberMode.Int)
             defMinLong = node.ReadInt64("@default", defMinLong);
          else
             defMinDouble = node.ReadFloat("@default", defMinDouble);
@@ -156,7 +203,7 @@ namespace Bitmanager.ImportPipeline
 
       public override void ProcessRecords(PipelineContext ctx, List<JObject> records, int offset, int len)
       {
-         if (numberMode == PostProcessorNumericAction.NumberMode.Int)
+         if (numberMode == UndupNumericNumericAction.NumberMode.Int)
          {
             long ml;
             if (!minLongs(records, offset, len, out ml)) ml = defMinLong;
@@ -172,14 +219,14 @@ namespace Bitmanager.ImportPipeline
    }
 
 
-   public abstract class PostProcessorNumericAction
+   public abstract class UndupNumericNumericAction: UndupActionBase
    {
       public enum NumberMode {Float, Int};
       protected NumberMode numberMode;
       protected JPath fromField;
       protected JPath toField;
 
-      public PostProcessorNumericAction (IPostProcessor processor, XmlNode node)
+      public UndupNumericNumericAction (IPostProcessor processor, XmlNode node)
       {
          numberMode = node.ReadEnum("@number", NumberMode.Int);
          String from = node.ReadStr("field");
@@ -187,8 +234,6 @@ namespace Bitmanager.ImportPipeline
          String to = node.ReadStr("tofield", null);
          toField = to == null ? fromField : new JPath(to);
       }
-
-      public abstract void ProcessRecords(PipelineContext ctx, List<JObject> records, int offset, int len);
 
       protected bool TryGetField(JObject rec, out double result)
       {

@@ -28,9 +28,9 @@ namespace Bitmanager.ImportPipeline
       Category = 9,
       Cat = 9,
    }
-   public delegate Object ScriptDelegate(PipelineContext ctx, String key, Object value); 
    public abstract class PipelineAction : NamedItem
    {
+      public delegate Object ScriptDelegate(PipelineContext ctx, String key, Object value);
       protected readonly Pipeline pipeline;
       protected readonly XmlNode node;
       protected static Logger logger;
@@ -92,16 +92,7 @@ namespace Bitmanager.ImportPipeline
          converters = ctx.ImportEngine.Converters.ToConverters(convertersName);
          endPoint = ctx.Pipeline.GetDataEndpoint(ctx, endpointName);
          if (scriptName != null)
-         {
-            Object scriptObj = pipeline.ScriptObject;
-            if (scriptObj == null) throw new BMNodeException(node, "Script without a script on the pipeline is not allowed!");
-            Type t = scriptObj.GetType();
-
-            MethodInfo mi = t.GetMethod(scriptName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance);
-            if (mi == null) throw new BMNodeException(node, "Cannot find method {0} in class {1}.", scriptName, t.FullName);
-            scriptDelegate = (ScriptDelegate)Delegate.CreateDelegate(typeof(ScriptDelegate), scriptObj, mi);
-            logger.Log("-- Created delegate={0}", scriptDelegate);
-         }
+            scriptDelegate = pipeline.CreateScriptDelegate<ScriptDelegate>(scriptName, node);
       }
 
       protected static String optReplace(Regex regex, String arg, String repl)

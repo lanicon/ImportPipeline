@@ -7,6 +7,7 @@ using Bitmanager.Xml;
 using System.Xml;
 using Newtonsoft.Json.Linq;
 using Bitmanager.Json;
+using System.Reflection;
 
 namespace Bitmanager.ImportPipeline
 {
@@ -133,6 +134,22 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
+      public T CreateScriptDelegate<T>(String scriptName, XmlNode ctx=null) where T : class
+      {
+         if (scriptName == null) return null;
+         if (ScriptObject == null)
+            throw new BMNodeException(ctx, "Cannot create script [{0}]: No script specified at the pipeline.", scriptName);
+
+         Type t = ScriptObject.GetType();
+
+         MethodInfo mi = t.GetMethod(scriptName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance);
+         if (mi == null) throw new BMNodeException(ctx, "Cannot find method {0} in class {1}.", scriptName, t.FullName);
+         T dlg = (T)(Object)Delegate.CreateDelegate(typeof(T), ScriptObject, mi);
+         logger.Log("-- CreateScriptDelegate({0}) -> {1}.", scriptName, dlg);
+         return dlg;
+      }
+
+
       private static String[] splitEndpoint(String s)
       {
          if (String.IsNullOrEmpty(s)) return null;
@@ -189,6 +206,7 @@ namespace Bitmanager.ImportPipeline
       public void Stop(PipelineContext ctx)
       {
          bool countCopied = false;
+         ctx.PostProcessor = null;
          foreach (var kvp in endPointCache)
          {
             var proc = kvp.Value as IPostProcessor;
@@ -203,6 +221,7 @@ namespace Bitmanager.ImportPipeline
             proc.CallNextPostProcessor(ctx);
             ctx.ImportLog.Log(_LogType.ltTimerStop, "Processing post-processors finished");
          }
+         ctx.PostProcessor = null;
          ctx.MissedLog.Log();
          ctx.MissedLog.Log("Datasource [{0}] missed {1} keys.", ctx.DatasourceAdmin.Name, missed.Count);
          List<string> lines = new List<string>();
@@ -293,9 +312,10 @@ namespace Bitmanager.ImportPipeline
          //         the last one has the lowest instanceId. But it is the right way! 
          for (int i=arr.Length-1; i>=0; i--)
          {
-            IPostProcessor p = ctx.ImportEngine.PostProcessors.GetPostProcessor(arr[i]);
-            wrapped = (IDataEndpoint)p.Clone(wrapped); 
+            ctx.PostProcessor = ctx.ImportEngine.PostProcessors.GetPostProcessor(arr[i]);
+            wrapped = (IDataEndpoint)ctx.PostProcessor.Clone(ctx, wrapped); 
          }
+         ctx.PostProcessor = null;
          return wrapped;
       }
 

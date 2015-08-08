@@ -27,7 +27,7 @@ namespace Bitmanager.ImportPipeline
       private readonly JComparer hasher;
       private readonly JComparer sorter;
       private readonly JComparer undupper;
-      private readonly PostProcessorActions undupActions;
+      private readonly UndupActions undupActions;
 
       private List<JObject> buffer;
       private AsyncRequestQueue asyncQ;
@@ -87,12 +87,12 @@ namespace Bitmanager.ImportPipeline
 
             XmlNode actionsNode = undupNode.SelectSingleNode("actions");
             if (actionsNode != null)
-               undupActions = new PostProcessorActions(this, actionsNode);
+               undupActions = new UndupActions(this, actionsNode);
          }
 
       }
 
-      public FileBasedMapperProcessor(FileBasedMapperProcessor other, IDataEndpoint epOrnextProcessor)
+      public FileBasedMapperProcessor(PipelineContext ctx, FileBasedMapperProcessor other, IDataEndpoint epOrnextProcessor)
          : base(other, epOrnextProcessor)
       {
          directory = other.directory;
@@ -105,7 +105,7 @@ namespace Bitmanager.ImportPipeline
          maxNullIndex = other.maxNullIndex;
          bufferSize = other.bufferSize;
          readMaxParallel = other.readMaxParallel;
-         undupActions = other.undupActions;
+         undupActions = other.undupActions.Clone (ctx);
          if (bufferSize > 0)
          {
             buffer = new List<JObject>(bufferSize);
@@ -114,9 +114,9 @@ namespace Bitmanager.ImportPipeline
       }
 
 
-      public override IPostProcessor Clone(IDataEndpoint epOrnextProcessor)
+      public override IPostProcessor Clone(PipelineContext ctx, IDataEndpoint epOrnextProcessor)
       {
-         return new FileBasedMapperProcessor(this, epOrnextProcessor);
+         return new FileBasedMapperProcessor(ctx, this, epOrnextProcessor);
       }
 
       public override string ToString()
@@ -149,6 +149,7 @@ namespace Bitmanager.ImportPipeline
 
       public override void CallNextPostProcessor(PipelineContext ctx)
       {
+         ctx.PostProcessor = this;
          if (mapper!=null)
          {
             AsyncRequestQueue q = (readMaxParallel == 0 || fanOut <= 1) ? null : AsyncRequestQueue.Create(readMaxParallel);

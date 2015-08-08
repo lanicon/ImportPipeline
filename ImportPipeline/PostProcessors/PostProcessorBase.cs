@@ -18,7 +18,7 @@ namespace Bitmanager.ImportPipeline
    {
       String Name { get; }
       void CallNextPostProcessor(PipelineContext ctx);
-      IPostProcessor Clone(IDataEndpoint epOrnextProcessor);
+      IPostProcessor Clone(PipelineContext ctx, IDataEndpoint epOrnextProcessor);
       IDataEndpoint GetLastEndPoint();
    }
 
@@ -46,6 +46,7 @@ namespace Bitmanager.ImportPipeline
 
       public virtual void CallNextPostProcessor(PipelineContext ctx)
       {
+         ctx.PostProcessor = this;
          if (nextProcessor != null) nextProcessor.CallNextPostProcessor(ctx);
       }
       public virtual IDataEndpoint GetLastEndPoint()
@@ -83,7 +84,7 @@ namespace Bitmanager.ImportPipeline
 
 
       public override abstract void Add(PipelineContext ctx);
-      public abstract IPostProcessor Clone(IDataEndpoint epOrnextProcessor);
+      public abstract IPostProcessor Clone(PipelineContext ctx, IDataEndpoint epOrnextProcessor);
 
    }
 }

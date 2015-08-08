@@ -100,9 +100,10 @@
     <Compile Include="PostProcessors\FileBasedMapperProcessor.cs" />
     <Compile Include="PostProcessors\FileBasedMapperWriters.cs" />
     <Compile Include="PostProcessors\KeyAndType.cs" />
-    <Compile Include="PostProcessors\PostProcessorAction.cs" />
     <Compile Include="PostProcessors\PostProcessorBase.cs" />
     <Compile Include="PostProcessors\PostProcessors.cs" />
+    <Compile Include="PostProcessors\RecordActions.cs" />
+    <Compile Include="PostProcessors\UndupActions.cs" />
     <Compile Include="ProcessHost.cs" />
     <Compile Include="Converters\Converters.cs" />
     <Compile Include="Datasources\CsvDatasource.cs" />

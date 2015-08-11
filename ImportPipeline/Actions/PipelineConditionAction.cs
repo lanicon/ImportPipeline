@@ -1,0 +1,171 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using Bitmanager.Core;
+using Bitmanager.Xml;
+using System.Xml;
+using Newtonsoft.Json.Linq;
+using Bitmanager.Json;
+using System.Text.RegularExpressions;
+using Bitmanager.Elastic;
+using Bitmanager.ImportPipeline.Conditions;
+using System.Diagnostics;
+
+namespace Bitmanager.ImportPipeline
+{
+   public class PipelineConditionAction : PipelineAction
+   {
+      private readonly PipelineAction[] subActions;
+      private readonly PipelineTemplate[] subTemplates;
+      private readonly Condition cond;
+      private readonly String condStr;
+      private readonly String skipUntil;
+      public readonly int ActionsToSkip;
+      private readonly bool genericSkipUntil;
+
+
+      public PipelineConditionAction(Pipeline pipeline, XmlNode node)
+         : base(pipeline, node)
+      {
+         XmlNodeList c = node.SelectNodes("action");
+         if (c.Count > 2) throw new BMNodeException(node, "Max 2 sub-actions supported.");
+         if (c.Count > 0)
+         {
+            subActions = createSubActions(pipeline, c);
+         } 
+         else
+         {
+            c = node.SelectNodes("template");
+            if (c.Count > 2) throw new BMNodeException(node, "Max 2 sub-templates supported.");
+            if (c.Count > 0)
+            {
+               subTemplates = createSubTemplates(pipeline, c);
+            }
+            else
+            {
+               skipUntil = node.ReadStr("@skipuntil");
+               ActionsToSkip = node.ReadInt("@skip", 1);
+               genericSkipUntil = skipUntil == "*";
+            }
+         }
+
+         condStr = node.ReadStr("@condition");
+         cond = Condition.Create(node);
+      }
+
+      private PipelineTemplate[] createSubTemplates(Pipeline pipeline, XmlNodeList c)
+      {
+         var ret = new PipelineTemplate[c.Count];
+         for (int i = 0; i < c.Count; i++)
+         {
+            XmlElement elt = (XmlElement)c[i];
+            elt.SetAttribute("expr", Name);
+            ret[i] = PipelineTemplate.Create(pipeline, elt);
+         }
+         return ret;
+      }
+
+      private PipelineAction[] createSubActions(Pipeline pipeline, XmlNodeList c)
+      {
+         var ret = new PipelineAction[c.Count];
+         for (int i = 0; i < c.Count; i++ )
+         {
+            XmlElement elt = (XmlElement)c[i];
+            elt.SetAttribute("key", Name);
+            ret[i] = PipelineAction.Create(pipeline, elt);
+         }
+         return ret;
+      }
+
+      internal PipelineConditionAction(PipelineContext ctx, PipelineConditionAction template, String name, Regex regex)
+         : base(template, name, regex)
+      {
+         skipUntil = optReplace(regex, name, template.skipUntil);
+         genericSkipUntil = this.skipUntil == "*";
+         condStr = optReplace(regex, name, template.condStr);
+         cond = (condStr==template.condStr) ? template.cond : Condition.Create(condStr);
+         ActionsToSkip = template.ActionsToSkip;
+         if (subTemplates != null)
+         {
+            subActions = new PipelineAction[subTemplates.Length];
+            for (int i = 0; i < subActions.Length; i++)
+            {
+               subActions[i] = subTemplates[i].OptCreateAction(ctx, name);
+            }
+         }
+         else
+            subActions = template.subActions;
+      }
+
+      public override Object HandleValue(PipelineContext ctx, String key, Object value)
+      {
+         value = ConvertAndCallScript(ctx, key, value);
+         if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) goto EXIT_RTN;
+
+         //if (endPoint.GetFieldAsStr("doc_cat") == "delete") Debugger.Break();
+
+         bool matched = cond.NeedRecord ? cond.HasCondition ((JObject)endPoint.GetField(null)) : cond.HasCondition (value.ToJToken());
+         if (subActions != null)
+         {
+            if (matched)
+               return subActions[0].HandleValue(ctx, key, value);
+            else
+               if (subActions.Length > 1)
+                  return subActions[1].HandleValue(ctx, key, value);
+            return null;
+         }
+
+         if (matched)
+         {
+            if (skipUntil == null)
+               ctx.ClearAllAndSetFlags(_ActionFlags.ConditionMatched);
+            else
+            {
+               ctx.Skipped++;
+               ctx.ClearAllAndSetFlags(_ActionFlags.SkipRest, genericSkipUntil ? Name : skipUntil);
+            }
+         }
+
+         EXIT_RTN:
+         return PostProcess(ctx, value);
+      }
+
+      public override void Start(PipelineContext ctx)
+      {
+         base.Start(ctx);
+         if (subActions != null)
+            foreach (var a in subActions)
+               a.Start(ctx);
+      }
+
+
+      protected override void _ToString(StringBuilder sb)
+      {
+         base._ToString(sb);
+         sb.AppendFormat(", cond={0}", condStr);
+         if (skipUntil == null)
+            sb.AppendFormat(", skip={0}", ActionsToSkip);
+         else
+            sb.AppendFormat(", skipuntil={0}", skipUntil);
+      }
+
+   }
+
+   public class PipelineConditionTemplate : PipelineTemplate
+   {
+      public PipelineConditionTemplate(Pipeline pipeline, XmlNode node)
+         : base(pipeline, node)
+      {
+         template = new PipelineConditionAction(pipeline, node);
+      }
+
+      public override PipelineAction OptCreateAction(PipelineContext ctx, String key)
+      {
+         if (!regex.IsMatch(key)) return null;
+         return new PipelineConditionAction(ctx, (PipelineConditionAction)template, key, regex);
+      }
+   }
+
+
+}

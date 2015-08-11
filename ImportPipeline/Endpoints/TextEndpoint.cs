@@ -36,7 +36,7 @@ namespace Bitmanager.ImportPipeline
          if (MaxGenerations != int.MinValue)
             generations = new FileGenerations();
          String tmp = MaxGenerations == int.MinValue ? node.ReadStr("@file") : node.ReadStr("@file", null);
-         FileNameBase = engine.Xml.CombinePath(tmp == null ? "csvOutput" : tmp);
+         FileNameBase = engine.Xml.CombinePath(tmp == null ? "textOutput" : tmp);
          fileName = FileNameBase;
 
          rawTokens = node.ReadBool("@rawtokens", false);
@@ -49,7 +49,7 @@ namespace Bitmanager.ImportPipeline
          Footer = node.ReadStr("@footer", null);
          if (Footer == null) Footer = node.ReadStr("footer", null);
          
-         String cs = node.ReadStr("@charset", null);
+         String cs = node.ReadStr("@encoding", null);
          Encoding = cs == null ? Encoding.Default : Encoding.GetEncoding(cs);
 
          //Predefine field orders if requested (implies linient mode)

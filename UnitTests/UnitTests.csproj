@@ -72,6 +72,7 @@
     <Compile Include="TemplateTest.cs" />
     <Compile Include="ProviderTests.cs" />
     <Compile Include="FileBasedMapReduceWritersTests.cs" />
+    <Compile Include="ConditionTests.cs" />
     <Compile Include="VariableTests.cs" />
   </ItemGroup>
   <ItemGroup>

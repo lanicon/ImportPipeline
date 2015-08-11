@@ -21,7 +21,9 @@ namespace Bitmanager.ImportPipeline
       //Next fields are filled by the pipeline when sorting
       public int  Index;
       public int  EqualityID;
+      public int  ActionsToSkipIfCond;
       public bool EqualToPrev;
+      public bool IsCondition;
 
       public ActionAdmin(String key, int order, PipelineAction action)
       {
@@ -29,6 +31,13 @@ namespace Bitmanager.ImportPipeline
          this.KeyLen = this.Key.Length;
          this.Order = order;
          this.Action = action;
+
+         var cond = action as PipelineConditionAction;
+         if (cond != null)
+         {
+            IsCondition = true;
+            ActionsToSkipIfCond = cond.ActionsToSkip;
+         }
       }
    }
 
@@ -377,8 +386,16 @@ namespace Bitmanager.ImportPipeline
                Object tmp = a.Action.HandleValue(ctx, key, value);
                ClearVariables(a.Action.VarsToClear);
                if (tmp != null) ret = tmp;
-               if ((ctx.ActionFlags & _ActionFlags.SkipRest) != 0)
+               if ((ctx.ActionFlags & (_ActionFlags.SkipRest | _ActionFlags.ConditionMatched) ) != 0)
+               {
+                  if ((ctx.ActionFlags & _ActionFlags.ConditionMatched) != 0)
+                  {
+                     if (!a.IsCondition) throw new BMException("Action [{0}] is not a condition.", a.Key);
+                     i += a.ActionsToSkipIfCond;
+                     continue;
+                  }
                   break;
+               }
             }
 
             //Make sure the skipUntil can also be set from the last action in a chain...

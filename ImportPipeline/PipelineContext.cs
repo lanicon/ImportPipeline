@@ -20,6 +20,7 @@ namespace Bitmanager.ImportPipeline
       SkipAll = Skip | SkipRest,
       Handled = 1 << 8,
       Skipped = 1 << 9,
+      ConditionMatched = 1<<10,
    };
    [Flags]
    public enum _ErrorState

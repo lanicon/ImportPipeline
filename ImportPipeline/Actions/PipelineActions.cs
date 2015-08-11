@@ -27,6 +27,8 @@ namespace Bitmanager.ImportPipeline
       Del = 8,
       Category = 9,
       Cat = 9,
+      Cond = 10,
+      Condition = 10,
    }
    public abstract class PipelineAction : NamedItem
    {
@@ -194,6 +196,7 @@ namespace Bitmanager.ImportPipeline
             case _ActionType.Except: return new PipelineExceptionAction(pipeline, node);
             case _ActionType.Del: return new PipelineDeleteAction(pipeline, node);
             case _ActionType.Cat: return new PipelineCategorieAction(pipeline, node);
+            case _ActionType.Cond: return new PipelineConditionAction(pipeline, node);
          }
          act.ThrowUnexpected();
          return null; //Keep compiler happy

@@ -64,6 +64,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Actions\PipelineCatAction.cs" />
+    <Compile Include="Actions\PipelineConditionAction.cs" />
     <Compile Include="Actions\PipelineDeleteAction.cs" />
     <Compile Include="Actions\PipelineClearAction.cs" />
     <Compile Include="Actions\PipelineAddAction.cs" />
@@ -81,9 +82,11 @@
     <Compile Include="Categorizer\CatergorySelectorOperators.cs" />
     <Compile Include="Categorizer\Catergory.cs" />
     <Compile Include="Categorizer\JsEvaluator.cs" />
+    <Compile Include="Conditions\Condition.cs" />
     <Compile Include="Converters\ComplexConverters.cs" />
     <Compile Include="AsyncEndpointRequestQueue.cs" />
     <Compile Include="Converters\Selector.cs" />
+    <Compile Include="Datasources\TextDatasource.cs" />
     <Compile Include="Datasources\NopDatasource.cs" />
     <Compile Include="Endpoints\TextEndpoint.cs" />
     <Compile Include="Endpoints\ESIndexDefinitions.cs" />

@@ -19,7 +19,6 @@ namespace Bitmanager.ImportPipeline
       private readonly PipelineAction[] subActions;
       private readonly PipelineTemplate[] subTemplates;
       private readonly Condition cond;
-      private readonly String condStr;
       private readonly String skipUntil;
       public readonly int ActionsToSkip;
       private readonly bool genericSkipUntil;
@@ -50,7 +49,6 @@ namespace Bitmanager.ImportPipeline
             }
          }
 
-         condStr = node.ReadStr("@condition");
          cond = Condition.Create(node);
       }
 
@@ -83,8 +81,10 @@ namespace Bitmanager.ImportPipeline
       {
          skipUntil = optReplace(regex, name, template.skipUntil);
          genericSkipUntil = this.skipUntil == "*";
-         condStr = optReplace(regex, name, template.condStr);
-         cond = (condStr==template.condStr) ? template.cond : Condition.Create(condStr);
+         
+         String x = optReplace(regex, name, template.cond.Expression);
+         cond = (x == template.cond.Expression) ? template.cond : Condition.Create(x);
+
          ActionsToSkip = template.ActionsToSkip;
          if (subTemplates != null)
          {
@@ -143,7 +143,7 @@ namespace Bitmanager.ImportPipeline
       protected override void _ToString(StringBuilder sb)
       {
          base._ToString(sb);
-         sb.AppendFormat(", cond={0}", condStr);
+         sb.AppendFormat(", cond={0}", cond.Expression);
          if (skipUntil == null)
             sb.AppendFormat(", skip={0}", ActionsToSkip);
          else

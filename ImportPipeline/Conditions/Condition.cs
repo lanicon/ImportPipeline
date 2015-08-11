@@ -23,10 +23,12 @@ namespace Bitmanager.ImportPipeline.Conditions
 
       protected JPath Field;
       protected String rawValue;
+      public readonly String Expression;
       public readonly bool NeedRecord;
 
-      protected Condition (JPath fld, ConditionType type, String rawValue)
+      protected Condition (String expr, JPath fld, ConditionType type, String rawValue)
       {
+         this.Expression = expr;
          this.Field = fld;
          this.type = type;
          if (rawValue != null)
@@ -75,7 +77,12 @@ namespace Bitmanager.ImportPipeline.Conditions
       {
          return Create(node.ReadStr("@condition"), node);
       }
-      public static Condition Create (String cond, XmlNode node=null)
+      public static Condition OptCreate(XmlNode node)
+      {
+         var c = node.ReadStr("@condition");
+         return c == null ? null : Create(c, node);
+      }
+      public static Condition Create(String cond, XmlNode node = null)
       {
          String[] arr = cond.Split(',');//"field,eq|aaa,123" "eq,123"   "field, eq"
          String fld = null;
@@ -109,22 +116,22 @@ namespace Bitmanager.ImportPipeline.Conditions
             default:
             case ConditionType.String:
                if (String.IsNullOrEmpty (rawValue))
-                  return new NullOrEmptyCondition(path, type, rawValue);
-               return new StringCondition(path, type, rawValue);
+                  return new NullOrEmptyCondition(cond, path, type, rawValue);
+               return new StringCondition(cond, path, type, rawValue);
    
             case ConditionType.IsNull:
-               return new NullCondition(path, type, rawValue);
+               return new NullCondition(cond, path, type, rawValue);
             case ConditionType.IsNullOrEmpty:
-               return new NullOrEmptyCondition(path, type, rawValue);
+               return new NullOrEmptyCondition(cond, path, type, rawValue);
 
             case ConditionType.SubString:
-               return new SubStringCondition(path, type, rawValue);
+               return new SubStringCondition(cond, path, type, rawValue);
             case ConditionType.Regex:
-               return new RegexCondition(path, type, rawValue);
+               return new RegexCondition(cond, path, type, rawValue);
             case ConditionType.Double:
-               return new DoubleCondition(path, type, rawValue);
+               return new DoubleCondition(cond, path, type, rawValue);
             case ConditionType.Int:
-               return new LongCondition(path, type, rawValue);
+               return new LongCondition(cond, path, type, rawValue);
 
          }
          return null;
@@ -133,7 +140,8 @@ namespace Bitmanager.ImportPipeline.Conditions
 
    public class NullCondition : Condition
    {
-      public NullCondition(JPath fld, ConditionType type, String rawValue): base (fld, type, rawValue)
+      public NullCondition(String expr, JPath fld, ConditionType type, String rawValue)
+         : base(expr, fld, type, rawValue)
       {
          CheckOnlyEQ();
       }
@@ -145,8 +153,8 @@ namespace Bitmanager.ImportPipeline.Conditions
    }
    public class NullOrEmptyCondition : Condition
    {
-      public NullOrEmptyCondition(JPath fld, ConditionType type, String rawValue)
-         : base(fld, type, rawValue)
+      public NullOrEmptyCondition(String expr, JPath fld, ConditionType type, String rawValue)
+         : base(expr, fld, type, rawValue)
       {
          CheckOnlyEQ();
       }
@@ -180,8 +188,8 @@ namespace Bitmanager.ImportPipeline.Conditions
    {
       protected StringComparison comparison;
       //RawValue cannot be null here....
-      public StringCondition(JPath fld, ConditionType type, String rawValue)
-         : base(fld, type, rawValue)
+      public StringCondition(String expr, JPath fld, ConditionType type, String rawValue)
+         : base(expr, fld, type, rawValue)
       {
          if (String.IsNullOrEmpty(rawValue)) throw new BMException("RawValue for StringCondition should not be null or empty.");
          comparison = (type & ConditionType.CaseSensitive) == 0 ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
@@ -221,8 +229,8 @@ namespace Bitmanager.ImportPipeline.Conditions
 
    public class SubStringCondition : StringCondition
    {
-      public SubStringCondition(JPath fld, ConditionType type, String rawValue)
-         : base(fld, type, rawValue)
+      public SubStringCondition(String expr, JPath fld, ConditionType type, String rawValue)
+         : base(expr, fld, type, rawValue)
       {
       }
 
@@ -258,8 +266,8 @@ namespace Bitmanager.ImportPipeline.Conditions
    public class RegexCondition : SubStringCondition
    {
       Regex expr;
-      public RegexCondition(JPath fld, ConditionType type, String rawValue)
-         : base(fld, type, rawValue)
+      public RegexCondition(String text, JPath fld, ConditionType type, String rawValue)
+         : base(text, fld, type, rawValue)
       {
          var options = RegexOptions.CultureInvariant | RegexOptions.Compiled;
          if ((type & ConditionType.CaseSensitive) == 0)
@@ -297,8 +305,8 @@ namespace Bitmanager.ImportPipeline.Conditions
    public class DoubleCondition : Condition
    {
       double testValue;
-      public DoubleCondition(JPath fld, ConditionType type, String rawValue)
-         : base(fld, type, rawValue)
+      public DoubleCondition(String expr, JPath fld, ConditionType type, String rawValue)
+         : base(expr, fld, type, rawValue)
       {
          testValue = Invariant.ToDouble(rawValue);
       }
@@ -331,8 +339,8 @@ namespace Bitmanager.ImportPipeline.Conditions
    public class LongCondition : Condition
    {
       long testValue;
-      public LongCondition(JPath fld, ConditionType type, String rawValue)
-         : base(fld, type, rawValue)
+      public LongCondition(String expr, JPath fld, ConditionType type, String rawValue)
+         : base(expr, fld, type, rawValue)
       {
          testValue = Invariant.ToInt64(rawValue);
       }

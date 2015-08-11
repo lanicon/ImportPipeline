@@ -9,47 +9,34 @@ using Newtonsoft.Json.Linq;
 using Bitmanager.Json;
 using System.Text.RegularExpressions;
 using Bitmanager.Elastic;
+using Bitmanager.ImportPipeline.Conditions;
 
 namespace Bitmanager.ImportPipeline
 {
    public class PipelineDeleteAction : PipelineAction
    {
-      private enum _Condition {NonEmpty, Always, Test, Substring, Regex};
       private readonly String skipUntil;
-      private readonly String testVal;
-      private readonly String fromField;
-      private readonly Regex expr;
+      private readonly Condition cond;
       private readonly bool genericSkipUntil;
-      private readonly _Condition cond;
 
       public PipelineDeleteAction(Pipeline pipeline, XmlNode node)
          : base(pipeline, node)
       {
          skipUntil = node.ReadStr("@skipuntil");
-         testVal = node.ReadStr("@test", null);
-         cond = node.ReadEnum("@cond", testVal == null ? _Condition.NonEmpty: _Condition.Test);
+         cond = Condition.OptCreate(node);
          genericSkipUntil = skipUntil == "*";
-         fromField = node.ReadStr("@fromfield", null);
-         switch (cond)
-         {
-            case _Condition.Always:
-            case _Condition.NonEmpty: break;
-            default:
-               if (testVal == null) node.ReadStr("@test");
-               break;
-         }
-         if (cond == _Condition.Regex) expr = new Regex(testVal, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
       }
 
       internal PipelineDeleteAction(PipelineDeleteAction template, String name, Regex regex)
          : base(template, name, regex)
       {
-         this.skipUntil = optReplace(regex, name, template.skipUntil);
-         this.testVal = optReplace(regex, name, template.testVal);
-         this.cond = template.cond;
-         this.genericSkipUntil = this.skipUntil == "*";
-         this.fromField = optReplace(regex, name, template.fromField);
-         if (cond == _Condition.Regex) expr = new Regex(testVal, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+         skipUntil = optReplace(regex, name, template.skipUntil);
+         genericSkipUntil = this.skipUntil == "*";
+         if (template.cond != null)
+         {
+            String x = optReplace(regex, name, template.cond.Expression);
+            cond = (x == template.cond.Expression) ? template.cond : Condition.Create(x);
+         }
       }
 
       public override Object HandleValue(PipelineContext ctx, String key, Object value)
@@ -57,33 +44,11 @@ namespace Bitmanager.ImportPipeline
          value = ConvertAndCallScript(ctx, key, value);
          if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) goto EXIT_RTN;
 
-         if (fromField != null) value = endPoint.GetFieldAsStr(fromField);
-         String v = value == null ? null : value.ToString();
-         ctx.ImportLog.Log("del cond={0}, v={1} ff={2}", cond, v, fromField);
-         switch (cond)
+         if (cond == null || (cond.NeedRecord ? cond.HasCondition((JObject)endPoint.GetField(null)) : cond.HasCondition(value.ToJToken())))
          {
-            case _Condition.Always: goto SKIP;
-            case _Condition.NonEmpty:
-               if (String.IsNullOrEmpty(v)) goto EXIT_RTN;
-               goto SKIP;
-            case _Condition.Test:
-               if (v == testVal) goto SKIP;
-               goto EXIT_RTN;
-            case _Condition.Regex:
-               if (expr.IsMatch(v)) goto SKIP;
-               goto EXIT_RTN;
-            case _Condition.Substring:
-               if (v!=null && v.IndexOf (testVal, StringComparison.OrdinalIgnoreCase) >= 0) goto SKIP;
-               goto EXIT_RTN;
-            default:
-               cond.ThrowUnexpected();
-               break;
+            ctx.Skipped++;
+            ctx.ClearAllAndSetFlags(_ActionFlags.SkipRest, genericSkipUntil ? Name : skipUntil);
          }
-
-         SKIP:
-         ctx.Skipped++;
-         ctx.ClearAllAndSetFlags(_ActionFlags.SkipRest, genericSkipUntil ? Name : skipUntil);
-
          EXIT_RTN:
          return PostProcess(ctx, value);
       }

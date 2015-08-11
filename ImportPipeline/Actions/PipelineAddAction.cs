@@ -9,6 +9,7 @@ using Newtonsoft.Json.Linq;
 using Bitmanager.Json;
 using System.Text.RegularExpressions;
 using Bitmanager.Elastic;
+using Bitmanager.ImportPipeline.Conditions;
 
 namespace Bitmanager.ImportPipeline
 {
@@ -18,17 +19,24 @@ namespace Bitmanager.ImportPipeline
    }
    public class PipelineAddAction : PipelineAction
    {
+      private readonly Condition cond;
       public CategoryCollection[] Categories;
       public PipelineAddAction(Pipeline pipeline, XmlNode node)
          : base(pipeline, node)
       {
           Categories = loadCategories(pipeline, node);
+          cond = Condition.OptCreate(node);
       }
 
       internal PipelineAddAction(PipelineAddAction template, String name, Regex regex)
          : base(template, name, regex)
       {
          Categories = template.Categories;
+         if (template.cond != null)
+         {
+            String x = optReplace(regex, name, template.cond.Expression);
+            cond = (x == template.cond.Expression) ? template.cond : Condition.Create(x);
+         }
       }
 
       static CategoryCollection[] loadCategories(Pipeline pipeline, XmlNode node)
@@ -53,6 +61,12 @@ namespace Bitmanager.ImportPipeline
          if (Categories != null)
             foreach (var cat in Categories) cat.HandleRecord(ctx);
 
+         if (cond != null && !(cond.NeedRecord ? cond.HasCondition((JObject)endPoint.GetField(null)) : cond.HasCondition(value.ToJToken())))
+         {
+            ctx.Skipped++;
+            goto CLEAR;
+         }
+
          if (checkMode != 0)
          {
             Object res = base.handleCheck(ctx, value);
@@ -62,12 +76,15 @@ namespace Bitmanager.ImportPipeline
                if ((existState & (ExistState.ExistSame | ExistState.ExistNewer | ExistState.Exist)) != 0)
                {
                   ctx.Skipped++;
-                  goto EXIT_RTN;
+                  goto CLEAR;
                }
             }
          }
+
          ctx.IncrementAndLogAdd();
          endPoint.Add(ctx);
+
+      CLEAR:
          endPoint.Clear();
          pipeline.ClearVariables();
 

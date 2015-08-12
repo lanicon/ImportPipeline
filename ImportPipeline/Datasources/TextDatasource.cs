@@ -34,21 +34,6 @@ namespace Bitmanager.ImportPipeline
       }
 
 
-      private StringDict getAttributes(XmlNode node)
-      {
-         StringDict ret = new StringDict();
-         if (node == null) return ret;
-         var coll = node.Attributes;
-         for (int i = 0; i < coll.Count; i++)
-         {
-            var att = coll[i];
-            if (att.LocalName.Equals("url", StringComparison.InvariantCultureIgnoreCase)) continue;
-            if (att.LocalName.Equals("baseurl", StringComparison.InvariantCultureIgnoreCase)) continue;
-            ret[att.LocalName] = att.Value;
-         }
-         return ret;
-      }
-
       private static ExistState toExistState(Object result)
       {
          if (result == null || !(result is ExistState)) return ExistState.NotExist;
@@ -58,7 +43,6 @@ namespace Bitmanager.ImportPipeline
       private void importUrl(PipelineContext ctx, IDatasourceSink sink, IStreamProvider elt)
       {
          int lineNo = -1;
-         StringDict attribs = getAttributes(elt.ContextNode);
          var fullElt = elt;
          String fileName = fullElt.FullName;
          sink.HandleValue(ctx, "_start", fileName);
@@ -138,6 +122,12 @@ namespace Bitmanager.ImportPipeline
                   if (offs > 0)
                   {
                      line = line + nextLine.Substring (offs);
+                     continue;
+                  }
+
+                  if (lenient && nextLine.IndexOf(':') < 0)
+                  {
+                     line = line + nextLine;
                      continue;
                   }
 

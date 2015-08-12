@@ -143,7 +143,7 @@ namespace Bitmanager.ImportPipeline
       protected override void _ToString(StringBuilder sb)
       {
          base._ToString(sb);
-         sb.AppendFormat(", cond={0}", cond.Expression);
+         if (cond != null) sb.AppendFormat(", cond={0}", cond.Expression);
          if (skipUntil == null)
             sb.AppendFormat(", skip={0}", ActionsToSkip);
          else

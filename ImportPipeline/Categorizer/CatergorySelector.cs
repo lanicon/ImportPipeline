@@ -34,8 +34,9 @@ namespace Bitmanager.ImportPipeline
             if (c.NodeType != XmlNodeType.Element) continue;
             switch (c.Name)
             {
-               case "or": 
+               case "or":
                case "and":
+               case "not":
                case "select": return true;
             }
          }
@@ -51,6 +52,7 @@ namespace Bitmanager.ImportPipeline
             case "or": return new CatergoryOrSelector(node);
             case "and": return new CatergoryAndSelector(node);
             case "select": return CreateValueSelector(node);
+            case "not": return new CatergoryNotSelectorWrapper (CreateValueSelector(node));
          }
       }
 

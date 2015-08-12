@@ -22,7 +22,7 @@ namespace Bitmanager.ImportPipeline
       {
          for (int i = 0; i < items.Count; i++)
          {
-            if (!items[0].IsSelected(obj)) return false;
+            if (!items[i].IsSelected(obj)) return false;
          }
          return items.Count > 0;
       }
@@ -48,9 +48,25 @@ namespace Bitmanager.ImportPipeline
       {
          for (int i = 0; i < items.Count; i++)
          {
-            if (items[0].IsSelected(obj)) return true;
+            if (items[i].IsSelected(obj)) return true;
          }
          return false;
+      }
+
+   }
+
+   public class CatergoryNotSelectorWrapper : ICategorySelector
+   {
+      private readonly ICategorySelector wrapped;
+
+      public CatergoryNotSelectorWrapper(ICategorySelector other)
+      {
+         wrapped = other;
+      }
+
+      public bool IsSelected(JObject obj)
+      {
+         return !wrapped.IsSelected(obj);
       }
 
    }

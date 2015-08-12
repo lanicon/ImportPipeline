@@ -79,7 +79,7 @@ namespace Bitmanager.ImportPipeline.Conditions
       }
       public static Condition OptCreate(XmlNode node)
       {
-         var c = node.ReadStr("@condition");
+         var c = node.ReadStr("@condition", null);
          return c == null ? null : Create(c, node);
       }
       public static Condition Create(String cond, XmlNode node = null)

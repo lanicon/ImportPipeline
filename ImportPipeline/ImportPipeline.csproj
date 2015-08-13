@@ -98,6 +98,7 @@
     <Compile Include="Endpoints\CsvEndpoint.cs" />
     <Compile Include="Datasources\ESDatasource.cs" />
     <Compile Include="Endpoints\JsonEndPoint.cs" />
+    <Compile Include="MailReporter.cs" />
     <Compile Include="PerlRegex.cs" />
     <Compile Include="Actions\PipelineExceptionAction.cs" />
     <Compile Include="PostProcessors\JComparer.cs" />

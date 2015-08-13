@@ -15,6 +15,7 @@ namespace Bitmanager.ImportPipeline
    {
       public List<DatasourceReport> DatasourceReports;
       public String ErrorMessage;
+      private bool hasErrors;
 
       public ImportReport()
       {
@@ -23,8 +24,12 @@ namespace Bitmanager.ImportPipeline
 
       public void Add(DatasourceReport rep)
       {
+         if (rep.Errors > 0 || rep.ErrorMessage != null)
+            hasErrors = true;
          DatasourceReports.Add(rep);
       }
+
+      public bool HasErrors { get { return hasErrors; } }
 
       public void SetGlobalStatus(PipelineContext ctx)
       {

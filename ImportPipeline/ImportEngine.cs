@@ -56,6 +56,7 @@ namespace Bitmanager.ImportPipeline
       public String OverrideEndpoint { get; set; }
       public String OverridePipeline { get; set; }
       private String binDir;
+      private MailReporter Reporter;
 
       public ImportEngine()
       {
@@ -196,6 +197,12 @@ namespace Bitmanager.ImportPipeline
             binDir = null;
             ImportLog.Log(_LogType.ltInfo, "No bin dir found... All executables are loaded from {0}.", Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
          }
+
+         XmlNode x = Xml.SelectSingleNode("report");
+         if (x == null)
+            Reporter = null;
+         else
+            Reporter = new MailReporter(x);
 
          //Load the supplied script
          ImportLog.Log(_LogType.ltTimerStart, "loading: scripts"); 
@@ -387,6 +394,7 @@ namespace Bitmanager.ImportPipeline
             }
          }
          ret.SetGlobalStatus(mainCtx);
+         if (Reporter != null) Reporter.SendReport(mainCtx, ret);
          return ret;
       }
 

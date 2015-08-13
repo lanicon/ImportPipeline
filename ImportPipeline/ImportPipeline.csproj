@@ -101,10 +101,13 @@
     <Compile Include="MailReporter.cs" />
     <Compile Include="PerlRegex.cs" />
     <Compile Include="Actions\PipelineExceptionAction.cs" />
+    <Compile Include="PostProcessors\SortProcessor.cs" />
+    <Compile Include="PostProcessors\MemoryBasedMapperWriters.cs" />
     <Compile Include="PostProcessors\JComparer.cs" />
-    <Compile Include="PostProcessors\FileBasedMapperProcessor.cs" />
     <Compile Include="PostProcessors\FileBasedMapperWriters.cs" />
     <Compile Include="PostProcessors\KeyAndType.cs" />
+    <Compile Include="PostProcessors\MapperWriters.cs" />
+    <Compile Include="PostProcessors\MapReduceProcessor.cs" />
     <Compile Include="PostProcessors\PostProcessorBase.cs" />
     <Compile Include="PostProcessors\PostProcessors.cs" />
     <Compile Include="PostProcessors\RecordActions.cs" />

@@ -21,7 +21,7 @@ namespace Bitmanager.ImportPipeline
 //   </hasher>
 //</postprocessor>
 
-   public class FileBasedMapperProcessor : PostProcessorBase
+   public class MapReduceProcessor : PostProcessorBase
    {
       private readonly String directory;
       private readonly JComparer hasher;
@@ -42,23 +42,27 @@ namespace Bitmanager.ImportPipeline
       private int numAfterSort;
       private int numAfterUndup;
 
-      private FileBasedMapperWriters mapper;
+      private MapperWritersBase mapper;
 
-      public FileBasedMapperProcessor(ImportEngine engine, XmlNode node): base (engine, node)
+      public MapReduceProcessor(ImportEngine engine, XmlNode node): base (engine, node)
       {
+         maxNullIndex = node.ReadInt("@max_null_index", -1);
+         fanOut = node.ReadInt("@fan_out", 100);
+         if (fanOut <= 0) throw new BMNodeException(node, "Count should be > 0.");
+
          if (node.ReadInt("write/@maxparallel", 1) > 0)
          {
             bufferSize = node.ReadInt("write/@buffer", 100);
          }
          readMaxParallel = node.ReadInt("read/@maxparallel", 1);
 
-         directory = engine.Xml.CombinePath(node.ReadStr("dir/@name"));
-         keepFiles = node.ReadBool("dir/@keepfiles", false);
-         compress = node.ReadBool("dir/@compress", true);
-         maxNullIndex = node.ReadInt("dir/@max_null_index", -1);
-         fanOut = node.ReadInt("dir/@fan_out", 100);
-         if (fanOut <= 0) throw new BMNodeException(node, "Count should be > 0.");
-
+         directory = node.ReadStr("dir/@name", null);
+         if (directory != null)
+         {
+            directory = engine.Xml.CombinePath(directory);
+            keepFiles = node.ReadBool("dir/@keepfiles", false);
+            compress = node.ReadBool("dir/@compress", true);
+         }
          List<KeyAndType> list = KeyAndType.CreateKeyList(node.SelectMandatoryNode("sorter"), "key", false);
          sorter = JComparer.Create(list);
 
@@ -92,7 +96,7 @@ namespace Bitmanager.ImportPipeline
 
       }
 
-      public FileBasedMapperProcessor(PipelineContext ctx, FileBasedMapperProcessor other, IDataEndpoint epOrnextProcessor)
+      public MapReduceProcessor(PipelineContext ctx, MapReduceProcessor other, IDataEndpoint epOrnextProcessor)
          : base(other, epOrnextProcessor)
       {
          directory = other.directory;
@@ -105,7 +109,8 @@ namespace Bitmanager.ImportPipeline
          maxNullIndex = other.maxNullIndex;
          bufferSize = other.bufferSize;
          readMaxParallel = other.readMaxParallel;
-         undupActions = other.undupActions.Clone (ctx);
+         if (other.undupActions != null)
+            undupActions = other.undupActions.Clone (ctx);
          if (bufferSize > 0)
          {
             buffer = new List<JObject>(bufferSize);
@@ -116,7 +121,7 @@ namespace Bitmanager.ImportPipeline
 
       public override IPostProcessor Clone(PipelineContext ctx, IDataEndpoint epOrnextProcessor)
       {
-         return new FileBasedMapperProcessor(ctx, this, epOrnextProcessor);
+         return new MapReduceProcessor(ctx, this, epOrnextProcessor);
       }
 
       public override string ToString()
@@ -154,7 +159,7 @@ namespace Bitmanager.ImportPipeline
          {
             AsyncRequestQueue q = (readMaxParallel == 0 || fanOut <= 1) ? null : AsyncRequestQueue.Create(readMaxParallel);
 
-            ObjectEnumerator e;
+            MappedObjectEnumerator e;
             if (q == null)
             {
                for (int i = 0; true; i++)
@@ -171,7 +176,7 @@ namespace Bitmanager.ImportPipeline
                {
                   var x = q.PushAndOptionalPop(new AsyncRequestElement(i, getEnum));
                   if (x == null) continue;
-                  e = (ObjectEnumerator)x.Result;
+                  e = (MappedObjectEnumerator)x.Result;
                   if (e == null) break;
 
                   ctx.Added += enumeratePartialAndClose(ctx, e);
@@ -182,7 +187,7 @@ namespace Bitmanager.ImportPipeline
                {
                   var x = q.Pop();
                   if (x == null) break;
-                  e = (ObjectEnumerator)x.Result;
+                  e = (MappedObjectEnumerator)x.Result;
                   if (e == null) continue; ;
 
                   ctx.Added += enumeratePartialAndClose(ctx, e);
@@ -193,7 +198,7 @@ namespace Bitmanager.ImportPipeline
          base.CallNextPostProcessor(ctx);
       }
 
-      private int enumeratePartialAndClose(PipelineContext ctx, ObjectEnumerator e)
+      private int enumeratePartialAndClose(PipelineContext ctx, MappedObjectEnumerator e)
       {
          try
          {
@@ -264,7 +269,10 @@ NEXT_PROC:
          if (mapper == null)
          {
             String id = String.Format("{0}#{1}", Name, InstanceNo);
-            mapper = new FileBasedMapperWriters(hasher, sorter, directory, id, fanOut, compress, keepFiles);
+            if (directory == null)
+               mapper = new MemoryBasedMapperWriters(hasher, sorter, fanOut);
+            else
+               mapper = new FileBasedMapperWriters(hasher, sorter, directory, id, fanOut, compress, keepFiles);
          }
          if (accumulator.Count > 0)
          {

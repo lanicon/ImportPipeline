@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace Bitmanager.ImportPipeline
 {
-   public class FileBasedMapperWriters : IDisposable, IEnumerable<JObject>
+   public class FileBasedMapperWriters : MapperWritersBase, IEnumerable<JObject>
    {
       static Logger dbgLogger = null;//Logs.CreateLogger("import", "map");
       readonly JComparer comparer;
@@ -101,7 +101,7 @@ namespace Bitmanager.ImportPipeline
       /// <summary>
       /// Writes the data to the appropriate file (designed by the hash)
       /// </summary>
-      public void Write(JObject data)
+      public override void Write(JObject data)
       {
          uint hash = (uint)hasher.GetHash(data);
          uint file = (hash % (uint)writers.Length);
@@ -124,7 +124,7 @@ namespace Bitmanager.ImportPipeline
       /// 
       /// The returnvalue reflects whether has been written or not.
       /// </summary>
-      public bool OptWrite(JObject data, int maxNullIndex = -1)
+      public override bool OptWrite(JObject data, int maxNullIndex = -1)
       {
          int nullIndex;
          uint hash = (uint)hasher.GetHash(data, out nullIndex);
@@ -149,7 +149,7 @@ namespace Bitmanager.ImportPipeline
       }
 
 
-      public void Dispose()
+      public override void Dispose()
       {
          for (int i = 0; i < writers.Length; i++)
          {
@@ -168,7 +168,7 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
-      public ObjectEnumerator GetObjectEnumerator(int index, bool buffered=false)
+      public override MappedObjectEnumerator GetObjectEnumerator(int index, bool buffered=false)
       {
          if (index < 0 || index >= writers.Length) return null;
          String fn = fileNames[index];
@@ -180,24 +180,24 @@ namespace Bitmanager.ImportPipeline
          return (comparer != null || buffered) ?  new SortedObjectEnumerator(rdr, fn, index, comparer) : new UnbufferedObjectEnumerator(rdr, fn, index);
       }
 
+
       public IEnumerator<JObject> GetEnumerator()
       {
-         Logger lg = Logs.CreateLogger("import", "script");
          for (int index = 0; index < writers.Length; index++)
          {
             var e = GetObjectEnumerator(index);
-            try 
+            try
             {
                while (true)
                {
                   var obj = e.GetNext();
-                  if (obj==null) break;
+                  if (obj == null) break;
                   yield return obj;
                }
             }
             finally
             {
-               Utils.FreeAndNil (ref e);
+               Utils.FreeAndNil(ref e);
             }
          }
       }
@@ -206,109 +206,100 @@ namespace Bitmanager.ImportPipeline
       {
          return GetEnumerator();
       }
-   }
 
-   public abstract class ObjectEnumerator : IDisposable//, IEnumerable<JObject>
-   {
-      protected String readerFile;
-      protected int index;
-      public ObjectEnumerator(String filename, int index)
+
+      // --------------------------------------------------------------------------------------------- 
+      // Enumerator objects
+      // ---------------------------------------------------------------------------------------------
+      public class UnbufferedObjectEnumerator : MappedObjectEnumerator
       {
-         this.index = index;
-         //this.reader = rdr;
-         this.readerFile = filename;
-      }
+         private StreamReader reader;
+         public UnbufferedObjectEnumerator(StreamReader rdr, String filename, int index)
+            : base(filename, index)
+         {
+            this.reader = rdr;
+         }
 
-      public abstract JObject GetNext();
-      public abstract List<JObject> GetAll();
-      public abstract void Close();
-
-      public abstract void Dispose();
-   }
-
-   public class UnbufferedObjectEnumerator : ObjectEnumerator
-   {
-      private StreamReader reader;
-      public UnbufferedObjectEnumerator(StreamReader rdr, String filename, int index): base (filename, index)
-      {
-         this.reader = rdr;
-      }
-
-      public override JObject GetNext()
-      {
-         String line = reader.ReadLine();
-         return (line == null) ? null : (JObject)JToken.Parse(line);
-      }
-      public override List<JObject> GetAll()
-      {
-         var ret = new List<JObject>(4000);
-         while (true)
+         public override JObject GetNext()
          {
             String line = reader.ReadLine();
-            if (line == null) break;
-            ret.Add ((JObject)JToken.Parse(line));
+            return (line == null) ? null : (JObject)JToken.Parse(line);
          }
-         return ret;
-      }
-
-      public override void Close()
-      {
-         closeReader();
-      }
-
-      public override void Dispose()
-      {
-         closeReader();
-      }
-
-      private void closeReader()
-      {
-         if (reader == null) return;
-         var rdr = reader;
-         reader = null;
-         try
+         public override List<JObject> GetAll()
          {
-            Stream x = rdr.BaseStream;
-            var zipStream = x as GZipStream;
-            if (zipStream == null)
+            var ret = new List<JObject>(4000);
+            while (true)
             {
-               rdr.Close();
-               return;
+               String line = reader.ReadLine();
+               if (line == null) break;
+               ret.Add((JObject)JToken.Parse(line));
             }
-            x = zipStream.BaseStream;
-            zipStream.Close();
-            x.Close();
+            return ret;
          }
-         catch (Exception e)
+
+         public override void Close()
          {
-            Logs.ErrorLog.Log("Cannot close {0}: {1}", readerFile, e.Message);
+            closeReader();
+         }
+
+         public override void Dispose()
+         {
+            closeReader();
+         }
+
+         private void closeReader()
+         {
+            if (reader == null) return;
+            var rdr = reader;
+            reader = null;
+            try
+            {
+               Stream x = rdr.BaseStream;
+               var zipStream = x as GZipStream;
+               if (zipStream == null)
+               {
+                  rdr.Close();
+                  return;
+               }
+               x = zipStream.BaseStream;
+               zipStream.Close();
+               x.Close();
+            }
+            catch (Exception e)
+            {
+               Logs.ErrorLog.Log("Cannot close {0}: {1}", readerFile, e.Message);
+            }
          }
       }
+      public class SortedObjectEnumerator : UnbufferedObjectEnumerator
+      {
+         private JComparer sorter;
+         private List<JObject> buffer;
+         private int bufferIndex, bufferLast;
+         public SortedObjectEnumerator(StreamReader rdr, String filename, int index, JComparer sorter)
+            : base(rdr, filename, index)
+         {
+            this.sorter = sorter;
+            buffer = base.GetAll();
+            if (sorter != null) buffer.Sort(sorter);
+            bufferLast = buffer.Count - 1;
+            bufferIndex = -1;
+         }
+
+         public override JObject GetNext()
+         {
+            if (bufferIndex >= bufferLast) return null;
+            return buffer[++bufferIndex];
+         }
+
+         public override List<JObject> GetAll()
+         {
+            return buffer;
+         }
+
+      }
+
    }
-   public class SortedObjectEnumerator : UnbufferedObjectEnumerator
-   {
-      private JComparer sorter;
-      private List<JObject> buffer;
-      private int bufferIndex, bufferLast;
-      public SortedObjectEnumerator(StreamReader rdr, String filename, int index, JComparer sorter) :  base (rdr, filename, index)
-      {
-         this.sorter = sorter;
-         buffer = base.GetAll();
-         if (sorter != null) buffer.Sort(sorter);
-         bufferLast = buffer.Count - 1;
-         bufferIndex = -1;
-      }
 
-      public override JObject GetNext()
-      {
-         if (bufferIndex >= bufferLast) return null;
-         return buffer[++bufferIndex];
-      }
 
-      public override List<JObject> GetAll()
-      {
-         return buffer;
-      }
-
-   }
 }

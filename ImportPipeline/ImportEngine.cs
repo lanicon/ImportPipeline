@@ -63,6 +63,7 @@ namespace Bitmanager.ImportPipeline
          LogAdds = 50000;
          MaxAdds = -1;
          MaxEmits = -1;
+         ImportFlags = _ImportFlags.UseFlagsFromXml;
          AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
       }
 
@@ -101,11 +102,7 @@ namespace Bitmanager.ImportPipeline
 
       public void Load(String fileName)
       {
-         if (!File.Exists(fileName))
-         {
-            String tmp = Path.Combine("ImportDirs", fileName);
-            if (File.Exists(tmp)) fileName = tmp;
-         }
+         fileName = locateFile(fileName);
          String dir = Path.GetDirectoryName(Path.GetFullPath(fileName));
          dir = Path.Combine(dir, "logs");
          if (Directory.Exists(dir))
@@ -117,9 +114,36 @@ namespace Bitmanager.ImportPipeline
          Load(loadXml (fileName));
       }
 
+      String locateFile (String file)
+      {
+         if (File.Exists(file)) goto EXIT_RTN;
+
+         String org = file;
+         String dir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+         file = Path.Combine(dir, org);
+         if (File.Exists(file)) goto EXIT_RTN;
+
+         dir = IOUtils.FindDirectoryToRoot(dir, "ImportDirs");
+         if (dir != null)
+         {
+            file = Path.Combine(dir, org);
+            if (File.Exists(file)) goto EXIT_RTN;
+
+            dir = Path.GetDirectoryName(dir);
+            file = Path.Combine(dir, org);
+            if (File.Exists(file)) goto EXIT_RTN;
+         }
+
+         //Nothing helps: return original
+         file = org;
+
+      EXIT_RTN:
+         return Path.GetFullPath(file);
+      }
+
       private ITemplateSettings templateSettings;
       public ITemplateSettings TemplateSettings { get { return templateSettings; } }
-      private XmlHelper loadXml(String fileName)
+      private XmlHelper loadXml(String fileName, _ImportFlags flags = _ImportFlags.UseFlagsFromXml)
       {
          templateSettings = new TemplateSettings();
          if ((ImportFlags & _ImportFlags.DebugTemplate) != 0) { templateSettings.AutoWriteGenerated = true; }
@@ -155,8 +179,11 @@ namespace Bitmanager.ImportPipeline
          Environment.SetEnvironmentVariable("IMPORT_DIR", dir);
          fillTikaVars();
 
-         PipelineContext ctx = new PipelineContext(this);
-         ImportFlags = xml.ReadEnum("@importflags", ImportFlags);
+         _ImportFlags flags = ImportFlags;
+         ImportFlags = xml.ReadEnum("@importflags", (_ImportFlags)0);
+         if ((flags & _ImportFlags.UseFlagsFromXml) == 0)
+            ImportFlags = flags;
+
          LogAdds = xml.ReadInt("@logadds", LogAdds);
          MaxAdds = xml.ReadInt("@maxadds", MaxAdds);
          ImportLog.Log("Loading import xml: flags={0}, logadds={1}, maxadds={2}", ImportFlags, LogAdds, MaxAdds);
@@ -214,6 +241,7 @@ namespace Bitmanager.ImportPipeline
             true);
 
          ImportLog.Log(_LogType.ltTimer, "loading: datasources");
+         PipelineContext ctx = new PipelineContext(this);
          Datasources = new NamedAdminCollection<DatasourceAdmin>(
             xml.SelectMandatoryNode("datasources"),
             "datasource",

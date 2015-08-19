@@ -76,6 +76,7 @@ namespace Bitmanager.ImportPipeline
       public override MappedObjectEnumerator GetObjectEnumerator(int index, bool buffered=false)
       {
          if (index < 0 || index >= writers.Length) return null;
+         if (comparer != null) writers[index].Sort(comparer);
          return new MemoryObjectEnumerator(writers[index], index);
       }
 

@@ -19,7 +19,6 @@ namespace Bitmanager.Importer
             {
                engine.ImportFlags = flags;
                engine.Load(xml);
-               engine.ImportFlags = flags;
                engine.MaxAdds = maxAdds;
                engine.MaxEmits = maxEmits;
                return engine.Import(activeDS);

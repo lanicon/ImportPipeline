@@ -67,13 +67,12 @@ namespace Bitmanager.Importer
             {
                eng.MaxAdds = maxAdds;
                eng.MaxEmits = maxEmits;
+               eng.ImportFlags = flags;
                String[] dsList = new String[cmd.Args.Count - 1];
                for (int i = 1; i < cmd.Args.Count; i++)
                   dsList[i - 1] = cmd.Args[i];
 
                eng.Load(cmd.Args[0]);
-               if (flags != _ImportFlags.UseFlagsFromXml)
-                  eng.ImportFlags = flags;
                eng.Import(dsList.Length == 0 ? null : dsList);
             }
             return 0;

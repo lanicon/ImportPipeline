@@ -225,6 +225,91 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
+
+      private static void addIfNotFound(JObject config, String name, String type, bool index = false, String analyzer = null)
+      {
+         if (config[name] != null) return;
+         JObject x = new JObject();
+         x["type"] = type;
+         if (!index) x["index"] = "no";
+         if (analyzer != null) x["analyzer"] = analyzer;
+         config[name] = x;
+      }
+      private static bool disableAll (JObject config)
+      {
+         const String ALL = "_all";
+         if (config[ALL] != null) return false;
+         JObject x = new JObject();
+         x["enabled"] = false;
+         config[ALL] = x;
+         return true;
+      }
+
+      private static bool checkProperties(JObject mappings, String name)
+      {
+         JToken tk = mappings[name];
+         if (tk == null) return false;
+         switch (tk.Type)
+         {
+            case JTokenType.Boolean:
+            case JTokenType.String:
+               break;
+            default: return false;
+         }
+         var o = new JObject();
+         o["properties"] = new JObject();
+         disableAll(o);
+         mappings[name] = o;
+         return true;
+      }
+
+      private void patchConfig(JObject config)
+      {
+         const String ERRORS = "errors_";
+         const String ADMIN = "admin_";
+         JObject mappings = (JObject)config["mappings"];
+         if (mappings == null) return;
+
+         Logger logger = Logs.CreateLogger("import", "indexdef");
+
+         if (checkProperties(mappings, ERRORS))
+            logger.Log(_LogType.ltInfo, "ES config: mapping created for [{0}].", ERRORS);
+         if (checkProperties(mappings, ADMIN))
+            logger.Log(_LogType.ltInfo, "ES config: mapping created for [{0}].", ADMIN);
+
+         foreach (var kvp in mappings)
+         {
+            String key = kvp.Key;
+            JObject o = kvp.Value as JObject;
+            if (o == null) continue;
+            if (disableAll(o)) logger.Log(_LogType.ltInfo, "ES config: disabled _all for type [{0}]. If you don't want this, add '_all: {{enabled: true}}'. ", key);
+
+            var props = (JObject)o["properties"];
+            if (props == null) continue;
+            switch (kvp.Key)
+            {
+               case ERRORS:
+                  addIfNotFound(props, "err_ds", "string");
+                  addIfNotFound(props, "err_date", "date", true);
+                  addIfNotFound(props, "err_key", "string");
+                  addIfNotFound(props, "err_text", "string");
+                  addIfNotFound(props, "err_stack", "string");
+                  continue;
+               case ADMIN:
+                  addIfNotFound(props, "adm_ds", "string");
+                  addIfNotFound(props, "adm_date", "date", true);
+                  addIfNotFound(props, "adm_flags", "string");
+                  addIfNotFound(props, "adm_state", "string");
+                  addIfNotFound(props, "adm_added", "long");
+                  addIfNotFound(props, "adm_deleted", "long");
+                  addIfNotFound(props, "adm_emitted", "long");
+                  addIfNotFound(props, "adm_errors", "long");
+                  addIfNotFound(props, "adm_skipped", "long");
+                  continue;
+            }
+         }
+      }
+
       public bool Create(ESConnection conn, ESIndexCmd._CheckIndexFlags flags)
       {
          if (!Active) return false;
@@ -234,6 +319,7 @@ namespace Bitmanager.ImportPipeline
          DocMappings = null;
          DateTime configDate;
          JObject configJson = onLoadConfig (this, ConfigFile, out configDate);
+         patchConfig(configJson);
 
          ESIndexCmd cmd = conn.CreateIndexRequest();
          cmd.OnCreate = overrideShardsOnCreate;

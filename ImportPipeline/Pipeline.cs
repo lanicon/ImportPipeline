@@ -216,19 +216,22 @@ namespace Bitmanager.ImportPipeline
       {
          bool countCopied = false;
          ctx.PostProcessor = null;
-         foreach (var kvp in endPointCache)
+         if (endPointCache != null)
          {
-            var proc = kvp.Value as IPostProcessor;
-            if (proc == null) continue;
-            if (!countCopied)
+            foreach (var kvp in endPointCache)
             {
-               ctx.PostProcessed = ctx.Added;
-               ctx.Added = 0;
-               countCopied = true;
+               var proc = kvp.Value as IPostProcessor;
+               if (proc == null) continue;
+               if (!countCopied)
+               {
+                  ctx.PostProcessed = ctx.Added;
+                  ctx.Added = 0;
+                  countCopied = true;
+               }
+               ctx.ImportLog.Log(_LogType.ltTimerStart, "Processing post-processors for endpoint '{0}'. First processor is '{1}'.", kvp.Key, proc.Name);
+               proc.CallNextPostProcessor(ctx);
+               ctx.ImportLog.Log(_LogType.ltTimerStop, "Processing post-processors finished");
             }
-            ctx.ImportLog.Log(_LogType.ltTimerStart, "Processing post-processors for endpoint '{0}'. First processor is '{1}'.", kvp.Key, proc.Name);
-            proc.CallNextPostProcessor(ctx);
-            ctx.ImportLog.Log(_LogType.ltTimerStop, "Processing post-processors finished");
          }
          ctx.PostProcessor = null;
          ctx.MissedLog.Log();

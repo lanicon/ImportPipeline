@@ -73,13 +73,21 @@ namespace Bitmanager.ImportPipeline.Conditions
       public abstract bool HasCondition(JToken tk);
       //public abstract bool HasCondition(Object v);
 
+      private static String readCond (XmlNode node, bool needed)
+      {
+         String c = node.ReadStr("@condition", null);
+         if (c != null) return c;
+
+         return needed ? node.ReadStr("@cond") : node.ReadStr("@cond", null);
+      }
+
       public static Condition Create(XmlNode node)
       {
-         return Create(node.ReadStr("@condition"), node);
+         return Create(readCond(node, true));
       }
       public static Condition OptCreate(XmlNode node)
       {
-         var c = node.ReadStr("@condition", null);
+         var c = readCond(node, false);
          return c == null ? null : Create(c, node);
       }
       public static Condition Create(String cond, XmlNode node = null)

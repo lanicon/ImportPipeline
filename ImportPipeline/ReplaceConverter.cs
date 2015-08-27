@@ -112,7 +112,7 @@ namespace Bitmanager.ImportPipeline
       public ReplacerElt(XmlNode node)
       {
 
-         repl = XmlUtils.ReadStr(node, "@replexpr", null);
+         repl = XmlUtils.ReadStrRaw(node, "@replexpr", 0);
          if (repl != null)
             isReplExpr = true;
          else

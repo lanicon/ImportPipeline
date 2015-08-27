@@ -48,6 +48,10 @@
     <Reference Include="HtmlAgilityPack">
       <HintPath>..\..\_References\HtmlAgilityPack.dll</HintPath>
     </Reference>
+    <Reference Include="Interop.CDO">
+      <HintPath>..\..\References\Interop.CDO.dll</HintPath>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </Reference>
     <Reference Include="Microsoft.JScript" />
     <Reference Include="MySql.Data, Version=6.9.5.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL" />
     <Reference Include="Newtonsoft.Json">
@@ -87,6 +91,8 @@
     <Compile Include="Converters\ComplexConverters.cs" />
     <Compile Include="AsyncEndpointRequestQueue.cs" />
     <Compile Include="Converters\Selector.cs" />
+    <Compile Include="Datasources\CdoDatasource.cs" />
+    <Compile Include="Datasources\StreamDatasourceBase.cs" />
     <Compile Include="Datasources\TextDatasource.cs" />
     <Compile Include="Datasources\NopDatasource.cs" />
     <Compile Include="Endpoints\TextEndpoint.cs" />

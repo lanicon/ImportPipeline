@@ -15,60 +15,27 @@ using Bitmanager.Elastic;
 
 namespace Bitmanager.ImportPipeline
 {
-   public class TextDatasource : Datasource
+   public class TextDatasource : StreamDatasourceBase
    {
       private enum _Mode {lines=1, values=2, stopAtEmpty=4};
-      private GenericStreamProvider streamProvider;
-      private Encoding encoding;
       private int maxToRead;
       private _Mode mode;
       private bool lenient;
-      public void Init(PipelineContext ctx, XmlNode node)
+
+      public override void Init(PipelineContext ctx, XmlNode node)
       {
-         streamProvider = new GenericStreamProvider(ctx, node);
+         base.Init(ctx, node, Encoding.Default);
          maxToRead = node.ReadInt("@maxread", int.MaxValue);
-         String enc = node.ReadStr("@encoding", null);
-         encoding = enc == null ? Encoding.Default : Encoding.GetEncoding(enc);
          mode = node.ReadEnum<_Mode>("@mode", _Mode.values);
          lenient = node.ReadBool("@lenient", false); 
       }
 
-
-      private static ExistState toExistState(Object result)
-      {
-         if (result == null || !(result is ExistState)) return ExistState.NotExist;
-         return (ExistState)result;
-      }
-
-      private void importUrl(PipelineContext ctx, IDatasourceSink sink, IStreamProvider elt)
+      protected override void ImportStream(PipelineContext ctx, IDatasourceSink sink, IStreamProvider elt, Stream strm)
       {
          int lineNo = -1;
-         var fullElt = elt;
-         String fileName = fullElt.FullName;
-         sink.HandleValue(ctx, "_start", fileName);
-         //DateTime dtFile = File.GetLastWriteTimeUtc(fileName);
-         //sink.HandleValue(ctx, "record/lastmodutc", dtFile);
-         sink.HandleValue(ctx, "record/filename", fullElt.FullName); 
-
-         ExistState existState = ExistState.NotExist;
-         if ((ctx.ImportFlags & _ImportFlags.ImportFull) == 0) //Not a full import
-         {
-            existState = toExistState(sink.HandleValue(ctx, "record/_checkexist", null));
-         }
-
-         //Check if we need to convert this file
-         if ((existState & (ExistState.ExistSame | ExistState.ExistNewer | ExistState.Exist)) != 0)
-         {
-            ctx.Skipped++;
-            ctx.ImportLog.Log("Skipped: {0}. Date={1}", elt, 0);// dtFile);
-            return;
-         }
-
-         Stream fs = null;
          try
          {
-            fs = elt.CreateStream(); 
-            TextReader rdr = fs.CreateTextReader (encoding);
+            TextReader rdr = strm.CreateTextReader(encoding);
 
             int charsRead = 0;
             if ((mode & _Mode.lines) != 0)
@@ -77,7 +44,7 @@ namespace Bitmanager.ImportPipeline
                {
                   lineNo++;
                   String line = rdr.ReadLine();
-                  if (line==null) break;
+                  if (line == null) break;
                   if (line.Length == 0)
                   {
                      if ((mode & _Mode.stopAtEmpty) != 0) break;
@@ -96,20 +63,20 @@ namespace Bitmanager.ImportPipeline
                {
                   lineNo++;
                   String nextLine = rdr.ReadLine();
-                  if (nextLine==null)
+                  if (nextLine == null)
                   {
-                     key = "record/" + splitKV (line, out value);
+                     key = "record/" + splitKV(line, out value);
                      sink.HandleValue(ctx, key, value);
                      break;
                   }
                   charsRead += nextLine.Length;
                   if (nextLine.Length == 0)
                   {
-                     if ((mode & _Mode.stopAtEmpty) != 0) break; else continue ;
+                     if ((mode & _Mode.stopAtEmpty) != 0) break; else continue;
                   }
 
                   int offs = 0;
-                  for (; offs<nextLine.Length; offs++)
+                  for (; offs < nextLine.Length; offs++)
                   {
                      switch (nextLine[offs])
                      {
@@ -121,7 +88,7 @@ namespace Bitmanager.ImportPipeline
 
                   if (offs > 0)
                   {
-                     line = line + nextLine.Substring (offs);
+                     line = line + nextLine.Substring(offs);
                      continue;
                   }
 
@@ -131,16 +98,12 @@ namespace Bitmanager.ImportPipeline
                      continue;
                   }
 
-                  key = "record/" + splitKV (line, out value);
+                  key = "record/" + splitKV(line, out value);
                   sink.HandleValue(ctx, key, value);
                   line = nextLine;
                }
             }
-
             sink.HandleValue(ctx, "record", null);
-            rdr.Close();
-            fs.Close();
-
             ctx.IncrementEmitted();
          }
          catch (Exception e)
@@ -149,6 +112,7 @@ namespace Bitmanager.ImportPipeline
             ctx.HandleException(e);
          }
       }
+
 
       private String splitKV (String line, out string value)
       {
@@ -160,27 +124,5 @@ namespace Bitmanager.ImportPipeline
          value = line.Substring(j);
          return line.Substring(0, i);
       }
-
-      public static String WrapMessage (Exception ex, String sub, String fmt)
-      {
-         String msg = ex.Message;
-         if (msg.IndexOf(sub) >= 0) return msg;
-         return String.Format(fmt, msg, sub);
-      }
-      public void Import(PipelineContext ctx, IDatasourceSink sink)
-      {
-         foreach (var elt in streamProvider.GetElements(ctx))
-         {
-            try
-            {
-               importUrl(ctx, sink, elt);
-            }
-            catch (Exception e)
-            {
-               throw new BMException(e, WrapMessage (e, elt.ToString(), "{0}\r\nUrl={1}."));
-            }
-         }
-      }
-
    }
 }

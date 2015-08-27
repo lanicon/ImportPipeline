@@ -356,10 +356,11 @@ namespace Bitmanager.ImportPipeline
 
                try
                {
+                  DateTime start = DateTime.UtcNow;
                   admin.Import(ctx);
                   mainCtx.ErrorState |= (ctx.ErrorState & stateFilter);
                   if (ctx.LastError != null) mainCtx.LastError = ctx.LastError;
-                  ret.Add(new DatasourceReport(ctx));
+                  ret.Add(new DatasourceReport(ctx, start));
                }
                catch (Exception err)
                {

@@ -38,6 +38,12 @@ namespace Bitmanager.Importer
          {
             Bitmanager.Core.GlobalExceptionHandler.HookGlobalExceptionHandler();
             InitializeComponent();
+            gridStatus.Columns[0].DefaultCellStyle.Alignment = DataGridViewContentAlignment.TopLeft;
+            gridStatus.Columns[0].AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells;
+            gridStatus.Columns[1].DefaultCellStyle.WrapMode = DataGridViewTriState.True;
+            gridStatus.Columns[1].AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
+            gridStatus.DefaultCellStyle.SelectionBackColor = gridStatus.DefaultCellStyle.BackColor;
+            gridStatus.DefaultCellStyle.SelectionForeColor = gridStatus.DefaultCellStyle.ForeColor;
          }
          catch (Exception ex)
          {
@@ -150,15 +156,21 @@ namespace Bitmanager.Importer
             UseWaitCursor = false;
             enableAllButCancel();
             asyncAdmin.Stop();
-            //lblStatus.Text = asyncAdmin.Report.ErrorMessage;
-            //if (lblStatus.Text != null) lblStatus.Text = lblStatus.Text.Replace('\r', ' ').Replace('\n', ' ');
 
-            lbStatus.Items.Clear();
-            lbStatus.Items.Add(lblStatus.Text);
+            gridStatus.Rows.Clear();
+            gridStatus.Rows.Add(0 + asyncAdmin.Report.DatasourceReports.Count);
+
+            int i = 0;
             foreach (var rep in asyncAdmin.Report.DatasourceReports)
             {
-               lbStatus.Items.Add(rep.ToString());
+               var cells = gridStatus.Rows[i].Cells;
+               cells[0].Value = rep.DatasourceName;
+               String stat = rep.Stats;
+               if (rep.ErrorMessage != null) stat = stat + "\r\nError=" + rep.ErrorMessage;
+               cells[1].Value = stat;
+               i++;
             }
+            gridStatus.Columns[1].Width = gridStatus.Width - gridStatus.Columns[0].Width-10;
             Utils.FreeAndNil(ref asyncAdmin);
          }
          catch
@@ -222,9 +234,9 @@ namespace Bitmanager.Importer
       }
       private void button1_Click(object sender, EventArgs e)
       {
-         lblStatus.Text = null;
-         lbStatus.Items.Clear();
-         lbStatus.Items.Add("Running...");
+         gridStatus.Rows.Clear();
+         gridStatus.Rows.Add(1);
+         gridStatus.Rows[0].Cells[0].Value = "Running..."; 
 
          import2();
       }
@@ -405,6 +417,49 @@ namespace Bitmanager.Importer
       private void lbStatus_SelectedIndexChanged(object sender, EventArgs e)
       {
 
+      }
+
+      private void lbStatus_DrawItem(object sender, DrawItemEventArgs e)
+      {
+         ListBox lb = (ListBox)sender;
+
+         /*chk if list box has any items*/
+         if (e.Index > -1)
+         {
+            string s = lb.Items[e.Index].ToString();
+
+            /*Normal items*/
+            if ((e.State & DrawItemState.Focus) == 0)
+            {
+               e.Graphics.FillRectangle(
+                   new SolidBrush(SystemColors.Window),
+                   e.Bounds);
+               e.Graphics.DrawString(s, Font,
+                   new SolidBrush(SystemColors.WindowText),
+                   e.Bounds);
+               e.Graphics.DrawRectangle(
+                   new Pen(SystemColors.Highlight), e.Bounds);
+            }
+            else /*Selected item, needs highlighting*/
+            {
+               e.Graphics.FillRectangle(
+                   new SolidBrush(SystemColors.Highlight),
+                   e.Bounds);
+               e.Graphics.DrawString(s, Font,
+                   new SolidBrush(SystemColors.HighlightText),
+                   e.Bounds);
+            }
+         }
+      }
+
+      private void lbStatus_MeasureItem(object sender, MeasureItemEventArgs e)
+      {
+         ListBox lb = (ListBox)sender;
+         string s = lb.Items[e.Index].ToString();
+         SizeF sf = e.Graphics.MeasureString(s, lb.Font, lb.Width);
+         int htex = (e.Index == 0) ? 15 : 10;
+         e.ItemHeight = (int)sf.Height + htex;
+         e.ItemWidth = Width;
       }
    }
 }

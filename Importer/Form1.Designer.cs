@@ -57,15 +57,17 @@
          this.textBox1 = new System.Windows.Forms.TextBox();
          this.textBox2 = new System.Windows.Forms.TextBox();
          this.checkBox1 = new System.Windows.Forms.CheckBox();
-         this.lblStatus = new System.Windows.Forms.Label();
          this.label4 = new System.Windows.Forms.Label();
          this.txtMaxEmits = new System.Windows.Forms.TextBox();
-         this.lbStatus = new System.Windows.Forms.ListBox();
          this.label6 = new System.Windows.Forms.Label();
          this.label7 = new System.Windows.Forms.Label();
          this.cbEndpoints = new System.Windows.Forms.ComboBox();
          this.cbPipeLines = new System.Windows.Forms.ComboBox();
+         this.gridStatus = new System.Windows.Forms.DataGridView();
+         this.Datasource = new System.Windows.Forms.DataGridViewTextBoxColumn();
+         this.Message = new System.Windows.Forms.DataGridViewTextBoxColumn();
          this.grpFlags.SuspendLayout();
+         ((System.ComponentModel.ISupportInitialize)(this.gridStatus)).BeginInit();
          this.SuspendLayout();
          // 
          // comboBox1
@@ -342,14 +344,6 @@
          this.checkBox1.UseVisualStyleBackColor = true;
          this.checkBox1.CheckedChanged += new System.EventHandler(this.checkBox1_CheckedChanged);
          // 
-         // lblStatus
-         // 
-         this.lblStatus.AutoSize = true;
-         this.lblStatus.Location = new System.Drawing.Point(27, 78);
-         this.lblStatus.Name = "lblStatus";
-         this.lblStatus.Size = new System.Drawing.Size(0, 15);
-         this.lblStatus.TabIndex = 19;
-         // 
          // label4
          // 
          this.label4.AutoSize = true;
@@ -366,17 +360,6 @@
          this.txtMaxEmits.Size = new System.Drawing.Size(70, 23);
          this.txtMaxEmits.TabIndex = 21;
          this.txtMaxEmits.Text = "-1";
-         // 
-         // lbStatus
-         // 
-         this.lbStatus.FormattingEnabled = true;
-         this.lbStatus.ItemHeight = 15;
-         this.lbStatus.Location = new System.Drawing.Point(30, 429);
-         this.lbStatus.Name = "lbStatus";
-         this.lbStatus.ScrollAlwaysVisible = true;
-         this.lbStatus.Size = new System.Drawing.Size(1095, 109);
-         this.lbStatus.TabIndex = 22;
-         this.lbStatus.SelectedIndexChanged += new System.EventHandler(this.lbStatus_SelectedIndexChanged);
          // 
          // label6
          // 
@@ -413,6 +396,45 @@
          this.cbPipeLines.Size = new System.Drawing.Size(169, 23);
          this.cbPipeLines.TabIndex = 27;
          // 
+         // gridStatus
+         // 
+         this.gridStatus.AllowUserToAddRows = false;
+         this.gridStatus.AllowUserToDeleteRows = false;
+         this.gridStatus.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.DisplayedCells;
+         this.gridStatus.AutoSizeRowsMode = System.Windows.Forms.DataGridViewAutoSizeRowsMode.DisplayedCells;
+         this.gridStatus.BackgroundColor = System.Drawing.Color.White;
+         this.gridStatus.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+         this.gridStatus.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+         this.gridStatus.ColumnHeadersVisible = false;
+         this.gridStatus.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.Datasource,
+            this.Message});
+         this.gridStatus.EditMode = System.Windows.Forms.DataGridViewEditMode.EditProgrammatically;
+         this.gridStatus.GridColor = System.Drawing.SystemColors.Control;
+         this.gridStatus.Location = new System.Drawing.Point(29, 420);
+         this.gridStatus.MultiSelect = false;
+         this.gridStatus.Name = "gridStatus";
+         this.gridStatus.ReadOnly = true;
+         this.gridStatus.RowHeadersVisible = false;
+         this.gridStatus.Size = new System.Drawing.Size(1095, 126);
+         this.gridStatus.TabIndex = 28;
+         // 
+         // Datasource
+         // 
+         this.Datasource.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells;
+         this.Datasource.HeaderText = "Datasource";
+         this.Datasource.Name = "Datasource";
+         this.Datasource.ReadOnly = true;
+         this.Datasource.Width = 5;
+         // 
+         // Message
+         // 
+         this.Message.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells;
+         this.Message.HeaderText = "Message";
+         this.Message.Name = "Message";
+         this.Message.ReadOnly = true;
+         this.Message.Width = 5;
+         // 
          // Form1
          // 
          this.AcceptButton = this.btnImport;
@@ -420,14 +442,13 @@
          this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
          this.CancelButton = this.btnCancel;
          this.ClientSize = new System.Drawing.Size(1154, 550);
+         this.Controls.Add(this.gridStatus);
          this.Controls.Add(this.cbPipeLines);
          this.Controls.Add(this.cbEndpoints);
          this.Controls.Add(this.label7);
          this.Controls.Add(this.label6);
-         this.Controls.Add(this.lbStatus);
          this.Controls.Add(this.txtMaxEmits);
          this.Controls.Add(this.label4);
-         this.Controls.Add(this.lblStatus);
          this.Controls.Add(this.checkBox1);
          this.Controls.Add(this.textBox2);
          this.Controls.Add(this.textBox1);
@@ -452,6 +473,7 @@
          this.Load += new System.EventHandler(this.Form1_Load);
          this.grpFlags.ResumeLayout(false);
          this.grpFlags.PerformLayout();
+         ((System.ComponentModel.ISupportInitialize)(this.gridStatus)).EndInit();
          this.ResumeLayout(false);
          this.PerformLayout();
 
@@ -485,16 +507,17 @@
       private System.Windows.Forms.CheckBox checkBox1;
       private System.Windows.Forms.CheckBox cbRetryErrors;
       private System.Windows.Forms.CheckBox checkBox2;
-      private System.Windows.Forms.Label lblStatus;
       private System.Windows.Forms.Label label4;
       private System.Windows.Forms.TextBox txtMaxEmits;
-      private System.Windows.Forms.ListBox lbStatus;
       private System.Windows.Forms.Label label6;
       private System.Windows.Forms.Label label7;
       private System.Windows.Forms.ComboBox cbEndpoints;
       private System.Windows.Forms.ComboBox cbPipeLines;
       private System.Windows.Forms.CheckBox checkBox4;
       private System.Windows.Forms.CheckBox checkBox5;
+      private System.Windows.Forms.DataGridView gridStatus;
+      private System.Windows.Forms.DataGridViewTextBoxColumn Datasource;
+      private System.Windows.Forms.DataGridViewTextBoxColumn Message;
    }
 }
 

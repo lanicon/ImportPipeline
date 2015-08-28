@@ -15,6 +15,8 @@ namespace Bitmanager.ImportPipeline
 {
    public class CdoDatasource : StreamDatasourceBase
    {
+      public CdoDatasource() : base(true, true) { }
+
       protected override void ImportStream(PipelineContext ctx, IDatasourceSink sink, IStreamProvider elt, Stream strm)
       {
          CDO.IMessage msg = new CDO.Message();
@@ -26,7 +28,6 @@ namespace Bitmanager.ImportPipeline
          sink.HandleValue(ctx, "record/to", msg.To);
          Utils.FreeAndNil(ref msg);
          sink.HandleValue(ctx, "record", null);
-         ctx.IncrementEmitted();
       }
 
    }

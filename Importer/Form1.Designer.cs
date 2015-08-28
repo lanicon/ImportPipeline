@@ -66,6 +66,7 @@
          this.gridStatus = new System.Windows.Forms.DataGridView();
          this.Datasource = new System.Windows.Forms.DataGridViewTextBoxColumn();
          this.Message = new System.Windows.Forms.DataGridViewTextBoxColumn();
+         this.checkBox3 = new System.Windows.Forms.CheckBox();
          this.grpFlags.SuspendLayout();
          ((System.ComponentModel.ISupportInitialize)(this.gridStatus)).BeginInit();
          this.SuspendLayout();
@@ -127,6 +128,7 @@
          // 
          // grpFlags
          // 
+         this.grpFlags.Controls.Add(this.checkBox3);
          this.grpFlags.Controls.Add(this.checkBox5);
          this.grpFlags.Controls.Add(this.checkBox4);
          this.grpFlags.Controls.Add(this.checkBox2);
@@ -435,6 +437,16 @@
          this.Message.ReadOnly = true;
          this.Message.Width = 5;
          // 
+         // checkBox3
+         // 
+         this.checkBox3.AutoSize = true;
+         this.checkBox3.Location = new System.Drawing.Point(16, 252);
+         this.checkBox3.Name = "checkBox3";
+         this.checkBox3.Size = new System.Drawing.Size(100, 19);
+         this.checkBox3.TabIndex = 20;
+         this.checkBox3.Text = "NoMailReport";
+         this.checkBox3.UseVisualStyleBackColor = true;
+         // 
          // Form1
          // 
          this.AcceptButton = this.btnImport;
@@ -518,6 +530,7 @@
       private System.Windows.Forms.DataGridView gridStatus;
       private System.Windows.Forms.DataGridViewTextBoxColumn Datasource;
       private System.Windows.Forms.DataGridViewTextBoxColumn Message;
+      private System.Windows.Forms.CheckBox checkBox3;
    }
 }
 

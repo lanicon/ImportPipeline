@@ -31,7 +31,8 @@ namespace Bitmanager.ImportPipeline
       /// <summary>
       /// Dump the generated template output
       /// </summary>
-      DebugTemplate = 1 << 11
+      DebugTemplate = 1 << 11,
+      NoMailReport = 1 << 12
    }
    public class ImportEngine: IDisposable
    {

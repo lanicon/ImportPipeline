@@ -149,7 +149,7 @@ namespace Bitmanager.ImportPipeline
       /// </summary>
       protected Object PostProcess(PipelineContext ctx, Object value)
       {
-         return (forwardTo == null) ? null : ctx.Pipeline.HandleValue(ctx, forwardTo, value);
+         return (forwardTo == null) ? value : ctx.Pipeline.HandleValue(ctx, forwardTo, value);
       }
 
       public override string ToString()

@@ -17,6 +17,14 @@ namespace Bitmanager.ImportPipeline
    {
       protected GenericStreamProvider streamProvider;
       protected Encoding encoding;
+      protected bool logSkips;
+      protected bool addEmitted;
+
+      protected StreamDatasourceBase(bool logSkips, bool addEmitted)
+      {
+         this.logSkips = logSkips;
+         this.addEmitted = addEmitted;
+      }
 
 
       public virtual void Init(PipelineContext ctx, XmlNode node)
@@ -28,6 +36,7 @@ namespace Bitmanager.ImportPipeline
          streamProvider = new GenericStreamProvider(ctx, node);
          String enc = node.ReadStr("@encoding", null);
          encoding = enc == null ? defEncoding : Encoding.GetEncoding(enc);
+         logSkips = node.ReadBool("@logskips", logSkips);
       }
 
       public void Import(PipelineContext ctx, IDatasourceSink sink)
@@ -53,15 +62,21 @@ namespace Bitmanager.ImportPipeline
          return String.Format(fmt, msg, sub);
       }
 
-      protected static ExistState toExistState(Object result)
+      public static ExistState toExistState(Object result)
       {
-         if (result == null || !(result is ExistState)) return ExistState.NotExist;
-         return (ExistState)result;
+         if (result == null) return ExistState.NotExist;
+
+         if (result is ExistState)
+            return (ExistState)result;
+
+         if (result is bool)
+            return ((bool)result) ? ExistState.Exist : ExistState.NotExist;
+         return ExistState.NotExist;
       }
 
       protected virtual bool CheckNeedImport (PipelineContext ctx, IDatasourceSink sink, IStreamProvider elt)
       {
-         ExistState existState = toExistState(sink.HandleValue(ctx, "record/_checkexist", null));
+         ExistState existState = toExistState(sink.HandleValue(ctx, "record/_checkexist", elt));
 
          //return true if we need to convert this file
          return ((existState & (ExistState.ExistSame | ExistState.ExistNewer | ExistState.Exist)) == 0);
@@ -71,26 +86,32 @@ namespace Bitmanager.ImportPipeline
 
       protected virtual void ImportUrl(PipelineContext ctx, IDatasourceSink sink, IStreamProvider elt)
       {
+         int orgEmitted = ctx.Emitted;
+         if (addEmitted)
+            ctx.IncrementEmitted();
          sink.HandleValue(ctx, "_start", elt.FullName);
          DateTime dtFile = elt.LastModified;
          sink.HandleValue(ctx, "record/lastmodutc", dtFile);
          sink.HandleValue(ctx, "record/filename", elt.FullName);
          sink.HandleValue(ctx, "record/virtualfilename", elt.VirtualName);
 
+         //Check if we need to import this file
          if ((ctx.ImportFlags & _ImportFlags.ImportFull) == 0) //Not a full import
          {
-            if (CheckNeedImport(ctx, sink, elt))
-            {
-               ctx.Skipped++;
-               ctx.ImportLog.Log("Skipped: {0}. Date={1}", elt.FullName, elt.LastModified);
-               return;
-            }
+            if (!CheckNeedImport(ctx, sink, elt)) goto SKIPPED;
          }
+         if (ctx.SkipUntilKey == "record") goto SKIPPED;
 
          using (Stream fs = elt.CreateStream())
          {
             ImportStream(ctx, sink, elt, fs);
          }
+         return;
+
+      SKIPPED:
+         ctx.Skipped++;
+         if (!addEmitted && orgEmitted == ctx.Emitted) ++ctx.Emitted;
+         if (logSkips) ctx.DebugLog.Log("Skipped: {0}. Date={1}", elt.FullName, elt.LastModified);
       }
    }
 }

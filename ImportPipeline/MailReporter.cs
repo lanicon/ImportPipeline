@@ -52,6 +52,9 @@ namespace Bitmanager.ImportPipeline
 
       public void SendReport (PipelineContext ctx, ImportReport report)
       {
+         if ((ctx.ImportEngine.ImportFlags & _ImportFlags.NoMailReport) != 0)
+            return;
+
          switch (Mode)
          {
             case _Mode.Never: return;

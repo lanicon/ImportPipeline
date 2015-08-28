@@ -17,6 +17,8 @@ namespace Bitmanager.ImportPipeline
 {
    public class TextDatasource : StreamDatasourceBase
    {
+      public TextDatasource() : base(true, true) { }
+
       private enum _Mode {lines=1, values=2, stopAtEmpty=4};
       private int maxToRead;
       private _Mode mode;

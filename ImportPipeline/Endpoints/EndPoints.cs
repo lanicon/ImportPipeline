@@ -352,6 +352,10 @@ namespace Bitmanager.ImportPipeline
       /// Breaks a record into pieces and emits the pieces to the pipeline
       /// </summary>
       void EmitRecord(PipelineContext ctx, String recordKey, String recordField, IDatasourceSink sink, String eventKey, int maxLevel);
+      /// <summary>
+      /// Deletes a record from an existing store
+      /// </summary>
+      void Delete(PipelineContext ctx, String recordKey);
    }
 
    public interface IEndpointResolver
@@ -542,6 +546,11 @@ namespace Bitmanager.ImportPipeline
          OptLogAdd();
          Clear();
       }
+      public virtual void Delete(PipelineContext ctx, String recordKey)
+      {
+         throw new BMException ("Deletes are not supported by endpoint [{0}]. Delete key={1}.", GetType().FullName, recordKey);
+      }
+
 
       public virtual void Start(PipelineContext ctx)
       {

@@ -127,6 +127,42 @@ namespace Bitmanager.ImportPipeline
          return null;
       }
 
+      private bool deleteById (ESConnection conn, String key)
+      {
+
+         String url = UrlPart + "/" + HttpUtility.UrlEncode(key);
+         ESMainResponse resp = conn.Delete(url);
+         Logs.DebugLog.Log("DeleteById ({0}) stat={1}", key, resp.StatusCode);
+         if (resp.StatusCode == HttpStatusCode.NotFound) return false;
+         resp.ThrowIfError();
+         return true;
+      }
+      public bool DeleteByKey(ESConnection conn, String key)
+      {
+         ESMainResponse resp;
+         if (KeyFieldName == null) goto NOT_EXIST; ;
+         Logs.DebugLog.Log("DeleteByKey ({0})", key);
+         if (KeyFieldName.Equals("_id", StringComparison.InvariantCultureIgnoreCase))
+         {
+            return deleteById(conn, key);
+         }
+         var req = createMatchQueryRequest(KeyFieldName, key);
+         resp = conn.Post(UrlPart + "/_search", req);
+         if (resp.StatusCode == System.Net.HttpStatusCode.NotFound) goto NOT_EXIST;
+         resp.ThrowIfError();
+
+         JArray hits = (JArray)resp.JObject.SelectToken("hits.hits", false);
+         if (hits == null || hits.Count == 0) goto NOT_EXIST;
+
+         String id = (String) ((JObject)hits[0])["_id"];
+         if (id == null) goto NOT_EXIST;
+
+         return deleteById(conn, id);
+
+      NOT_EXIST:
+         return false;
+      }
+
       private JObject createMatchQueryRequest(String field, String value)
       {
          var m = new JObject();

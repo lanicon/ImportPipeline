@@ -256,6 +256,12 @@ namespace Bitmanager.ImportPipeline
          Clear();
       }
 
+      public override void Delete(PipelineContext ctx, String recordKey)
+      {
+         DocType.DeleteByKey(Connection, recordKey);
+      }
+
+
       private void asyncAdd(AsyncRequestElement ctx)
       {
          JObject accu = ctx.Context as JObject;
@@ -351,8 +357,20 @@ namespace Bitmanager.ImportPipeline
             var e = new ESRecordEnum(Connection, url, cmdObj, 100, "5m", false);
             foreach (var doc in e)
             {
-               //ctx.ImportLog.Log("Imported id={0}", doc.Id);
-               ret.Add(new RunAdministration(doc));
+               RunAdministration ra;
+               try
+               {
+                  ra = new RunAdministration(doc); 
+               }
+               catch (Exception err)
+               {
+                  String msg = String.Format("Invalid record in run administration. Skipped.\nRecord={0}.", doc);
+                  ctx.ImportLog.Log(_LogType.ltWarning, msg);
+                  ctx.ErrorLog.Log(_LogType.ltWarning, msg);
+                  ctx.ErrorLog.Log(err);
+                  continue;
+               }
+               ret.Add(ra);
                if (ret.Count >= 500) break;
             }
             return ret;

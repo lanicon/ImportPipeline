@@ -31,7 +31,10 @@ namespace Bitmanager.ImportPipeline
 
       public IPostProcessor GetPostProcessor(string processor)
       {
-         return postProcessors[processor];
+         IPostProcessor x;
+         if (postProcessors.TryGetValue(processor, out x)) return x;
+
+         throw new BMException("Postprocessor [{0}] not found.", processor);
       }
    }
 }

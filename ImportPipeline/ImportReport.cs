@@ -45,11 +45,11 @@ namespace Bitmanager.ImportPipeline
          if (seconds < 60) return String.Format("{0} sec", seconds);
          int min = seconds / 60;
          seconds = seconds % 60;
-         if (min < 60) return String.Format("{0:2d}::{0:2d}", min, seconds);
+         if (min < 60) return String.Format("{0:00}:{1:00}", min, seconds);
 
          int h = min / 60;
          min = min % 60;
-         return String.Format("{0:2d}::{0:2d}::{0:2d}", h, min, seconds);
+         return String.Format("{0:00}:{1:00}:{2:00}", h, min, seconds);
       }
    }
    /// <summary>

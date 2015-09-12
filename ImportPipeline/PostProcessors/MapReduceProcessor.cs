@@ -116,6 +116,7 @@ namespace Bitmanager.ImportPipeline
             buffer = new List<JObject>(bufferSize);
             asyncQ = AsyncRequestQueue.Create(1); 
          }
+         ctx.ImportLog.Log ("Postprocessor [{0}]: mapping to {1}. Fan-out={2}.", Name, directory == null ? "<memory>" : directory, fanOut);
       }
 
 

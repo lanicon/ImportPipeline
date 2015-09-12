@@ -29,6 +29,7 @@ namespace Bitmanager.ImportPipeline
       Cat = 9,
       Cond = 10,
       Condition = 10,
+      CheckExist = 11,
    }
    public abstract class PipelineAction : NamedItem
    {
@@ -43,7 +44,6 @@ namespace Bitmanager.ImportPipeline
       protected String forwardTo;
       protected String clrvarName;
       internal String[] VarsToClear;
-      protected KeyCheckMode checkMode;
 
       public IDataEndpoint Endpoint { get { return endPoint; } }
       public bool HasEndpointName { get { return endpointName != null; } }
@@ -64,9 +64,6 @@ namespace Bitmanager.ImportPipeline
          
          convertersName = Converters.readConverters(node);
          if (convertersName == null) convertersName = pipeline.DefaultConverters;
-
-         checkMode = node.ReadEnum<KeyCheckMode>("@check", 0);
-         if (checkMode == KeyCheckMode.date) checkMode |= KeyCheckMode.key;
       }
 
       protected PipelineAction(String name) : base(name) { }  //Only needed for NOP action
@@ -75,7 +72,6 @@ namespace Bitmanager.ImportPipeline
       protected PipelineAction(PipelineAction template, String name, Regex regex)
          : base(name)
       {
-         this.checkMode = template.checkMode;
          this.pipeline = template.pipeline;
          this.node = template.node;
          this.endpointName = optReplace (regex, name, template.endpointName);
@@ -102,28 +98,6 @@ namespace Bitmanager.ImportPipeline
          if (repl == null) return null;
          if (repl.IndexOf('$') < 0) return repl;
          return regex.Replace(arg, repl);
-      }
-
-      /// <summary>
-      /// Handles the key/date check if checkMode <> 0
-      /// </summary>
-      /// <returns>null or an ExistState enumeration</returns>
-      protected Object handleCheck (PipelineContext ctx, Object value)
-      {
-         if (checkMode != 0)
-         {
-            Object k = ctx.Pipeline.GetVariable("key");
-            if (k != null)
-            {
-               Object date = null;
-               if ((checkMode & KeyCheckMode.date) != 0)
-                  date = ctx.Pipeline.GetVariable("date");
-               ExistState es = endPoint.Exists(ctx, (String)k, (DateTime?)date);
-               PostProcess(ctx, value);
-               return es;
-            }
-         }
-         return PostProcess(ctx, value);
       }
 
       /// <summary>
@@ -165,7 +139,6 @@ namespace Bitmanager.ImportPipeline
          if (endpointName != null) b.AppendFormat(", endpoint={0}", endpointName);
          if (convertersName != null) b.AppendFormat(", conv={0}", convertersName);
          if (scriptName != null) b.AppendFormat(", script={0}", scriptName);
-         if (checkMode != 0) b.AppendFormat(", check={0}", checkMode);
          if (clrvarName != null) b.AppendFormat(", clrvar={0}", clrvarName);
       }
 
@@ -197,6 +170,7 @@ namespace Bitmanager.ImportPipeline
             case _ActionType.Del: return new PipelineDeleteAction(pipeline, node);
             case _ActionType.Cat: return new PipelineCategorieAction(pipeline, node);
             case _ActionType.Cond: return new PipelineConditionAction(pipeline, node);
+            case _ActionType.CheckExist: return new PipelineCheckExistAction(pipeline, node);
          }
          act.ThrowUnexpected();
          return null; //Keep compiler happy

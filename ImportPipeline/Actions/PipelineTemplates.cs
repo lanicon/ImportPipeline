@@ -40,6 +40,7 @@ namespace Bitmanager.ImportPipeline
             case _ActionType.Del: return new PipelineDeleteTemplate(pipeline, node);
             case _ActionType.Cat: return new PipelineCategorieTemplate(pipeline, node);
             case _ActionType.Cond: return new PipelineConditionTemplate(pipeline, node);
+            case _ActionType.CheckExist: return new PipelineCheckExistTemplate(pipeline, node);
          }
          act.ThrowUnexpected();
          return null;

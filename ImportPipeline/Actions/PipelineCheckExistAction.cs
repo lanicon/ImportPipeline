@@ -15,61 +15,37 @@ namespace Bitmanager.ImportPipeline
 {
    public class PipelineCheckExistAction : PipelineAction
    {
-      protected Selector fieldExtracter;
-      protected KeyCheckMode keyCheckMode;
-      protected String idField;
+      private readonly KeySource keySource;
+      private readonly KeySource dateSource;
+
       public PipelineCheckExistAction(Pipeline pipeline, XmlNode node)
          : base(pipeline, node)
       {
-         idField = node.ReadStr ("idfield", null);
-         checkMode = node.ReadEnum<KeyCheckMode>("@check", 0);
-         if (idField == null && checkMode==0) throw new BMNodeException (node, "At least idfield or checkmode should be specified.");
-
-         if (checkMode == KeyCheckMode.date) checkMode |= KeyCheckMode.key;
-         initExtractor();
-      }
-
-      private void initExtractor ()
-      {
-         if (idField != null) fieldExtracter = new Selector(null, idField, true, JEvaluateFlags.NoExceptWrongType | JEvaluateFlags.NoExceptMissing);
+         keySource = KeySource.Parse(node.ReadStr("@keysource"));
+         dateSource = KeySource.Parse(node.ReadStr("@datesource", null));
       }
 
       internal PipelineCheckExistAction(PipelineCheckExistAction template, String name, Regex regex)
          : base(template, name, regex)
       {
-         this.idField = optReplace(regex, name, template.idField);
-         this.checkMode = template.checkMode;
-         if (this.idField == template.idField)
-            this.fieldExtracter = template.fieldExtracter;
-         else
-            initExtractor();
+         String x = optReplace(regex, name, template.keySource.Input);
+         keySource = (x == template.keySource.Input) ? template.keySource : KeySource.Parse(x);
+         if (template.dateSource != null)
+         {
+            x = optReplace(regex, name, template.dateSource.Input);
+            dateSource = (x == template.dateSource.Input) ? template.dateSource : KeySource.Parse(x);
+         }
       }
 
       public override Object HandleValue(PipelineContext ctx, String key, Object value)
       {
          ExistState ret = ExistState.NotExist;
-         var p = value as IStreamProvider;
-         String k;
-         if (p != null)
-         {
-            k = fieldExtracter==null ? p.FullName : (String)fieldExtracter.ConvertScalar (ctx, p);
-            ret = endPoint.Exists(ctx, k, p.LastModified);
-            goto EXIT_RTN;
-         }
-
-
-         k = (String)ctx.Pipeline.GetVariable("key");
+         String k = keySource.GetKey(ctx, value);
          if (k != null)
          {
-            Object date = null;
-            if ((checkMode & KeyCheckMode.date) != 0)
-               date = ctx.Pipeline.GetVariable("date");
-            ret = endPoint.Exists(ctx, (String)k, (DateTime?)date);
-            goto EXIT_RTN;
+            DateTime? dt = dateSource == null ? null : dateSource.GetKeyDate(ctx, value);
+            ret = endPoint.Exists(ctx, k, dt);
          }
-         return null;
-
-      EXIT_RTN: ;
          PostProcess(ctx, value);
          return ret;
 
@@ -78,9 +54,8 @@ namespace Bitmanager.ImportPipeline
       protected override void _ToString(StringBuilder sb)
       {
          base._ToString(sb);
-         if (idField != null)
-            sb.AppendFormat(", idfield={0}", idField);
-         sb.AppendFormat(", checkmode={0}", checkMode);
+         sb.AppendFormat(", keysource={0}", keySource);
+         sb.AppendFormat(", datesource={0}", dateSource);
       }
    }
 

@@ -67,20 +67,6 @@ namespace Bitmanager.ImportPipeline
             goto CLEAR;
          }
 
-         if (checkMode != 0)
-         {
-            Object res = base.handleCheck(ctx, value);
-            if (res != null)
-            {
-               var existState = (ExistState)res;
-               if ((existState & (ExistState.ExistSame | ExistState.ExistNewer | ExistState.Exist)) != 0)
-               {
-                  ctx.Skipped++;
-                  goto CLEAR;
-               }
-            }
-         }
-
          ctx.IncrementAndLogAdd();
          endPoint.Add(ctx);
 

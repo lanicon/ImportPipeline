@@ -15,6 +15,7 @@ namespace Bitmanager.ImportPipeline
 {
    public class PipelineDeleteAction : PipelineAction
    {
+      private readonly KeySource keySource;
       private readonly String skipUntil;
       private readonly Condition cond;
       private readonly bool genericSkipUntil;
@@ -25,6 +26,8 @@ namespace Bitmanager.ImportPipeline
          skipUntil = node.ReadStr("@skipuntil");
          cond = Condition.OptCreate(node);
          genericSkipUntil = skipUntil == "*";
+
+         keySource = KeySource.Parse (node.ReadStr("@keysource", null));
       }
 
       internal PipelineDeleteAction(PipelineDeleteAction template, String name, Regex regex)
@@ -37,6 +40,11 @@ namespace Bitmanager.ImportPipeline
             String x = optReplace(regex, name, template.cond.Expression);
             cond = (x == template.cond.Expression) ? template.cond : Condition.Create(x);
          }
+         if (template.keySource != null)
+         {
+            String x = optReplace(regex, name, template.keySource.Input);
+            keySource = (x == template.keySource.Input) ? template.keySource : KeySource.Parse(x);
+         }
       }
 
       public override Object HandleValue(PipelineContext ctx, String key, Object value)
@@ -48,6 +56,11 @@ namespace Bitmanager.ImportPipeline
          {
             ctx.Skipped++;
             ctx.ClearAllAndSetFlags(_ActionFlags.SkipRest, genericSkipUntil ? Name : skipUntil);
+            if (keySource != null)
+            {
+               String k = keySource.GetKey(ctx, value);
+               if (k != null) endPoint.Delete(ctx, k);
+            }
          }
          EXIT_RTN:
          return PostProcess(ctx, value);

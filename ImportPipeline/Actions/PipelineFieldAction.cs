@@ -15,6 +15,7 @@ namespace Bitmanager.ImportPipeline
    {
       protected enum FieldSource { Value, Field, Event, Variable };
       protected String toField;
+      protected String toFieldReal;
       protected String toFieldFromVar;
       protected String toVar;
       protected String fromVar;
@@ -57,8 +58,10 @@ namespace Bitmanager.ImportPipeline
          sep = node.ReadStr("@sep", null);
          fieldFlags = node.ReadEnum("@flags", sep == null ? FieldFlags.OverWrite : FieldFlags.Append);
 
-         if (checkMode == 0 && toField == null && toVar == null && base.scriptName == null && toFieldFromVar == null)
-            throw new BMNodeException(node, "At least one of 'field', 'toFieldFromVar', 'tovar', 'script', 'check'-attributes is mandatory.");
+         if (toField == null && toVar == null && base.scriptName == null && toFieldFromVar == null)
+            throw new BMNodeException(node, "At least one of 'field', 'toFieldFromVar', 'tovar', 'script'-attributes is mandatory.");
+
+         toFieldReal = toField == "*" ? null : toField;
       }
 
       internal PipelineFieldAction(PipelineFieldAction template, String name, Regex regex)
@@ -73,6 +76,7 @@ namespace Bitmanager.ImportPipeline
          this.sep = template.sep;
          this.fieldFlags = template.fieldFlags;
          this.fieldSource = template.fieldSource;
+         toFieldReal = toField == "*" ? null : toField;
       }
 
       public override Object HandleValue(PipelineContext ctx, String key, Object value)
@@ -87,7 +91,7 @@ namespace Bitmanager.ImportPipeline
          if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) return null;
 
          if (toField != null)
-            endPoint.SetField(toField, value, fieldFlags, sep);
+            endPoint.SetField(toFieldReal, value, fieldFlags, sep);
          else
             if (toFieldFromVar != null)
             {
@@ -95,7 +99,7 @@ namespace Bitmanager.ImportPipeline
                if (fn != null) endPoint.SetField(fn, value, fieldFlags, sep);
             }
          if (toVar != null) ctx.Pipeline.SetVariable(toVar, value);
-         return base.handleCheck(ctx, value);
+         return base.PostProcess(ctx, value);
       }
 
       protected override void _ToString(StringBuilder sb)

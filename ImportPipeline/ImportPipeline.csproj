@@ -165,9 +165,6 @@
   <ItemGroup>
     <Content Include="index.config.js" />
     <Content Include="PostProcessors\notes.txt" />
-    <Content Include="XMLFile1.xml">
-      <SubType>Designer</SubType>
-    </Content>
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -190,7 +190,7 @@ namespace Bitmanager.ImportPipeline
          MaxAdds = xml.ReadInt("@maxadds", MaxAdds);
          ImportLog.Log("Loading import xml: flags={0}, logadds={1}, maxadds={2}", ImportFlags, LogAdds, MaxAdds);
 
-         binDir = Xml.CombinePath("bin");
+         binDir = Xml.CombinePath(Xml.ReadStr ("@bindir", "bin"));
          if (Directory.Exists(binDir))
             ImportLog.Log(_LogType.ltInfo, "Using extra bin dir: {0}", binDir);
          else

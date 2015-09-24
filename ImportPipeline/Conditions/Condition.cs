@@ -161,7 +161,6 @@ namespace Bitmanager.ImportPipeline.Conditions
                return new LongCondition(cond, path, type, rawValue);
 
          }
-         return null;
       }
    }
 

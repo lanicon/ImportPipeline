@@ -91,6 +91,7 @@
     <Compile Include="Conditions\Condition.cs" />
     <Compile Include="Converters\ComplexConverters.cs" />
     <Compile Include="AsyncEndpointRequestQueue.cs" />
+    <Compile Include="Converters\HtmlToTextConverter.cs" />
     <Compile Include="Converters\Selector.cs" />
     <Compile Include="Datasources\CdoDatasource.cs" />
     <Compile Include="Datasources\StreamDatasourceBase.cs" />
@@ -99,6 +100,7 @@
     <Compile Include="Endpoints\TextEndpoint.cs" />
     <Compile Include="Endpoints\ESIndexDefinitions.cs" />
     <Compile Include="Endpoints\ESIndexDocType.cs" />
+    <Compile Include="Html\HtmlProcessor.cs" />
     <Compile Include="ImportReport.cs" />
     <Compile Include="Datasources\JsonDatasource.cs" />
     <Compile Include="Credentials.cs" />
@@ -155,7 +157,10 @@
     <Compile Include="StreamProviders\StreamWrapper.cs" />
     <Compile Include="StreamProviders\FileStreamProvider.cs" />
     <Compile Include="StreamProviders\WebStreamProvider.cs" />
+    <Compile Include="Template\DefaultFactory.cs" />
     <Compile Include="Template\TemplateEngine.cs" />
+    <Compile Include="Template\TemplateExtensions.cs" />
+    <Compile Include="Template\TemplateFactory.cs" />
     <Compile Include="Template\TemplateSettings.cs" />
     <Compile Include="Template\Variables.cs" />
     <Compile Include="UrlProvider.cs" />

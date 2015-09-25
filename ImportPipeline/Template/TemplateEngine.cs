@@ -29,7 +29,7 @@ using System.Threading.Tasks;
 
 namespace Bitmanager.ImportPipeline.Template
 {
-   public class TemplateEngine
+   public class TemplateEngine: ITemplateEngine
    {
       private MemoryStream mem;
       private TextWriter memWtr;
@@ -43,14 +43,11 @@ namespace Bitmanager.ImportPipeline.Template
       public IVariables Variables { get; set; }
       public IVariables FileVariables { get {return fileVariables; } }
 
-      public TemplateEngine(ITemplateSettings settings)
+      internal TemplateEngine(TemplateSettings settings)
       {
-         if (settings != null)
-         {
-            Variables = settings.InitialVariables;
-            DebugLevel = settings.DebugLevel;
-            AutoWriteGenerated = settings.AutoWriteGenerated;
-         }
+         Variables = settings.InitialVariables;
+         DebugLevel = settings.DebugLevel;
+         AutoWriteGenerated = settings.AutoWriteGenerated;
          if (Variables==null) Variables = new Variables();
          logger = Logs.DebugLog.Clone("TemplateEngine");
       }
@@ -69,33 +66,14 @@ namespace Bitmanager.ImportPipeline.Template
          evaluateContent(ctx);
          fileVariables = ctx.Vars;
          memWtr.Flush();
-         if (AutoWriteGenerated) WriteGeneratedOutput();
+         if (AutoWriteGenerated) this.WriteGeneratedOutput();
       }
 
-      public String WriteGeneratedOutput ()
-      {
-         String outputFn = OutputFileName;
-         using (var fs = File.Create(outputFn))
-         {
-            fs.Write(mem.GetBuffer(), 0, (int)mem.Length);
-         }
-         return outputFn;
-      }
-
-      public String ResultAsString()
-      {
-         memWtr.Flush();
-         return Encoding.UTF8.GetString(mem.GetBuffer(), 0, (int)mem.Length);
-      }
       public Stream ResultAsStream()
       {
          memWtr.Flush();
          mem.Position = 0;
          return mem;
-      }
-      public TextReader ResultAsReader()
-      {
-         return ResultAsStream().CreateTextReader();
       }
 
       private void write (String content, int startOffset, int endOffset)

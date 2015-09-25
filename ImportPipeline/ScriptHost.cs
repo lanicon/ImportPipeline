@@ -69,7 +69,7 @@ namespace Bitmanager.ImportPipeline
          Flags = flags;
          Clear();
          ClearCompilerParms();
-         this.templateSettings = templateSettings == null ? new TemplateSettings() : templateSettings;
+         this.templateSettings = templateSettings;
       }
       public void Clear()
       {
@@ -375,7 +375,7 @@ namespace Bitmanager.ImportPipeline
          Regex refExpr = new Regex ("^//@ref=(.*)$", RegexOptions.IgnoreCase | RegexOptions.IgnoreCase); 
          Regex inclExpr = new Regex ("^//@incl=(.*)$", RegexOptions.IgnoreCase | RegexOptions.IgnoreCase);
 
-         TemplateEngine template = new TemplateEngine(templateSettings);
+         ITemplateEngine template = templateSettings.CreateEngine();
          template.LoadFromFile(fn);
          String outputFile = template.WriteGeneratedOutput();
          var rdr = template.ResultAsReader();

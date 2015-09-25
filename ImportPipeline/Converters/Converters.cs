@@ -156,6 +156,7 @@ namespace Bitmanager.ImportPipeline
                 new ConverterFactory ("int32", typeof(ToInt32Converter)),
                 new ConverterFactory ("int64", typeof(ToInt64Converter)),
                 new ConverterFactory ("split", typeof(SplitConverter)),
+                new ConverterFactory ("htmltotext", typeof(HtmlToTextConverter)),
                 new ConverterFactory ("format", typeof(FormatConverter), false)
       };
 

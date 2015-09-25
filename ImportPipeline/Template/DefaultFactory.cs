@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Licensed to De Bitmanager under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -17,6 +17,7 @@
  * under the License.
  */
 
+using Bitmanager.Xml;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,29 +26,15 @@ using System.Threading.Tasks;
 
 namespace Bitmanager.ImportPipeline.Template
 {
-
-   public class TemplateSettings : ITemplateSettings
+   public class TemplateFactory: ITemplateFactory
    {
-      public virtual IVariables InitialVariables { get; set; }
-      public virtual int DebugLevel { get; set; }
-      public virtual bool AutoWriteGenerated { get; set; }
-      public virtual ITemplateSettings Clone() { return new TemplateSettings(this); }
-      public virtual ITemplateEngine CreateEngine()
+      public TemplateFactory(ImportEngine engine, XmlHelper xml)
       {
-         return new TemplateEngine(this);
       }
 
-
-      public TemplateSettings() { }
-      public TemplateSettings(bool dump) { AutoWriteGenerated = dump; }
-      public TemplateSettings(int dbgLevel) { DebugLevel = dbgLevel; }
-      public TemplateSettings(bool dump, int dbgLevel) { AutoWriteGenerated = dump; DebugLevel = dbgLevel; }
-      public TemplateSettings(TemplateSettings other)
+      public ITemplateSettings CreateSettings()
       {
-         InitialVariables = other.InitialVariables;
-         DebugLevel = other.DebugLevel;
-         AutoWriteGenerated = other.AutoWriteGenerated;
+         return new TemplateSettings();
       }
-
    }
 }

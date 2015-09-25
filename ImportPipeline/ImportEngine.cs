@@ -166,12 +166,18 @@ namespace Bitmanager.ImportPipeline
       public ITemplateSettings TemplateSettings { get { return templateSettings; } }
       private XmlHelper loadXml(String fileName, _ImportFlags flags = _ImportFlags.UseFlagsFromXml)
       {
-         templateSettings = new TemplateSettings();
+         XmlHelper tmp = new XmlHelper(fileName);
+         String factoryClass = tmp.ReadStr("@templatefactory", typeof(TemplateFactory).FullName);
+
+         ITemplateFactory factory = CreateObject<ITemplateFactory>(factoryClass, this, tmp);
+         templateSettings = factory.CreateSettings();
+         tmp = null;
+
          if ((ImportFlags & _ImportFlags.DebugTemplate) != 0) { templateSettings.AutoWriteGenerated = true; }
          ImportLog.Log("Flags before load={0}", ImportFlags);
 
          XmlHelper xml = new XmlHelper();
-         TemplateEngine eng = new TemplateEngine(templateSettings);
+         ITemplateEngine eng = templateSettings.CreateEngine();
 
          eng.LoadFromFile(fileName);
          MainVariables = eng.Variables;

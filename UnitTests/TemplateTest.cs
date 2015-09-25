@@ -36,23 +36,10 @@ namespace UnitTests
          root = Path.GetFullPath(Assembly.GetExecutingAssembly().Location + @"\..\..\..\");
       }
 
-      private static String resultAsString(TemplateEngine eng)
-      {
-         StringBuilder sb = new StringBuilder();
-         var rdr = eng.ResultAsReader();
-         while (true)
-         {
-            String line = rdr.ReadLine();
-            if (line==null) break;
-            if (sb.Length>0) sb.Append('|');
-            sb.Append(line);
-         }
-         return sb.ToString();
-      }
       [TestMethod]
       public void TestSimple()
       {
-         TemplateEngine eng = new TemplateEngine(new TemplateSettings());
+         ITemplateEngine eng = new TemplateSettings().CreateEngine();
 
          eng.LoadFromFile(root + "templates\\simple.txt");
          Assert.AreEqual(" included regel met 'abc'| this line is in between| included regel met ''| ", resultAsString(eng));
@@ -63,7 +50,7 @@ namespace UnitTests
       public void TestSimpleRecursive()
       {
          var settings = new TemplateSettings(true, 10);
-         TemplateEngine eng = new TemplateEngine(settings);
+         ITemplateEngine eng = settings.CreateEngine();
          var v = eng.Variables;
          v.Set("boe", "bah");
          v.Set("var", "Dit is $$boe$$");
@@ -76,7 +63,7 @@ namespace UnitTests
       public void TestVarRecursionToDeep()
       {
          var settings = new TemplateSettings(true, 10);
-         TemplateEngine eng = new TemplateEngine(settings);
+         ITemplateEngine eng = settings.CreateEngine();
          var v = eng.Variables;
          v.Set("boe", "bah");
          v.Set("var", "Dit is $$var$$");
@@ -84,6 +71,19 @@ namespace UnitTests
          Assert.AreEqual(" included regel met 'abc'| this line is in between| included regel met 'Dit is bah'| ", resultAsString(eng));
       }
 
+      private static String resultAsString(ITemplateEngine eng)
+      {
+         StringBuilder sb = new StringBuilder();
+         var rdr = eng.ResultAsReader();
+         while (true)
+         {
+            String line = rdr.ReadLine();
+            if (line == null) break;
+            if (sb.Length > 0) sb.Append('|');
+            sb.Append(line);
+         }
+         return sb.ToString();
+      }
 
    }
 }

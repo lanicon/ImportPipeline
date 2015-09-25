@@ -26,14 +26,6 @@ using System.Text;
 
 namespace Bitmanager.ImportPipeline.Template
 {
-   public interface IVariables: IEnumerable<KeyValuePair<String, Object>>
-   {
-      int Count { get; }
-      void Clear();
-      void Set(string key, Object value);
-      Object Get(string key);
-      IVariables Clone();
-   }
 
    public class Variables : IVariables
    {

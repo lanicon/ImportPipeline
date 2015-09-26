@@ -88,7 +88,7 @@ namespace Bitmanager.ImportPipeline
       {
          Engine.ImportLog.Log("Loading config via template. fn={0}", fn);
          fileUtcDate = File.GetLastWriteTimeUtc(fn);
-         ITemplateEngine template = Engine.TemplateSettings.CreateEngine();
+         ITemplateEngine template = Engine.TemplateFactory.CreateEngine();
          template.LoadFromFile(fn);
          var rdr = template.ResultAsStream().CreateJsonReader();
          return JObject.Load(rdr);

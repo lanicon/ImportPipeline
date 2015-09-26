@@ -43,7 +43,7 @@ namespace Bitmanager.ImportPipeline.Template
       public IVariables Variables { get; set; }
       public IVariables FileVariables { get {return fileVariables; } }
 
-      internal TemplateEngine(TemplateSettings settings)
+      internal TemplateEngine(TemplateFactory settings)
       {
          Variables = settings.InitialVariables;
          DebugLevel = settings.DebugLevel;

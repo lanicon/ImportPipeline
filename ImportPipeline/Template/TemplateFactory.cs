@@ -30,8 +30,13 @@ namespace Bitmanager.ImportPipeline.Template
 {
    public interface ITemplateFactory
    {
-      ITemplateSettings CreateSettings();
+      IVariables InitialVariables { get; set; }
+      int DebugLevel { get; set; }
+      bool AutoWriteGenerated { get; set; }
+      ITemplateEngine CreateEngine();
    }
+
+
 
    public interface IVariables : IEnumerable<KeyValuePair<String, Object>>
    {
@@ -41,17 +46,6 @@ namespace Bitmanager.ImportPipeline.Template
       Object Get(string key);
       IVariables Clone();
    }
-
-   public interface ITemplateSettings
-   {
-      IVariables InitialVariables { get; set; }
-      int DebugLevel { get; set; }
-      bool AutoWriteGenerated { get; set; }
-      ITemplateSettings Clone();
-      ITemplateEngine CreateEngine();
-   }
-
-
 
 
    public interface ITemplateEngine

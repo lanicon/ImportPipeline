@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Licensed to De Bitmanager under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -26,15 +26,38 @@ using System.Threading.Tasks;
 
 namespace Bitmanager.ImportPipeline.Template
 {
-   public class TemplateFactory: ITemplateFactory
+
+   public class TemplateFactory : ITemplateFactory
    {
-      public TemplateFactory(ImportEngine engine, XmlHelper xml)
+      private IVariables initialVars;
+
+      public virtual IVariables InitialVariables
       {
+         get
+         {
+            if (initialVars == null) initialVars = new Variables();
+            return initialVars;
+         }
+         set
+         {
+            initialVars = value;
+         }
+      }
+      public virtual int DebugLevel { get; set; }
+      public virtual bool AutoWriteGenerated { get; set; }
+      public virtual ITemplateEngine CreateEngine()
+      {
+         return new TemplateEngine(this);
       }
 
-      public ITemplateSettings CreateSettings()
-      {
-         return new TemplateSettings();
-      }
+
+      public TemplateFactory() { }
+
+      /// <summary>
+      /// Factory for template engines.
+      /// Can have a constructor with these 2 parms, or a constructor with only ImportEngine, or no parms at all...
+      /// </summary>
+      public TemplateFactory(ImportEngine engine, XmlHelper xml) { }
+
    }
 }

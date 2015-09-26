@@ -161,7 +161,6 @@
     <Compile Include="Template\TemplateEngine.cs" />
     <Compile Include="Template\TemplateExtensions.cs" />
     <Compile Include="Template\TemplateFactory.cs" />
-    <Compile Include="Template\TemplateSettings.cs" />
     <Compile Include="Template\Variables.cs" />
     <Compile Include="UrlProvider.cs" />
     <Compile Include="ValueFilter.cs" />

@@ -58,13 +58,13 @@ namespace Bitmanager.ImportPipeline
       public CompilerParameters CompilerParameters { get { return _cp; } }
       public String ExtraSearchPath { get; set; }
 
-      private ITemplateSettings templateSettings;
+      private ITemplateFactory templateSettings;
       static ScriptHost()
       {
          logger = Logs.CreateLogger("C# Scripts", "Scripthost");
       }
 
-      public ScriptHost(ScriptHostFlags flags, ITemplateSettings templateSettings)
+      public ScriptHost(ScriptHostFlags flags, ITemplateFactory templateSettings)
       {
          Flags = flags;
          Clear();
@@ -362,20 +362,20 @@ namespace Bitmanager.ImportPipeline
       public readonly List<String> References;
       public readonly List<String> Includes;
 
-      public ScriptFileAdmin(String file, ITemplateSettings templateSettings)
+      public ScriptFileAdmin(String file, ITemplateFactory templatefactory)
       {
          SrcFileName = Path.GetFullPath(file);
          References = new List<string>();
          Includes = new List<string>();
-         FileName = load(SrcFileName, templateSettings);
+         FileName = load(SrcFileName, templatefactory);
       }
 
-      private String load(String fn, ITemplateSettings templateSettings)
+      private String load(String fn, ITemplateFactory templatefactory)
       {
          Regex refExpr = new Regex ("^//@ref=(.*)$", RegexOptions.IgnoreCase | RegexOptions.IgnoreCase); 
          Regex inclExpr = new Regex ("^//@incl=(.*)$", RegexOptions.IgnoreCase | RegexOptions.IgnoreCase);
 
-         ITemplateEngine template = templateSettings.CreateEngine();
+         ITemplateEngine template = templatefactory.CreateEngine();
          template.LoadFromFile(fn);
          String outputFile = template.WriteGeneratedOutput();
          var rdr = template.ResultAsReader();

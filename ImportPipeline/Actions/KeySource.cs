@@ -29,6 +29,13 @@ using System.Threading.Tasks;
 
 namespace Bitmanager.ImportPipeline
 {
+   /// <summary>
+   /// KeySource that extracts key and date information from 
+   /// - a value
+   /// - a property/field/method of that value
+   /// - a value in the cached variables
+   /// - a value from the Json record
+   /// </summary>
    public abstract class KeySource
    {
       public readonly String Input;
@@ -48,7 +55,7 @@ namespace Bitmanager.ImportPipeline
       {
          if (value == null) return null;
          JToken tk = value as JToken;
-         if (tk != null) return (DateTime)tk;
+         if (tk != null) return (DateTime?)tk;
          return (DateTime)value;
       }
 
@@ -72,7 +79,7 @@ namespace Bitmanager.ImportPipeline
          {
             rest = ks.Substring(6).Trim();
             if (String.IsNullOrEmpty(rest)) goto INVALID;
-            return new KeySource_FieldExpr(ks, rest);
+            return new KeySource_JsonExpr(ks, rest);
          }
 
          MemberTypes filter;
@@ -112,6 +119,9 @@ namespace Bitmanager.ImportPipeline
       }
    }
 
+   /// <summary>
+   /// KeySource that extracts key and date information from a value that was supplied to the pipeline
+   /// </summary>
    public class KeySource_Value : KeySource
    {
       public KeySource_Value(String input)
@@ -121,7 +131,7 @@ namespace Bitmanager.ImportPipeline
 
       public override String GetKey(PipelineContext ctx, Object value)
       {
-         return value.ToString();
+         return value==null ? null : value.ToString();
       }
 
       public override DateTime? GetKeyDate(PipelineContext ctx, Object value)
@@ -129,6 +139,10 @@ namespace Bitmanager.ImportPipeline
          return toDateTime(value);
       }
    }
+
+   /// <summary>
+   /// KeySource that extracts key and date information from cached variables in the pipeline.
+   /// </summary>
    public class KeySource_Var : KeySource
    {
       protected readonly String varkey;
@@ -149,71 +163,51 @@ namespace Bitmanager.ImportPipeline
       }
    }
 
+   /// <summary>
+   /// KeySource that extracts key and date information from a sub[field/prop/method] of a value that was supplied to the pipeline
+   /// </summary>
    public class KeySource_ValueExpr : KeySource
    {
-      static readonly Object[] noparms = new Object[0];
-      protected PropertyInfo propInfo;
-      protected FieldInfo fieldInfo;
-      protected MethodInfo methodInfo;
-      MemberTypes filter;
+      protected Func<Object, Object> getter;
+      protected readonly MemberTypes filter;
       protected readonly String expr;
+
       public KeySource_ValueExpr(String input, String expr, MemberTypes filter): base (input)
       {
          this.expr = expr;
          this.filter = filter;
       }
 
-      protected Object getValue(Object input)
-      {
-         propInfo = null;
-         fieldInfo = null;
-         methodInfo = null;
-         input.GetType().FindMembers(filter, BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance, filterMembers, null);
-         if (propInfo != null) return propInfo.GetValue(input);
-         if (methodInfo != null) return methodInfo.Invoke(input, noparms);
-         if (fieldInfo != null) return fieldInfo.GetValue(input);
-         throw new BMException("Object [{0}] doesn't have a [{1}]", input, base.Input);
-      }
       public override String GetKey(PipelineContext ctx, Object value)
       {
-         Object ret = getValue(value);
+         if (value == null) return null;
+         Object ret = getLambda(value)(value);
          return ret == null ? null : ret.ToString();
       }
       public override DateTime? GetKeyDate(PipelineContext ctx, Object value)
       {
-         return toDateTime(getValue(value));
+         if (value == null) return null;
+         Object ret = getLambda(value)(value);
+         return toDateTime(ret);
       }
 
-      private bool filterMembers(MemberInfo m, object filterCriteria)
+      private Func<Object, Object> getLambda(Object o)
       {
-         if (!expr.Equals(m.Name, StringComparison.OrdinalIgnoreCase)) return false;
-         switch (m.MemberType)
-         {
-            case MemberTypes.Field:
-               if (fieldInfo == null || m.Name == expr)
-                  fieldInfo = (FieldInfo)m;
-               break;
-            case MemberTypes.Property:
-               PropertyInfo pi = (PropertyInfo)m;
-               if (pi.GetIndexParameters().Length != 0)break;
-               if (propInfo == null || m.Name == expr)
-                  propInfo = pi;
-               break;
-            case MemberTypes.Method:
-               MethodInfo mi = (MethodInfo)m;
-               if (mi.GetParameters().Length != 0) break;
-               if (methodInfo == null || m.Name == expr)
-                  methodInfo = mi;
-              break;
-         }
-         return false;
+         return getter != null ? getter : createLambda(o);
+      }
+      private Func<Object, Object> createLambda(Object o)
+      {
+         return getter = o.GetType().GetBestMember(expr, filter, ReflectionExtensions.DefaultBinding | BindingFlags.NonPublic).CreateGetterLambda<Object, Object>();
       }
    }
 
-   public class KeySource_FieldExpr : KeySource
+   /// <summary>
+   /// KeySource that extracts key and date information from a Json object
+   /// </summary>
+   public class KeySource_JsonExpr : KeySource
    {
       protected readonly JPath expr;
-      public KeySource_FieldExpr(String input, String expr): base (input)
+      public KeySource_JsonExpr(String input, String expr): base (input)
       {
          this.expr = new JPath(expr);
       }

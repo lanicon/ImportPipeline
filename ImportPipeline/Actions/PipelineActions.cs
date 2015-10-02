@@ -63,6 +63,7 @@ namespace Bitmanager.ImportPipeline
       protected String forwardTo;
       protected String clrvarName;
       internal String[] VarsToClear;
+      public readonly bool Debug;
 
       public IDataEndpoint Endpoint { get { return endPoint; } }
       public bool HasEndpointName { get { return endpointName != null; } }
@@ -73,6 +74,7 @@ namespace Bitmanager.ImportPipeline
          this.pipeline = pipeline;
          this.node = node;
          if (logger == null) logger = pipeline.ImportEngine.DebugLog.Clone("action");
+         Debug = node.ReadBool("@debug", false);
          endpointName = node.ReadStr("@endpoint", null);
 
          scriptName = node.ReadStr("@script", null);
@@ -91,6 +93,7 @@ namespace Bitmanager.ImportPipeline
       protected PipelineAction(PipelineAction template, String name, Regex regex)
          : base(name)
       {
+         this.Debug = template.Debug;
          this.pipeline = template.pipeline;
          this.node = template.node;
          this.endpointName = optReplace (regex, name, template.endpointName);

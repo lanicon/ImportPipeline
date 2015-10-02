@@ -108,9 +108,32 @@ namespace Bitmanager.ImportPipeline.StreamProviders
 
       }
 
+      public override string ToString()
+      {
+         StringBuilder sb = new StringBuilder();
+         sb.Append(GetType().Name);
+         sb.Append(" [");
+         bool needComma = false;
+         if (Root != null)
+         {
+            needComma = true;
+            sb.Append("root=");
+            sb.Append(Root);
+         }
+         if (File != null)
+         {
+            if (needComma) sb.Append(", ");
+            sb.Append("file=");
+            sb.Append(File);
+         }
+         sb.Append(']');
+         return sb.ToString();
+      }
+
       public IEnumerable<IStreamProviderBase> GetElements(PipelineContext ctx)
       {
-         foreach (_FileElt elt in getFiles())
+         this.ctx = ctx; //Save for future use in places where we don't have a context
+         foreach (_FileElt elt in getFiles(ctx))
             yield return new FileStreamProvider(ctx, this, elt);
       }
 
@@ -143,15 +166,15 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          }
       }
 
-      List<_FileElt> getFiles ()
+      List<_FileElt> getFiles (PipelineContext ctx)
       {
          var list = new List<_FileElt>();
          if (tree != null)
          {
             tree.MinUtcDate = getMinDate();
-            tree.UserTag = list;
+            tree.UserTag = list;  //We fill list instead of tree.Files...
             tree.ReadFiles(Root, recursive ? _ReadFileFlags.rfSubdirs : 0);
-            if (ctx != null) ctx.ImportLog.Log("-- Found {0} files.", tree.Files.Count);
+            if (ctx != null) ctx.ImportLog.Log("-- Found {0} files.\n{1}", list.Count, Environment.StackTrace);
             goto EXIT_RTN;
          }
 

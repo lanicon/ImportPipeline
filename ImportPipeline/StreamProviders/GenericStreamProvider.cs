@@ -49,6 +49,15 @@ namespace Bitmanager.ImportPipeline.StreamProviders
                   throw new BMNodeException(node, "Missing url/file attributes and provider-nodes.");
       }
 
+      public static void DumpRoots (PipelineContext ctx, IStreamProvidersRoot roots)
+      {
+         Logger lg = ctx.ImportLog;
+         var list = roots.GetRootElements(ctx).ToList();
+         lg.Log("Loaded {0} provider roots:", list.Count);
+         foreach (var x in list)
+            lg.Log("-- {0}", x);
+      }
+
       private bool tryFromProviderNodes(PipelineContext ctx, XmlElement nodeElt)
       {
          XmlNodeList nodes = nodeElt.SelectNodes("provider");

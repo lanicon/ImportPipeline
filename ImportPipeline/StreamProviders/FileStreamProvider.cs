@@ -174,7 +174,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
             tree.MinUtcDate = getMinDate();
             tree.UserTag = list;  //We fill list instead of tree.Files...
             tree.ReadFiles(Root, recursive ? _ReadFileFlags.rfSubdirs : 0);
-            if (ctx != null) ctx.ImportLog.Log("-- Found {0} files.\n{1}", list.Count, Environment.StackTrace);
+            if (ctx != null) ctx.ImportLog.Log("-- Found {0} files.", list.Count);
             goto EXIT_RTN;
          }
 

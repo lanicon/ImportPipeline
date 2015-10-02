@@ -140,7 +140,6 @@
     <Compile Include="PipelineContext.cs" />
     <Compile Include="Actions\PipelineTemplates.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RelectionCache.cs" />
     <Compile Include="ReplaceConverter.cs" />
     <Compile Include="RunAdministration.cs" />
     <Compile Include="ScriptBase.cs" />

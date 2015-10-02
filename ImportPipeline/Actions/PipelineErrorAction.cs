@@ -68,7 +68,18 @@ namespace Bitmanager.ImportPipeline
             }
          }
 
-         ((IErrorEndpoint)Endpoint).SaveError(ctx, err);
+         try
+         {
+            ((IErrorEndpoint)Endpoint).SaveError(ctx, err);
+         }
+         catch (Exception e)
+         {
+            const String msg = "Failed to write exception to error endpoint.";
+            ctx.ErrorLog.Log(e, msg);
+            ctx.ErrorLog.Log(e, "Original error");
+            throw new BMException(e, msg);
+         }
+
          endPoint.Clear();
          pipeline.ClearVariables();
 

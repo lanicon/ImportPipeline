@@ -98,11 +98,11 @@ namespace Bitmanager.ImportPipeline
             if (!dateNeeded) return ExistState.Exist;
             record = (JObject)hits[0];
          }
-         DateTime dt = record.ReadDate("fields." + DateFieldName, DateTime.MinValue);
+         DateTime dt = record.ReadDate("_source." + DateFieldName, DateTime.MinValue);
          if (dt == DateTime.MinValue)
          {
             if (conn.Logger != null) conn.Logger.Log(_LogType.ltWarning, "Exists: Record without field [" + DateFieldName + "] returned.");
-            return ExistState.NotExist;
+            return ExistState.Exist;
          }
          //Logs.DebugLog.Log("Record=" + record);
          //Logs.DebugLog.Log("RecDate={0}, Timestamp={1}, cmp={2}", date, timeStamp, Comparer<DateTime>.Default.Compare((DateTime)date, (DateTime)timeStamp));

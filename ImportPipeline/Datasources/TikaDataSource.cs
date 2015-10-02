@@ -90,10 +90,10 @@ namespace Bitmanager.ImportPipeline
             ServicePointManager.DefaultConnectionLimit = maxParallel;
          }
 
-         GenericStreamProvider.DumpRoots(ctx, streamProvider);
          ensureTikaServiceStarted(ctx);
          previousRun = ctx.RunAdministrations.GetLastOKRunDateShifted(ctx.DatasourceAdmin);
          ctx.ImportLog.Log("Previous (shifted) run was {0}.", previousRun);
+         GenericStreamProvider.DumpRoots(ctx, streamProvider);
          try
          {
             if (this.mustEmitSecurity) securityCache = new SecurityCache(TikaSecurityAccount.FactoryImpl);
@@ -177,6 +177,7 @@ namespace Bitmanager.ImportPipeline
          sink.HandleValue(ctx, "record/_start", fileName);
          sink.HandleValue(ctx, "record/lastmodutc", worker.LastModifiedUtc);
          sink.HandleValue(ctx, "record/virtualFilename", worker.StreamElt.VirtualName);
+         sink.HandleValue(ctx, "record/virtualRoot", worker.StreamElt.VirtualRoot);
 
          try
          {

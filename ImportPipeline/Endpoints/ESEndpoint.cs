@@ -99,7 +99,12 @@ namespace Bitmanager.ImportPipeline
       {
          if (ReadOnly) return;
 
-         if (!base.logCloseAndCheckForNormalClose(ctx)) goto CLOSE_BASE;
+         if (!base.logCloseAndCheckForNormalClose(ctx))
+         {
+            ctx.ImportLog.Log("-- Only flushing indexes");
+            Indexes.Flush(Connection);
+            goto CLOSE_BASE;
+         }
          switch (Indexes.Count)
          {
             case 0: goto CLOSE_BASE;

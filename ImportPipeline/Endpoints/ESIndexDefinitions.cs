@@ -80,6 +80,10 @@ namespace Bitmanager.ImportPipeline
       {
          for (int i = 0; i < list.Count; i++) list[i].OptionalOptimize(conn);
       }
+      public void Flush(ESConnection conn)
+      {
+         for (int i = 0; i < list.Count; i++) list[i].Flush (conn);
+      }
 
 
       public ESIndexDefinition GetDefinition(String name, bool mustExcept = true)
@@ -363,6 +367,12 @@ namespace Bitmanager.ImportPipeline
          return isNew;
       }
 
+      public void Flush(ESConnection conn)
+      {
+         if (!IsOpen) return;
+         ESIndexCmd cmd = conn.CreateIndexRequest();
+         cmd.Flush(IndexName);
+      }
       public void OptionalOptimize(ESConnection conn)
       {
          if (OptimizeToSegments <= 0) return;

@@ -60,10 +60,13 @@ namespace Bitmanager.ImportPipeline
       {
          ExistState ret = ExistState.NotExist;
          String k = keySource.GetKey(ctx, value);
+         if (Debug) ctx.DebugLog.Log("CheckExistAction: key={0}, source={1}", k == null ? "NULL" : k, this.keySource.Input); 
          if (k != null)
          {
             DateTime? dt = dateSource == null ? null : dateSource.GetKeyDate(ctx, value);
+            if (Debug) ctx.DebugLog.Log("-- dt={0}, source={1}", dt == null ? "NULL" : dt.ToString(), this.dateSource );
             ret = endPoint.Exists(ctx, k, dt);
+            if (Debug) ctx.DebugLog.Log("-- ret={0}", ret);
          }
          PostProcess(ctx, value);
          return ret;

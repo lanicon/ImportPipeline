@@ -18,6 +18,7 @@
  */
 
 using Bitmanager.Core;
+using Bitmanager.ImportPipeline.StreamProviders;
 using HtmlAgilityPack;
 using System;
 using System.Collections.Generic;
@@ -34,7 +35,7 @@ namespace Bitmanager.ImportPipeline
    {
       public readonly TikaDS Parent;
       public readonly StringDict Attribs;
-      public readonly FileNameFeederElement FullElt;
+      public readonly IStreamProvider StreamElt;
       public readonly DateTime LastModifiedUtc;
       public readonly long FileSize;
 
@@ -44,13 +45,13 @@ namespace Bitmanager.ImportPipeline
       private String dbgStoreDir;
       private static int storeNum;
 
-      public TikaAsyncWorker(TikaDS parent, IDatasourceFeederElement elt)
+      public TikaAsyncWorker(TikaDS parent, IStreamProvider elt)
       {
          action = LoadUrl;
          Parent = parent;
          dbgStoreDir = parent.DbgStoreDir;
          Attribs = new StringDict();
-         var coll = elt.Context.Attributes;
+         var coll = elt.ContextNode.Attributes;
          for (int i = 0; i < coll.Count; i++)
          {
             var att = coll[i];
@@ -58,15 +59,15 @@ namespace Bitmanager.ImportPipeline
             if (att.LocalName.Equals("baseurl", StringComparison.InvariantCultureIgnoreCase)) continue;
             Attribs[att.LocalName] = att.Value;
          }
-         FullElt = (FileNameFeederElement)elt;
-         FileInfo info = new FileInfo(FullElt.FileName);
+         StreamElt = elt;
+         FileInfo info = new FileInfo(StreamElt.FullName);
          LastModifiedUtc = info.LastWriteTimeUtc;
          FileSize = info.Length;
       }
 
       public void LoadUrl(AsyncRequestElement elt)
       {
-         loadUrl(this.FullElt.FileName);
+         loadUrl(this.StreamElt.FullName);
       }
 
       private void loadUrl(String fn)

@@ -38,6 +38,7 @@ using Bitmanager.Elastic;
 using Bitmanager.IO;
 using System.Security.Principal;
 using System.Security.AccessControl;
+using Bitmanager.ImportPipeline.StreamProviders;
 
 namespace Bitmanager.ImportPipeline
 {
@@ -46,7 +47,7 @@ namespace Bitmanager.ImportPipeline
       private String processName;
       public String UriBase {get; private set;}
       public String DbgStoreDir { get; private set; }
-      private IDatasourceFeeder feeder;
+      private GenericStreamProvider streamProvider;
       private String pingUrl;
       private int pingTimeout;
       private int abstractLength, abstractDelta;
@@ -61,7 +62,7 @@ namespace Bitmanager.ImportPipeline
          processName = node.ReadStr("@tikaprocess");
          UriBase = node.ReadStr("@tikaurl");
          if (!UriBase.EndsWith("/")) UriBase += "/";
-         feeder = ctx.CreateFeeder (node);
+         streamProvider = new GenericStreamProvider(ctx, node);
          abstractLength = node.ReadInt("abstract/@maxlength", 256);
          abstractDelta = node.ReadInt("abstract/@delta", 20);
          DbgStoreDir = node.ReadStr("dbgstore", null);
@@ -88,13 +89,15 @@ namespace Bitmanager.ImportPipeline
             ctx.ImportLog.Log("Updating connectionLimit for {0} to {1}", ServicePointManager.DefaultConnectionLimit, maxParallel);
             ServicePointManager.DefaultConnectionLimit = maxParallel;
          }
+
+         GenericStreamProvider.DumpRoots(ctx, streamProvider);
          ensureTikaServiceStarted(ctx);
          previousRun = ctx.RunAdministrations.GetLastOKRunDateShifted(ctx.DatasourceAdmin);
          ctx.ImportLog.Log("Previous (shifted) run was {0}.", previousRun);
          try
          {
             if (this.mustEmitSecurity) securityCache = new SecurityCache(TikaSecurityAccount.FactoryImpl);
-            foreach (var elt in feeder.GetElements(ctx))
+            foreach (var elt in streamProvider.GetElements(ctx))
             {
                try
                {
@@ -102,7 +105,7 @@ namespace Bitmanager.ImportPipeline
                }
                catch (Exception e)
                {
-                  throw new BMException(e, e.Message + "\r\nUrl=" + elt.Element + ".");
+                  throw new BMException(e, "{0}\r\nUrl={1}.", e.Message, elt);
                }
             }
             //Handle still queued workers
@@ -138,13 +141,14 @@ namespace Bitmanager.ImportPipeline
             return null;
          }
       }
-      private void importUrl(PipelineContext ctx, IDatasourceSink sink, IDatasourceFeederElement elt)
+      private void importUrl(PipelineContext ctx, IDatasourceSink sink, IStreamProvider elt)
       {
-         TikaAsyncWorker worker = new TikaAsyncWorker (this, elt);
-         String fileName = worker.FullElt.FileName;
+         ctx.IncrementEmitted();
+         TikaAsyncWorker worker = new TikaAsyncWorker(this, elt);
+         String fileName = elt.FullName;
          sink.HandleValue (ctx, "record/_start", fileName);
          sink.HandleValue(ctx, "record/lastmodutc", worker.LastModifiedUtc);
-         sink.HandleValue(ctx, "record/virtualFilename", worker.FullElt.VirtualFileName);
+         sink.HandleValue(ctx, "record/virtualFilename", elt.VirtualName);
 
          //Check if we need to convert this file
          if ((ctx.ImportFlags & _ImportFlags.ImportFull) == 0) //Not a full import
@@ -154,28 +158,25 @@ namespace Bitmanager.ImportPipeline
                ctx.Skipped++;
                return;
             }
-            ExistState existState = toExistState (sink.HandleValue(ctx, "record/_checkexist", null));
+            ExistState existState = toExistState (sink.HandleValue(ctx, "record/_checkexist", elt));
             if ((existState & (ExistState.ExistSame | ExistState.ExistNewer | ExistState.Exist)) != 0)
             {
                ctx.Skipped++;
-               //ctx.ImportLog.Log("Skipped: {0}. Date={1}", worker.FullElt.VirtualFileName, worker.LastModifiedUtc);
                return;
             }
          }
 
-
-         TikaAsyncWorker popped = pushPop (ctx, sink, worker);
+         TikaAsyncWorker popped = pushPop(ctx, sink, worker);
          if (popped != null)
             importUrl(ctx, sink, popped);
       }
 
       private void importUrl(PipelineContext ctx, IDatasourceSink sink, TikaAsyncWorker worker)
       {
-         ctx.IncrementEmitted();
-         String fileName = worker.FullElt.FileName;
+         String fileName = worker.StreamElt.FullName;
          sink.HandleValue(ctx, "record/_start", fileName);
          sink.HandleValue(ctx, "record/lastmodutc", worker.LastModifiedUtc);
-         sink.HandleValue(ctx, "record/virtualFilename", worker.FullElt.VirtualFileName);
+         sink.HandleValue(ctx, "record/virtualFilename", worker.StreamElt.VirtualName);
 
          try
          {
@@ -255,7 +256,7 @@ namespace Bitmanager.ImportPipeline
 
       private void ensureTikaServiceStarted(PipelineContext ctx)
       {
-         ctx.ImportLog.Log(_LogType.ltTimerStart, "xx starting tika");
+         ctx.ImportLog.Log(_LogType.ltTimerStart, "tika: starting TikaService");
          ctx.ImportEngine.ProcessHostCollection.EnsureStarted(this.processName);
          if (pingUrl == null)
          {
@@ -264,7 +265,7 @@ namespace Bitmanager.ImportPipeline
             return;
          }
 
-         ctx.ImportLog.Log(_LogType.ltTimer, "xx waiting");
+         ctx.ImportLog.Log(_LogType.ltTimer, "tika: service starting, waiting for ping reply.");
          DateTime limit = DateTime.UtcNow.AddMilliseconds(pingTimeout);
          Uri uri = new Uri(pingUrl);
          Exception saved = null;
@@ -275,7 +276,7 @@ namespace Bitmanager.ImportPipeline
                try
                {
                   client.DownloadData(uri);
-                  ctx.ImportLog.Log(_LogType.ltTimerStop, "xx started");
+                  ctx.ImportLog.Log(_LogType.ltTimerStop, "tika: up&running");
                   return;
                }
                catch (Exception err)

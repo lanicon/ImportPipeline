@@ -43,13 +43,11 @@ namespace Bitmanager.ImportPipeline
 {
    public class JsonDatasource : Datasource
    {
-      //PW private IDatasourceFeeder feeder;
       private GenericStreamProvider streamProvider;
       private int splitUntil;
       private bool dumpReader;
       public void Init(PipelineContext ctx, XmlNode node)
       {
-         //PW feeder = ctx.CreateFeeder(node);
          streamProvider = new GenericStreamProvider(ctx, node);
          dumpReader = node.ReadBool("@debug", false);
          splitUntil = node.ReadInt("@splituntil", 1);
@@ -79,12 +77,11 @@ namespace Bitmanager.ImportPipeline
       private void importUrl(PipelineContext ctx, IDatasourceSink sink, IStreamProvider elt)
       {
          StringDict attribs = getAttributes(elt.ContextNode);
-         var fullElt = elt; //pw  (FileNameFeederElement)elt;
-         String fileName = fullElt.FullName;
+         String fileName = elt.FullName;
          sink.HandleValue(ctx, "_start", fileName);
          //DateTime dtFile = File.GetLastWriteTimeUtc(fileName);
          //sink.HandleValue(ctx, "record/lastmodutc", dtFile);
-         sink.HandleValue(ctx, "record/virtualFilename", fullElt.FullName); //pwVirtualFileName);
+         sink.HandleValue(ctx, "record/virtualFilename", elt.VirtualName);
 
          ExistState existState = ExistState.NotExist;
          if ((ctx.ImportFlags & _ImportFlags.ImportFull) == 0) //Not a full import
@@ -105,7 +102,7 @@ namespace Bitmanager.ImportPipeline
          Stream fs = null;
          try
          {
-            fs = elt.CreateStream(); //PW new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 16 * 1024);
+            fs = elt.CreateStream();
             JsonTextReader rdr = new JsonTextReader  (new StreamReader (fs, true));
             JObject obj = (JObject)JObject.ReadFrom(rdr);
             rdr.Close();
@@ -128,18 +125,6 @@ namespace Bitmanager.ImportPipeline
       }
       public void Import(PipelineContext ctx, IDatasourceSink sink)
       {
-         //PW
-         //foreach (var elt in feeder.GetElements(ctx))
-         //{
-         //   try
-         //   {
-         //      importUrl(ctx, sink, elt);
-         //   }
-         //   catch (Exception e)
-         //   {
-         //      throw new BMException(e, e.Message + "\r\nUrl=" + elt.Element + ".");
-         //   }
-         //}
          foreach (var elt in streamProvider.GetElements(ctx))
          {
             try

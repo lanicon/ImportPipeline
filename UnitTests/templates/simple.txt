@@ -1,0 +1,5 @@
+$$#define var=abc$$
+$$#include incl.txt$$
+$$#undef var$$
+this line is in between
+$$#include incl.txt$$

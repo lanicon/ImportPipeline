@@ -77,7 +77,7 @@
     <Compile Include="VariableTests.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ImportPipeline\ImportPipeline.csproj">
+    <ProjectReference Include="..\ImportPipeline.csproj">
       <Project>{b0c6c1db-fa8a-418e-89d8-2f21d7650d3e}</Project>
       <Name>ImportPipeline</Name>
     </ProjectReference>

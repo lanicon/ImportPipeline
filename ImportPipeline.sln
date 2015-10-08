@@ -3,26 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImportPipeline", "ImportPipeline.csproj", "{B0C6C1DB-FA8A-418E-89D8-2F21D7650D3E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImportPipeline", "ImportPipeline\ImportPipeline.csproj", "{B0C6C1DB-FA8A-418E-89D8-2F21D7650D3E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HtmlDatasource", "..\HtmlDatasource\HtmlDatasource.csproj", "{67A6E646-6C1A-44CB-A33D-6591BD3EF6C1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Importer", "Importer\Importer.csproj", "{FFE19C24-9E55-459E-9CD9-0F589DDBD7E7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Importer", "..\Importer\Importer.csproj", "{FFE19C24-9E55-459E-9CD9-0F589DDBD7E7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImportPipelineTests", "ImportPipeline\UnitTests\UnitTests.csproj", "{548CB122-39DF-4C60-9D8B-50E3A11BBA89}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{6BCAA79C-370B-4178-A22A-2716752668E8}"
-	ProjectSection(SolutionItems) = preProject
-		koersen.js = koersen.js
-		notes.txt = notes.txt
-		..\Importer\ImportDirs\desttrans\TransExt.cs = ..\Importer\ImportDirs\desttrans\TransExt.cs
-	EndProjectSection
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "importDirs", "..\Importer\importDirs.csproj", "{A8763DBE-7B61-40F5-938D-1CA0E8C2FBE4}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "..\UnitTests\UnitTests.csproj", "{548CB122-39DF-4C60-9D8B-50E3A11BBA89}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BmGps100", "..\BmGps100\BmGps100\BmGps100.csproj", "{AB680EA9-97C0-40B8-A8DD-EBD81113366E}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestPostProcessor", "..\TestPostProcessor\TestPostProcessor.csproj", "{725D5A33-20A7-4C6A-829C-753C775C2351}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestPostProcessor", "TestPostProcessor\TestPostProcessor.csproj", "{725D5A33-20A7-4C6A-829C-753C775C2351}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

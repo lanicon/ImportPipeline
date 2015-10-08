@@ -20,6 +20,7 @@
 using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Bitmanager.IO;
+using Bitmanager.Core;
 using Bitmanager.ImportPipeline;
 using Bitmanager.Xml;
 using System.IO;
@@ -37,6 +38,7 @@ namespace UnitTests
       [TestMethod]
       public void TestMethod1()
       {
+         Console.WriteLine(root);
          using (ImportEngine eng = new ImportEngine())
          {
             eng.Load(root + "providers.xml");
@@ -68,7 +70,7 @@ namespace UnitTests
          }
       }
 
-      private static String toString(IStreamProvider p)
+      private String toString(IStreamProvider p)
       {
          FileStreamProvider fsp = p as FileStreamProvider;
          if (fsp == null) return p.ToString();
@@ -79,15 +81,21 @@ namespace UnitTests
          sb.Append(p.RelativeName);
          sb.Append(", v=");
          sb.Append(p.VirtualName);
-         return sb.ToString();
+         return replaceRoot(sb.ToString());
       }
-      private static void dumpProvider(TextWriter w, GenericStreamProvider p, PipelineContext ctx, String what)
+
+      private String replaceRoot (String x)
+      {
+         if (String.IsNullOrEmpty(x)) return x;
+         return x.ReplaceEx(IOUtils.DelSlash(root), @"<ROOT>", StringComparison.OrdinalIgnoreCase);
+      }
+      private void dumpProvider(TextWriter w, GenericStreamProvider p, PipelineContext ctx, String what)
       {
          w.WriteLine();
          w.WriteLine(what);
          w.WriteLine("Dumping roots");
          foreach (var r in p.GetRootElements(ctx))
-            w.WriteLine("-- " + r);
+            w.WriteLine("-- " + replaceRoot(r.ToString()));
          w.WriteLine("Dumping leafs");
          foreach (var r in p.GetElements(ctx))
             w.WriteLine("-- " + toString(r));

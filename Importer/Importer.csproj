@@ -94,10 +94,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\HtmlDatasource\HtmlDatasource.csproj">
-      <Project>{67a6e646-6c1a-44cb-a33d-6591bd3ef6c1}</Project>
-      <Name>HtmlDatasource</Name>
-    </ProjectReference>
     <ProjectReference Include="..\ImportPipeline\ImportPipeline.csproj">
       <Project>{b0c6c1db-fa8a-418e-89d8-2f21d7650d3e}</Project>
       <Name>ImportPipeline</Name>

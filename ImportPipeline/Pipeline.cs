@@ -195,7 +195,7 @@ namespace Bitmanager.ImportPipeline
       {
          if (trace) ctx.ImportFlags |= _ImportFlags.TraceValues;
          missed = new StringDict();
-         if (ScriptTypeName != null && ScriptObject==null)
+         if (ScriptTypeName != null) //NB: always create a new script object. Never reuse an existing one.
          {
             ScriptObject = Objects.CreateObject(ScriptTypeName, ctx);
             logger.Log("Script({0})={1}", ScriptTypeName, ScriptObject);

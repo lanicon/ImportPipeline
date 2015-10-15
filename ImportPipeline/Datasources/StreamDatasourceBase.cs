@@ -36,6 +36,7 @@ namespace Bitmanager.ImportPipeline
    {
       protected GenericStreamProvider streamProvider;
       protected Encoding encoding;
+      protected int splitUntil;
       protected bool logSkips;
       protected bool addEmitted;
 
@@ -56,6 +57,7 @@ namespace Bitmanager.ImportPipeline
          String enc = node.ReadStr("@encoding", null);
          encoding = enc == null ? defEncoding : Encoding.GetEncoding(enc);
          logSkips = node.ReadBool("@logskips", logSkips);
+         splitUntil = node.ReadInt("@splituntil", splitUntil);
       }
 
       public void Import(PipelineContext ctx, IDatasourceSink sink)

@@ -210,7 +210,7 @@ namespace Bitmanager.ImportPipeline
 
          LogAdds = xml.ReadInt("@logadds", LogAdds);
          MaxAdds = xml.ReadInt("@maxadds", MaxAdds);
-         ImportLog.Log("Loading import xml: flags={0}, logadds={1}, maxadds={2}", ImportFlags, LogAdds, MaxAdds);
+         ImportLog.Log("Loading import xml: flags={0}, logadds={1}, maxadds={2}, file={3}.", ImportFlags, LogAdds, MaxAdds, xml.FileName);
 
          binDir = Xml.CombinePath(Xml.ReadStr ("@bindir", "bin"));
          if (Directory.Exists(binDir))
@@ -218,7 +218,7 @@ namespace Bitmanager.ImportPipeline
          else
          {
             binDir = null;
-            ImportLog.Log(_LogType.ltInfo, "No bin dir found... All executables are loaded from {0}.", Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
+            ImportLog.Log(_LogType.ltInfo, "No bin dir found... All executables are loaded from {0}.\r\nCheck bin dir={1}.", Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), binDir);
          }
 
          XmlNode x = Xml.SelectSingleNode("report");

@@ -65,7 +65,6 @@ namespace Bitmanager.ImportPipeline
       protected Converter[] converters;
       protected IDataEndpoint endPoint;
       protected String endpointName, convertersName, scriptName;
-      protected String forwardTo;
       protected String clrvarName;
       internal String[] VarsToClear;
       public readonly bool Debug;
@@ -86,7 +85,6 @@ namespace Bitmanager.ImportPipeline
          if (src != null) valueSource = ValueSource.Parse (src);
 
          scriptName = node.ReadStr("@script", null);
-         forwardTo = node.ReadStr("@forward", null);
 
          clrvarName = node.ReadStr("@clrvar", null);
          VarsToClear = clrvarName.SplitStandard();
@@ -111,7 +109,6 @@ namespace Bitmanager.ImportPipeline
          this.endpointName = optReplace (regex, name, template.endpointName);
          this.convertersName = optReplace (regex, name, template.convertersName);
          this.scriptName = optReplace(regex, name, template.scriptName);
-         this.forwardTo = optReplace(regex, name, template.forwardTo);
          this.clrvarName = optReplace(regex, name, template.clrvarName);
          if (this.clrvarName == template.clrvarName)
             this.VarsToClear = template.VarsToClear;
@@ -159,15 +156,6 @@ namespace Bitmanager.ImportPipeline
          for (int i = 0; i < converters.Length; i++)
             value = converters[i].Convert(ctx, value);
          return value;
-      }
-
-
-      /// <summary>
-      /// Optional forward the value to another action
-      /// </summary>
-      protected Object PostProcess(PipelineContext ctx, Object value)
-      {
-         return (forwardTo == null) ? value : ctx.Pipeline.HandleValue(ctx, forwardTo, value);
       }
 
       public override string ToString()

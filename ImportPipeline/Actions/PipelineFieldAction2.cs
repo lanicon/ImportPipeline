@@ -82,7 +82,7 @@ namespace Bitmanager.ImportPipeline
                if (fn != null) endPoint.SetField(fn, value, fieldFlags, sep);
             }
          if (toVar != null) ctx.Pipeline.SetVariable(toVar, value);
-         return base.PostProcess(ctx, value);
+         return value;
       }
 
       protected override void _ToString(StringBuilder sb)

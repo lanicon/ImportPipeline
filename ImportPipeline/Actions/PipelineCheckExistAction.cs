@@ -68,7 +68,6 @@ namespace Bitmanager.ImportPipeline
             ret = endPoint.Exists(ctx, k, dt);
             if (Debug) ctx.DebugLog.Log("-- ret={0}", ret);
          }
-         PostProcess(ctx, value);
          return ret;
 
       }

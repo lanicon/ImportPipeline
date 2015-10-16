@@ -84,7 +84,7 @@ namespace Bitmanager.ImportPipeline
          pipeline.ClearVariables();
 
       EXIT_RTN:
-         return PostProcess(ctx, value);
+         return value;
       }
    }
 

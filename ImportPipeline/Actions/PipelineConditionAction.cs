@@ -147,7 +147,7 @@ namespace Bitmanager.ImportPipeline
          }
 
          EXIT_RTN:
-         return PostProcess(ctx, value);
+         return value;
       }
 
       public override void Start(PipelineContext ctx)

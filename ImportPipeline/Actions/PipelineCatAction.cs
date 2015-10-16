@@ -67,7 +67,7 @@ namespace Bitmanager.ImportPipeline
          foreach (var cat in Categories) cat.HandleRecord(ctx);
 
       EXIT_RTN:
-         return PostProcess(ctx, value);
+         return value;
       }
    }
 

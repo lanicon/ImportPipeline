@@ -64,7 +64,7 @@ namespace Bitmanager.ImportPipeline
          if (reckey == null) return null;
 
          this.endPoint.EmitRecord(ctx, reckey, recField, sink, eventKey, maxLevel);
-         return PostProcess(ctx, value);
+         return value;
       }
 
       protected override void _ToString(StringBuilder sb)

@@ -36,8 +36,9 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="bmcore101">
-      <HintPath>..\..\_References\bmcore101.dll</HintPath>
+    <Reference Include="bmcore101, Version=1.0.1.121, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\_references\bmcore101.dll</HintPath>
     </Reference>
     <Reference Include="bmelastic100">
       <HintPath>..\..\_References\bmelastic100.dll</HintPath>

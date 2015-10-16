@@ -90,7 +90,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          else
          {
             tree = new FileTree();
-            Root = root = Path.GetFullPath (ctx.ImportEngine.Xml.CombinePath(root));
+            Root = root = ctx.ImportEngine.Xml.CombinePath(root);
             RootLen = root.Length;
             if (root[root.Length - 1] != '\\') RootLen++;
 

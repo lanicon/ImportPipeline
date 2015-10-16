@@ -37,8 +37,9 @@
     <ApplicationIcon>database_refresh.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="bmcore101">
-      <HintPath>..\..\_References\bmcore101.dll</HintPath>
+    <Reference Include="bmcore101, Version=1.0.1.121, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\_references\bmcore101.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=4.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>

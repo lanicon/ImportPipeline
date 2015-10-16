@@ -572,18 +572,137 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
-      public static void EmitToken(PipelineContext ctx, IDatasourceSink sink, JToken token, String key, int maxLevel)
+      public static void EmitInnerTokens(PipelineContext ctx, IDatasourceSink sink, JToken token, String key, int maxLevel)
       {
          if (token == null) return;
-         Object value = token;
-         maxLevel--; 
+         maxLevel--;
          switch (token.Type)
          {
             case JTokenType.Array:
                if (maxLevel < 0) break;
                var arr = (JArray)token;
                String tmpKey = key + "/_v";
-               for (int i=0; i<arr.Count; i++)
+               for (int i = 0; i < arr.Count; i++)
+                  EmitToken(ctx, sink, arr[i], tmpKey, maxLevel);
+               sink.HandleValue(ctx, key, null);
+               return;
+            case JTokenType.Object:
+               if (maxLevel < 0) break;
+               JObject obj = (JObject)token;
+               foreach (var kvp in obj)
+               {
+                  EmitToken(ctx, sink, kvp.Value, key + "/" + generateObjectKey(kvp.Key), maxLevel);
+               }
+               sink.HandleValue(ctx, key, null);
+               return;
+         }
+      }
+
+      public void EmitVariables (PipelineContext ctx, IDatasourceSink sink, String key, int maxLevel)
+      {
+         if (variables!=null)
+         {
+            foreach (var kvp in variables)
+            {
+               var tmpkey = key + '/' + kvp.Value;
+               if (maxLevel <= 0) goto EMIT_RAW;
+
+               JToken tk = kvp.Value as JToken;
+               if (tk != null)
+               {
+                  SplitTokens(ctx, sink, tk, tmpkey, maxLevel);
+                  continue;
+               }
+
+            EMIT_RAW:
+               sink.HandleValue(ctx, tmpkey, kvp.Value);
+            }
+         }
+      }
+
+      public static void SplitInnerTokens(PipelineContext ctx, IDatasourceSink sink, JToken token, String key, int maxLevel)
+      {
+         if (token == null) return;
+         String tmpKey;
+         maxLevel--;
+         switch (token.Type)
+         {
+            case JTokenType.Array:
+               if (maxLevel < 0) break;
+               var arr = (JArray)token;
+               tmpKey = key + "/_v";
+               for (int i = 0; i < arr.Count; i++)
+                  SplitTokens(ctx, sink, arr[i], tmpKey, maxLevel);
+               sink.HandleValue(ctx, key, null);
+               return;
+            case JTokenType.Object:
+               if (maxLevel < 0) break;
+               JObject obj = (JObject)token;
+               tmpKey = key + '/';
+               foreach (var kvp in obj)
+               {
+                  SplitTokens(ctx, sink, kvp.Value, tmpKey + kvp.Key, maxLevel);
+               }
+               sink.HandleValue(ctx, key, null);
+               return;
+         }
+      }
+
+      public static void SplitTokens(PipelineContext ctx, IDatasourceSink sink, JToken token, String key, int maxLevel)
+      {
+         if (token == null) return;
+         String tmpKey;
+         Object value = token;
+         maxLevel--;
+         switch (token.Type)
+         {
+            case JTokenType.None:
+            case JTokenType.Null:
+            case JTokenType.Undefined:
+               value = null;
+               break;
+            case JTokenType.Date: 
+            case JTokenType.String:
+            case JTokenType.Float: 
+            case JTokenType.Integer:
+            case JTokenType.Boolean: break;
+
+            case JTokenType.Array:
+               if (maxLevel < 0) break;
+               var arr = (JArray)token;
+               tmpKey = key + "/_v";
+               for (int i = 0; i < arr.Count; i++)
+                  SplitTokens(ctx, sink, arr[i], tmpKey, maxLevel);
+               sink.HandleValue(ctx, key, null);
+               return;
+
+            case JTokenType.Object:
+               if (maxLevel < 0) break;
+               JObject obj = (JObject)token;
+               tmpKey = key + '/';
+               foreach (var kvp in obj)
+               {
+                  SplitTokens(ctx, sink, kvp.Value, tmpKey + kvp.Key, maxLevel);
+               }
+               sink.HandleValue(ctx, key, null);
+               return;
+         }
+         sink.HandleValue(ctx, key, value);
+      }
+
+      
+      public static void EmitToken(PipelineContext ctx, IDatasourceSink sink, JToken token, String key, int maxLevel)
+      {
+         if (token == null) return;
+         Object value = token;
+         maxLevel--;
+         switch (token.Type)
+         {
+            case JTokenType.Array:
+               if (maxLevel < 0) break;
+               var arr = (JArray)token;
+               String tmpKey = key + "/_v";
+               for (int i = 0; i < arr.Count; i++)
                   EmitToken(ctx, sink, arr[i], tmpKey, maxLevel);
                sink.HandleValue(ctx, key, null);
                return;
@@ -601,10 +720,9 @@ namespace Bitmanager.ImportPipeline
             case JTokenType.Object:
                if (maxLevel < 0) break;
                JObject obj = (JObject)token;
-               int newLvl = maxLevel - 1;
                foreach (var kvp in obj)
                {
-                  EmitToken (ctx, sink, kvp.Value, key + "/" + generateObjectKey(kvp.Key), maxLevel);
+                  EmitToken(ctx, sink, kvp.Value, key + "/" + generateObjectKey(kvp.Key), maxLevel);
                }
                sink.HandleValue(ctx, key, null);
                return;

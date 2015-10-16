@@ -30,19 +30,19 @@ using System.Threading.Tasks;
 namespace Bitmanager.ImportPipeline
 {
    /// <summary>
-   /// KeySource that extracts key and date information from 
+   /// ValueSource that extracts a value from 
    /// - a value
    /// - a property/field/method of that value
    /// - a value in the cached variables
    /// - a value from the Json record
    /// </summary>
-   public abstract class KeySource
+   public abstract class ValueSource
    {
+      public static readonly ValueSource Default = new ValueSource_Value("value");
       public readonly String Input;
-      public abstract String    GetKey(PipelineContext ctx, Object value);
-      public abstract DateTime? GetKeyDate (PipelineContext ctx, Object value);
+      public abstract Object GetValue(PipelineContext ctx, Object value);
 
-      protected KeySource (String input)
+      protected ValueSource (String input)
       {
          Input = input;
       }
@@ -51,19 +51,12 @@ namespace Bitmanager.ImportPipeline
       {
          return Input;
       }
-      protected static DateTime? toDateTime (Object value)
-      {
-         if (value == null) return null;
-         JToken tk = value as JToken;
-         if (tk != null) return (DateTime?)tk;
-         return (DateTime)value;
-      }
 
-      public static KeySource Parse(String ks)
+      public static ValueSource Parse(String ks)
       {
          if (String.IsNullOrEmpty(ks)) return null;
 
-         if ("value".Equals(ks, StringComparison.OrdinalIgnoreCase)) return new KeySource_Value(ks);
+         if ("value".Equals(ks, StringComparison.OrdinalIgnoreCase)) return Default;
 
          String[] arr = ks.Split(':');
          if (arr.Length < 2 || arr.Length > 3) goto INVALID;
@@ -73,13 +66,20 @@ namespace Bitmanager.ImportPipeline
          {
             rest = ks.Substring(4).Trim();
             if (String.IsNullOrEmpty(rest)) goto INVALID;
-            return new KeySource_Var(ks, rest);
+            return new ValueSource_Var(ks, rest);
          }
          if (ks.StartsWith("field:", StringComparison.OrdinalIgnoreCase))
          {
             rest = ks.Substring(6).Trim();
             if (String.IsNullOrEmpty(rest)) goto INVALID;
-            return new KeySource_JsonExpr(ks, rest);
+            return new ValueSource_JsonExpr(ks, rest);
+         }
+
+         if (ks.StartsWith("record:", StringComparison.OrdinalIgnoreCase))
+         {
+            rest = ks.Substring(6).Trim();
+            if (String.IsNullOrEmpty(rest)) return new ValueSource_Record(ks);
+            return new ValueSource_RecordJsonExpr(ks, rest);
          }
 
          MemberTypes filter;
@@ -112,83 +112,67 @@ namespace Bitmanager.ImportPipeline
 
          CREATE_VALUE_EXPR:
          if (String.IsNullOrEmpty(rest)) goto INVALID;
-         return new KeySource_ValueExpr(ks, rest, filter);
+         return new ValueSource_ValueExpr(ks, rest, filter);
 
          INVALID:
-         throw new BMException ("Invalid keysource [{0}].\nShould be in format 'value:(p|m|f|):xxx|field:xxx|var:xxx", ks);
+         throw new BMException ("Invalid valuesource [{0}].\nShould be in format 'value:(p|m|f|):xxx|field:xxx|var:xxx|record:xxx", ks);
       }
    }
 
    /// <summary>
-   /// KeySource that extracts key and date information from a value that was supplied to the pipeline
+   /// ValueSource that extracts the value from a value that was supplied to the pipeline
    /// </summary>
-   public class KeySource_Value : KeySource
+   public class ValueSource_Value : ValueSource
    {
-      public KeySource_Value(String input)
+      public ValueSource_Value(String input)
          : base(input)
       {
       }
 
-      public override String GetKey(PipelineContext ctx, Object value)
+      public override Object GetValue(PipelineContext ctx, Object value)
       {
-         return value==null ? null : value.ToString();
+         return value;
       }
 
-      public override DateTime? GetKeyDate(PipelineContext ctx, Object value)
-      {
-         return toDateTime(value);
-      }
    }
 
    /// <summary>
-   /// KeySource that extracts key and date information from cached variables in the pipeline.
+   /// ValueSource that extracts the value from cached variables in the pipeline.
    /// </summary>
-   public class KeySource_Var : KeySource
+   public class ValueSource_Var : ValueSource
    {
       protected readonly String varkey;
-      public KeySource_Var(String input, String varkey): base (input)
+      public ValueSource_Var(String input, String varkey)
+         : base(input)
       {
          this.varkey = varkey;
       }
 
-      public override String GetKey(PipelineContext ctx, Object value)
+      public override Object GetValue(PipelineContext ctx, Object value)
       {
-         Object k = ctx.Pipeline.GetVariable(varkey);
-         return k == null ? null : k.ToString();
-      }
-
-      public override DateTime? GetKeyDate(PipelineContext ctx, Object value)
-      {
-         return toDateTime(ctx.Pipeline.GetVariable(varkey));
+         return ctx.Pipeline.GetVariable(varkey);
       }
    }
 
    /// <summary>
-   /// KeySource that extracts key and date information from a sub[field/prop/method] of a value that was supplied to the pipeline
+   /// ValueSource that extracts the value from a sub[field/prop/method] of a value that was supplied to the pipeline
    /// </summary>
-   public class KeySource_ValueExpr : KeySource
+   public class ValueSource_ValueExpr : ValueSource
    {
       protected Func<Object, Object> getter;
       protected readonly MemberTypes filter;
       protected readonly String expr;
 
-      public KeySource_ValueExpr(String input, String expr, MemberTypes filter): base (input)
+      public ValueSource_ValueExpr(String input, String expr, MemberTypes filter): base (input)
       {
          this.expr = expr;
          this.filter = filter;
       }
 
-      public override String GetKey(PipelineContext ctx, Object value)
+      public override Object GetValue(PipelineContext ctx, Object value)
       {
          if (value == null) return null;
-         Object ret = getLambda(value)(value);
-         return ret == null ? null : ret.ToString();
-      }
-      public override DateTime? GetKeyDate(PipelineContext ctx, Object value)
-      {
-         if (value == null) return null;
-         Object ret = getLambda(value)(value);
-         return toDateTime(ret);
+         return getLambda(value)(value);
       }
 
       private Func<Object, Object> getLambda(Object o)
@@ -202,26 +186,56 @@ namespace Bitmanager.ImportPipeline
    }
 
    /// <summary>
-   /// KeySource that extracts key and date information from a Json object
+   /// ValueSource that extracts the value from a Json object
    /// </summary>
-   public class KeySource_JsonExpr : KeySource
+   public class ValueSource_JsonExpr : ValueSource
    {
       protected readonly JPath expr;
-      public KeySource_JsonExpr(String input, String expr)
+      public ValueSource_JsonExpr(String input, String expr)
          : base(input)
       {
          this.expr = new JPath(expr);
       }
 
-      public override String GetKey(PipelineContext ctx, Object value)
+      public override Object GetValue(PipelineContext ctx, Object value)
       {
          if (value == null) return null;
-         return (String)expr.Evaluate((JObject)value, JEvaluateFlags.NoExceptMissing);
+         return expr.Evaluate((JObject)value, JEvaluateFlags.NoExceptMissing);
       }
-      public override DateTime? GetKeyDate(PipelineContext ctx, Object value)
+   }
+
+   /// <summary>
+   /// ValueSource that extracts the value from the associated record object
+   /// </summary>
+   public class ValueSource_RecordJsonExpr : ValueSource
+   {
+      protected readonly JPath expr;
+      public ValueSource_RecordJsonExpr(String input, String expr)
+         : base(input)
       {
-         if (value == null) return null;
-         return (DateTime?)expr.Evaluate((JObject)value, JEvaluateFlags.NoExceptMissing);
+         this.expr = new JPath(expr);
+      }
+
+      public override Object GetValue(PipelineContext ctx, Object value)
+      {
+         value = ctx.Action.Endpoint.GetField(null);
+         return value == null ? null : expr.Evaluate((JObject)value, JEvaluateFlags.NoExceptMissing);
+      }
+   }
+
+   /// <summary>
+   /// ValueSource that extracts the value from the associated full record object
+   /// </summary>
+   public class ValueSource_Record : ValueSource
+   {
+      public ValueSource_Record(String input)
+         : base(input)
+      {
+      }
+
+      public override Object GetValue(PipelineContext ctx, Object value)
+      {
+         return ctx.Action.Endpoint.GetField(null);
       }
    }
 }

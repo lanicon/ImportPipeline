@@ -35,7 +35,7 @@ namespace Bitmanager.ImportPipeline
    public enum _ActionType
    {
       Nop = 1,
-      Field = 2,
+      OrgField = 2,
       Add = 3,
       Emit = 4,
       ErrorHandler = 5,
@@ -49,6 +49,10 @@ namespace Bitmanager.ImportPipeline
       Cond = 10,
       Condition = 10,
       CheckExist = 11,
+      Forward = 12,
+      Split = 13,
+      EmitVars = 14,
+      Field = 15,
    }
    public abstract class PipelineAction : NamedItem
    {
@@ -56,6 +60,7 @@ namespace Bitmanager.ImportPipeline
       protected readonly Pipeline pipeline;
       protected readonly XmlNode node;
       protected static Logger logger;
+      protected ValueSource valueSource;
       protected ScriptDelegate scriptDelegate;
       protected Converter[] converters;
       protected IDataEndpoint endPoint;
@@ -77,6 +82,9 @@ namespace Bitmanager.ImportPipeline
          Debug = node.ReadBool("@debug", false);
          endpointName = node.ReadStr("@endpoint", null);
 
+         String src = node.ReadStr("@source", null);
+         if (src != null) valueSource = ValueSource.Parse (src);
+
          scriptName = node.ReadStr("@script", null);
          forwardTo = node.ReadStr("@forward", null);
 
@@ -85,6 +93,10 @@ namespace Bitmanager.ImportPipeline
          
          convertersName = Converters.readConverters(node);
          if (convertersName == null) convertersName = pipeline.DefaultConverters;
+
+         var x = this as PipelineForwardAction;
+         if (x==null && node.ReadStr("@forward", null) != null)
+            throw new BMNodeException (node, "[forward] attribute not supported. Use type='forward' instead."); 
       }
 
       protected PipelineAction(String name) : base(name) { }  //Only needed for NOP action
@@ -105,6 +117,15 @@ namespace Bitmanager.ImportPipeline
             this.VarsToClear = template.VarsToClear;
          else
             this.VarsToClear = this.clrvarName.SplitStandard();
+
+         if (template.valueSource != null)
+         {
+            String src = optReplace(regex, name, template.valueSource.Input);
+            if (src == template.valueSource.Input)
+               valueSource = template.valueSource;
+            else
+               valueSource = ValueSource.Parse(src);
+         }
       }
 
       public virtual void Start(PipelineContext ctx)
@@ -127,6 +148,7 @@ namespace Bitmanager.ImportPipeline
       /// </summary>
       protected Object ConvertAndCallScript(PipelineContext ctx, String key, Object value)
       {
+         if (valueSource != null) value = valueSource.GetValue(ctx, value);
          if (scriptDelegate != null)
          {
             value = scriptDelegate(ctx, key, value);
@@ -162,6 +184,7 @@ namespace Bitmanager.ImportPipeline
          if (convertersName != null) b.AppendFormat(", conv={0}", convertersName);
          if (scriptName != null) b.AppendFormat(", script={0}", scriptName);
          if (clrvarName != null) b.AppendFormat(", clrvar={0}", clrvarName);
+         if (valueSource != null) b.AppendFormat(", source={0}", valueSource);
       }
 
       public abstract Object HandleValue(PipelineContext ctx, String key, Object value);
@@ -185,7 +208,8 @@ namespace Bitmanager.ImportPipeline
             case _ActionType.Add: return new PipelineAddAction(pipeline, node);
             case _ActionType.Clr: return new PipelineClearAction(pipeline, node);
             case _ActionType.Nop: return new PipelineNopAction(pipeline, node);
-            case _ActionType.Field: return new PipelineFieldAction(pipeline, node);
+            case _ActionType.OrgField: return new PipelineFieldAction(pipeline, node);
+            case _ActionType.Field: return new PipelineFieldAction2(pipeline, node);
             case _ActionType.Emit: return new PipelineEmitAction(pipeline, node);
             case _ActionType.ErrorHandler: return new PipelineErrorAction(pipeline, node);
             case _ActionType.Except: return new PipelineExceptionAction(pipeline, node);
@@ -193,6 +217,9 @@ namespace Bitmanager.ImportPipeline
             case _ActionType.Cat: return new PipelineCategorieAction(pipeline, node);
             case _ActionType.Cond: return new PipelineConditionAction(pipeline, node);
             case _ActionType.CheckExist: return new PipelineCheckExistAction(pipeline, node);
+            case _ActionType.Forward: return new PipelineForwardAction(pipeline, node);
+            case _ActionType.Split: return new PipelineSplitAction(pipeline, node);
+            case _ActionType.EmitVars: return new PipelineEmitVarsAction(pipeline, node);
          }
          act.ThrowUnexpected();
          return null; //Keep compiler happy

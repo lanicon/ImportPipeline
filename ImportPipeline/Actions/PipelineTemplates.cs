@@ -53,13 +53,17 @@ namespace Bitmanager.ImportPipeline
             case _ActionType.Add: return new PipelineAddTemplate(pipeline, node);
             case _ActionType.Clear: return new PipelineClearTemplate(pipeline, node);
             case _ActionType.Nop: return new PipelineNopTemplate(pipeline, node);
-            case _ActionType.Field: return new PipelineFieldTemplate(pipeline, node);
+            case _ActionType.OrgField: return new PipelineFieldTemplate(pipeline, node);
+            case _ActionType.Field: return new PipelineFieldTemplate2(pipeline, node);
             case _ActionType.Emit: return new PipelineEmitTemplate(pipeline, node);
             case _ActionType.Except: return new PipelineExceptionTemplate(pipeline, node);
             case _ActionType.Del: return new PipelineDeleteTemplate(pipeline, node);
             case _ActionType.Cat: return new PipelineCategorieTemplate(pipeline, node);
             case _ActionType.Cond: return new PipelineConditionTemplate(pipeline, node);
             case _ActionType.CheckExist: return new PipelineCheckExistTemplate(pipeline, node);
+            case _ActionType.Forward: return new PipelineForwardTemplate(pipeline, node);
+            case _ActionType.Split: return new PipelineSplitTemplate(pipeline, node);
+            case _ActionType.EmitVars: return new PipelineEmitVarsTemplate(pipeline, node);
          }
          act.ThrowUnexpected();
          return null;

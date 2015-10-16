@@ -69,9 +69,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Actions\PipelineEmitVarsAction.cs" />
+    <Compile Include="Actions\PipelineFieldAction2.cs" />
+    <Compile Include="Actions\PipelineSplitAction.cs" />
+    <Compile Include="Actions\ValueSource.cs" />
     <Compile Include="Actions\KeySource.cs" />
     <Compile Include="Actions\PipelineCatAction.cs" />
     <Compile Include="Actions\PipelineConditionAction.cs" />
+    <Compile Include="Actions\PipelineForwardAction.cs" />
     <Compile Include="Actions\PipelineDeleteAction.cs" />
     <Compile Include="Actions\PipelineClearAction.cs" />
     <Compile Include="Actions\PipelineAddAction.cs" />

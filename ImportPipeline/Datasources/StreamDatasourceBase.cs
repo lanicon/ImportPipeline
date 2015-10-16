@@ -110,8 +110,8 @@ namespace Bitmanager.ImportPipeline
          int orgEmitted = ctx.Emitted;
          if (addEmitted)
             ctx.IncrementEmitted();
-         sink.HandleValue(ctx, "_start", elt.FullName);
          DateTime dtFile = elt.LastModified;
+         sink.HandleValue(ctx, "record/_start", elt);
          sink.HandleValue(ctx, "record/lastmodutc", dtFile);
          sink.HandleValue(ctx, "record/filename", elt.FullName);
          sink.HandleValue(ctx, "record/virtualfilename", elt.VirtualName);

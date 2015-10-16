@@ -64,10 +64,11 @@ namespace Bitmanager.ImportPipeline
       protected ScriptDelegate scriptDelegate;
       protected Converter[] converters;
       protected IDataEndpoint endPoint;
-      protected String endpointName, convertersName, scriptName;
-      protected String clrvarName;
+      protected readonly String endpointName, convertersName, scriptName;
+      protected readonly String clrvarName;
       internal String[] VarsToClear;
       public readonly bool Debug;
+      public          bool ConvertAndCallScriptNeeded;
 
       public IDataEndpoint Endpoint { get { return endPoint; } }
       public bool HasEndpointName { get { return endpointName != null; } }
@@ -95,6 +96,8 @@ namespace Bitmanager.ImportPipeline
          var x = this as PipelineForwardAction;
          if (x==null && node.ReadStr("@forward", null) != null)
             throw new BMNodeException (node, "[forward] attribute not supported. Use type='forward' instead."); 
+
+         updateConvertAndCallScriptNeeded();
       }
 
       protected PipelineAction(String name) : base(name) { }  //Only needed for NOP action
@@ -123,6 +126,12 @@ namespace Bitmanager.ImportPipeline
             else
                valueSource = ValueSource.Parse(src);
          }
+         updateConvertAndCallScriptNeeded();
+      }
+
+      protected void updateConvertAndCallScriptNeeded()
+      {
+         ConvertAndCallScriptNeeded = (valueSource != null || convertersName != null || scriptName != null);
       }
 
       public virtual void Start(PipelineContext ctx)

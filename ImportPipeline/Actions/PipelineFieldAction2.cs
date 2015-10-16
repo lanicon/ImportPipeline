@@ -70,8 +70,11 @@ namespace Bitmanager.ImportPipeline
 
       public override Object HandleValue(PipelineContext ctx, String key, Object value)
       {
-         value = ConvertAndCallScript(ctx, key, value);
-         if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) return null;
+         if (base.ConvertAndCallScriptNeeded)
+         {
+            value = ConvertAndCallScript(ctx, key, value);
+            if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) return null;
+         }
 
          if (toField != null)
             endPoint.SetField(toFieldReal, value, fieldFlags, sep);

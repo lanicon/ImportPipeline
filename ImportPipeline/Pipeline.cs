@@ -60,10 +60,22 @@ namespace Bitmanager.ImportPipeline
       }
    }
 
+   class EndpointCacheEntry
+   {
+      public readonly String Name;
+      public readonly IDataEndpoint Endpoint;
+      public readonly String PostProcessors;
+      public EndpointCacheEntry(String name, IDataEndpoint endpoint, String postProcessors)
+      {
+         Name = name;
+         Endpoint = endpoint;
+         PostProcessors = postProcessors;
+      }
+   }
    public class Pipeline : NamedItem, IDatasourceSink
    {
       private Dictionary<String, Object> variables;
-      private StringDict<IDataEndpoint> endPointCache;
+      private StringDict<EndpointCacheEntry> endPointCache;
 
       public readonly String DefaultEndpoint;
       public readonly String DefaultConverters;
@@ -213,7 +225,7 @@ namespace Bitmanager.ImportPipeline
 
          if (endPointCache != null)
             foreach (var kvp in this.endPointCache) {
-               kvp.Value.Start(ctx);
+               kvp.Value.Endpoint.Start(ctx);
                var resolver = kvp.Value as IEndpointResolver;
                if (ctx.AdminEndpoint==null && resolver != null) ctx.AdminEndpoint = resolver.GetAdminEndpoint(ctx);
             }
@@ -285,7 +297,7 @@ namespace Bitmanager.ImportPipeline
          started = false;
          if (endPointCache != null)
             foreach (var kvp in this.endPointCache)
-               kvp.Value.Stop(ctx);
+               kvp.Value.Endpoint.Stop(ctx);
          Dump("after import");
 
          endPointCache = null;
@@ -314,25 +326,54 @@ namespace Bitmanager.ImportPipeline
          return ds.Name;
       }
 
+
+      /// <summary>
+      /// Gets an existing endpoint from the cache or creates and initializes a new one.
+      /// If a new endpoint is instantiated, its optionally wrapped by a list of postprocessors
+      /// </summary>
+      public IDataEndpoint CreateOrGetDataEndpoint(PipelineContext ctx, String name, String postProcessors)
+      {
+         String endpointName = getEndpointName(name, ctx.DatasourceAdmin);
+         EndpointCacheEntry epEntry;
+
+         if (endPointCache == null) endPointCache = new StringDict<EndpointCacheEntry>();
+         if (endPointCache.TryGetValue(endpointName, out epEntry))
+         {
+            if (postProcessors==null || String.Equals (postProcessors, epEntry.PostProcessors, StringComparison.OrdinalIgnoreCase))
+               return epEntry.Endpoint;
+            throw new BMException("Endpoint [{0}] is used with different post-processors [{1}] adn [{2}].", epEntry.Name, epEntry.PostProcessors, postProcessors);
+         }
+
+         IDataEndpoint ep = this.ImportEngine.Endpoints.GetDataEndpoint(ctx, endpointName);
+         if (postProcessors == null)
+            postProcessors = DefaultPostProcessors;
+         if (postProcessors != null) 
+            ep = wrapPostProcessors (ctx, ep, postProcessors);
+         epEntry = new EndpointCacheEntry(endpointName, ep, postProcessors);
+         endPointCache.Add(endpointName, epEntry);
+
+         if (started) epEntry.Endpoint.Start(ctx);
+         return epEntry.Endpoint;
+      }
+
+      /// <summary>
+      /// Gets an existing endpoint from the cache.
+      /// Only valid after initializtion of the Pipeline
+      /// </summary>
       public IDataEndpoint GetDataEndpoint(PipelineContext ctx, String name)
       {
          String endpointName = getEndpointName (name, ctx.DatasourceAdmin);
-         IDataEndpoint ret;
+         EndpointCacheEntry epEntry;
 
-         if (endPointCache == null) endPointCache = new StringDict<IDataEndpoint>();
-         if (endPointCache.TryGetValue(endpointName, out ret)) return ret;
+         if (endPointCache == null || !endPointCache.TryGetValue(endpointName, out epEntry))
+            throw new BMException("Endpoint [{0}] not found.", endpointName);
 
-         ret = this.ImportEngine.Endpoints.GetDataEndpoint(ctx, endpointName);
-         ret = wrapPostProcessors(ctx, ret, null);
-         endPointCache.Add(endpointName, ret);
-         if (started) ret.Start(ctx); 
-         return ret;
+         return epEntry.Endpoint;
       }
 
       //Optional wraps an existing endpoint with a set of post-processors
       private IDataEndpoint wrapPostProcessors (PipelineContext ctx, IDataEndpoint ep, String processors)
       {
-         if (processors == null) processors = DefaultPostProcessors;
          if (String.IsNullOrEmpty(processors)) return ep;
 
          String[] arr = processors.SplitStandard();

@@ -53,6 +53,7 @@ namespace Bitmanager.ImportPipeline
       Split = 13,
       EmitVars = 14,
       Field = 15,
+      Remove = 16,
    }
    public abstract class PipelineAction : NamedItem
    {
@@ -64,6 +65,7 @@ namespace Bitmanager.ImportPipeline
       protected ScriptDelegate scriptDelegate;
       protected Converter[] converters;
       protected IDataEndpoint endPoint;
+      protected readonly String postProcessors;
       protected readonly String endpointName, convertersName, scriptName;
       protected readonly String clrvarName;
       internal String[] VarsToClear;
@@ -81,6 +83,8 @@ namespace Bitmanager.ImportPipeline
          if (logger == null) logger = pipeline.ImportEngine.DebugLog.Clone("action");
          Debug = node.ReadBool("@debug", false);
          endpointName = node.ReadStr("@endpoint", null);
+         postProcessors = node.ReadStr("@postprocessors", null);
+
 
          String src = node.ReadStr("@source", null);
          if (src != null) valueSource = ValueSource.Parse (src);
@@ -110,7 +114,8 @@ namespace Bitmanager.ImportPipeline
          this.pipeline = template.pipeline;
          this.node = template.node;
          this.endpointName = optReplace (regex, name, template.endpointName);
-         this.convertersName = optReplace (regex, name, template.convertersName);
+         this.postProcessors = optReplace(regex, name, template.postProcessors);
+         this.convertersName = optReplace(regex, name, template.convertersName);
          this.scriptName = optReplace(regex, name, template.scriptName);
          this.clrvarName = optReplace(regex, name, template.clrvarName);
          if (this.clrvarName == template.clrvarName)
@@ -137,7 +142,7 @@ namespace Bitmanager.ImportPipeline
       public virtual void Start(PipelineContext ctx)
       {
          converters = ctx.ImportEngine.Converters.ToConverters(convertersName);
-         endPoint = ctx.Pipeline.GetDataEndpoint(ctx, endpointName);
+         endPoint = ctx.Pipeline.CreateOrGetDataEndpoint(ctx, endpointName, postProcessors);
          if (scriptName != null)
             scriptDelegate = pipeline.CreateScriptDelegate<ScriptDelegate>(scriptName, node);
       }
@@ -217,6 +222,7 @@ namespace Bitmanager.ImportPipeline
             case _ActionType.Forward: return new PipelineForwardAction(pipeline, node);
             case _ActionType.Split: return new PipelineSplitAction(pipeline, node);
             case _ActionType.EmitVars: return new PipelineEmitVarsAction(pipeline, node);
+            case _ActionType.Remove: return new PipelineRemoveAction(pipeline, node);
          }
          act.ThrowUnexpected();
          return null; //Keep compiler happy

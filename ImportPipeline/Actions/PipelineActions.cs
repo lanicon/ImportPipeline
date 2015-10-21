@@ -54,6 +54,7 @@ namespace Bitmanager.ImportPipeline
       EmitVars = 14,
       Field = 15,
       Remove = 16,
+      CopyToEndpoint=17,
    }
    public abstract class PipelineAction : NamedItem
    {
@@ -223,6 +224,7 @@ namespace Bitmanager.ImportPipeline
             case _ActionType.Split: return new PipelineSplitAction(pipeline, node);
             case _ActionType.EmitVars: return new PipelineEmitVarsAction(pipeline, node);
             case _ActionType.Remove: return new PipelineRemoveAction(pipeline, node);
+            case _ActionType.CopyToEndpoint: return new PipelineCopyToEndpointAction(pipeline, node);
          }
          act.ThrowUnexpected();
          return null; //Keep compiler happy

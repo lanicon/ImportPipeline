@@ -71,6 +71,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Actions\PipelineEmitVarsAction.cs" />
+    <Compile Include="Actions\PipelineCopyToEndpointAction.cs" />
     <Compile Include="Actions\PipelineRemoveAction.cs" />
     <Compile Include="Actions\PipelineFieldAction2.cs" />
     <Compile Include="Actions\PipelineSplitAction.cs" />

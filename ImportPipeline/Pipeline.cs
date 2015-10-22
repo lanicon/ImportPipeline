@@ -251,7 +251,7 @@ namespace Bitmanager.ImportPipeline
          {
             foreach (var kvp in endPointCache)
             {
-               var proc = kvp.Value as IPostProcessor;
+               var proc = kvp.Value.Endpoint as IPostProcessor;
                if (proc == null) continue;
                if (!countCopied)
                {

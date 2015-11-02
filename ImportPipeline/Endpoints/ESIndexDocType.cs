@@ -40,6 +40,7 @@ namespace Bitmanager.ImportPipeline
       public readonly ESIndexDefinition Index;
       public readonly String KeyFieldName;
       public readonly String DateFieldName;
+      public readonly String IdPath;
       //private IndexDefinition indexDefinition;
       //private XmlNode xmlNode;
       public String UrlPart { get { return Index.IndexName + "/" + TypeName; } }
@@ -51,6 +52,7 @@ namespace Bitmanager.ImportPipeline
          TypeName = node.ReadStr("@typename", Name);
          KeyFieldName = node.ReadStr("@keyfield", null);
          DateFieldName = node.ReadStr("@datefield", null);
+         IdPath = node.ReadStr("@idpath", null);
       }
 
       public ESIndexDocType(ESIndexDefinitions indexes, XmlNode node)
@@ -65,6 +67,26 @@ namespace Bitmanager.ImportPipeline
          : this(node)
       {
          Index = indexDefinition;
+      }
+
+      public JObject GetCmdForBulk(JObject obj, String verb="index")
+      {
+         if (IdPath == null) return null;
+         String id = (String)obj[IdPath];
+         if (id == null) return null;
+
+         JObject ret = new JObject();
+         JObject x = new JObject();
+         x["_id"] = id;
+         ret.Add(verb, x);
+         return ret;
+      }
+
+      public String GetUrlForAdd(JObject obj)
+      {
+         if (IdPath == null) return UrlPart;
+         String id = (String)obj[IdPath];
+         return id == null ? UrlPart : UrlPart + "/" + HttpUtility.UrlEncode(id);
       }
 
       public ExistState Exists(ESConnection conn, String key, DateTime? timeStamp = null)

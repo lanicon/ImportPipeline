@@ -32,6 +32,7 @@ using System.Collections;
 using System.IO;
 using Bitmanager.IO;
 using Bitmanager.ImportPipeline.Template;
+using System.Web;
 
 namespace Bitmanager.ImportPipeline
 {
@@ -265,16 +266,19 @@ namespace Bitmanager.ImportPipeline
          }
          if (accumulator.Count == 0) return;
          OptLogAdd();
+
          if (cache == null)
          {
             if (asyncQ == null)
-               Connection.Post(DocType.UrlPart, accumulator).ThrowIfError();
+            {
+               Connection.Post(DocType.GetUrlForAdd(accumulator), accumulator).ThrowIfError();
+            }
             else
                asyncQ.PushAndOptionalPop(new AsyncRequestElement(accumulator, asyncAdd));
          }
          else
          {
-            cache.Add(new ESBulkEntry(accumulator));
+            cache.Add(new ESBulkEntry(DocType.GetCmdForBulk(accumulator), accumulator));
             if (cache.Count >= cacheSize) FlushCache();
          }
          Clear();
@@ -285,13 +289,12 @@ namespace Bitmanager.ImportPipeline
          DocType.DeleteByKey(Connection, recordKey);
       }
 
-
       private void asyncAdd(AsyncRequestElement ctx)
       {
          JObject accu = ctx.Context as JObject;
          if (accu != null)
          {
-            Connection.Post(DocType.UrlPart, accu).ThrowIfError();
+            Connection.Post(DocType.GetUrlForAdd(accu), accu).ThrowIfError();
             return;
          }
          flushCache((List<ESBulkEntry>)ctx.Context);

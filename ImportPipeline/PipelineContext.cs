@@ -27,6 +27,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Xml;
+using Bitmanager.ImportPipeline.StreamProviders;
 
 namespace Bitmanager.ImportPipeline
 {
@@ -218,6 +219,21 @@ namespace Bitmanager.ImportPipeline
          valueForItemStart = value;
          itemStartPending = true;
          return Pipeline.HandleValue(this, "_item/_start", value);
+      }
+      public Object SendItemStart(IStreamProvider value)
+      {
+         valueForItemStart = value;
+         itemStartPending = true;
+
+         Object ret = Pipeline.HandleValue(this, "_item/_start", value);
+         if ((ActionFlags & _ActionFlags.SkipAll) == 0)
+         {
+            Pipeline.HandleValue(this, "_item/lastmodutc", value.LastModified);
+            Pipeline.HandleValue(this, "_item/filename", value.FullName);
+            Pipeline.HandleValue(this, "_item/virtualfilename", value.VirtualName);
+            Pipeline.HandleValue(this, "_item/virtualroot", value.VirtualRoot);
+         }
+         return ret;
       }
       public Object SendItemStop(Object value)
       {

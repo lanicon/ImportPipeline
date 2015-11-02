@@ -37,7 +37,7 @@ namespace Bitmanager.ImportPipeline
    /// </summary>
    public class PipelineForwardAction : PipelineAction
    {
-      private readonly new String forwardTo;
+      private readonly String forwardTo;
 
       public PipelineForwardAction(Pipeline pipeline, XmlNode node)
          : base(pipeline, node)

@@ -111,7 +111,8 @@ namespace Bitmanager.ImportPipeline
          if (addEmitted)
             ctx.IncrementEmitted();
          DateTime dtFile = elt.LastModified;
-         sink.HandleValue(ctx, "record/_start", elt);
+         ctx.SendItemStart(elt);
+         //TODO if ((ctx.ActionFlags & _ActionFlags.Skip) != 0
          sink.HandleValue(ctx, "record/lastmodutc", dtFile);
          sink.HandleValue(ctx, "record/filename", elt.FullName);
          sink.HandleValue(ctx, "record/virtualfilename", elt.VirtualName);
@@ -123,16 +124,22 @@ namespace Bitmanager.ImportPipeline
          }
          if (ctx.SkipUntilKey == "record") goto SKIPPED;
 
-         using (Stream fs = elt.CreateStream())
+         using (Stream fs = _CreateStream (elt))
          {
             ImportStream(ctx, sink, elt, fs);
          }
+         ctx.OptSendItemStop();
          return;
 
       SKIPPED:
          ctx.Skipped++;
          if (!addEmitted && orgEmitted == ctx.Emitted) ++ctx.Emitted;
          if (logSkips) ctx.DebugLog.Log("Skipped: {0}. Date={1}", elt.FullName, elt.LastModified);
+      }
+
+      protected virtual Stream _CreateStream (IStreamProvider elt)
+      {
+         return elt.CreateStream();
       }
    }
 }

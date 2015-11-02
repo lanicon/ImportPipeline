@@ -431,6 +431,7 @@ namespace Bitmanager.ImportPipeline
                case "endpoint": return typeof(Endpoint).FullName;
                case "esendpoint": return typeof(ESEndpoint).FullName;
                case "csv": return typeof(CsvDatasource).FullName;
+               case "excel": return typeof(ExcelDatasource).FullName;
                case "sql": return typeof(SqlDatasource).FullName;
                case "mysql": return typeof(MysqlDatasource).FullName;
                case "odbc": return typeof(OdbcDatasource).FullName;

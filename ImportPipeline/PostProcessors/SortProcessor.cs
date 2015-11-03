@@ -131,7 +131,7 @@ namespace Bitmanager.ImportPipeline
             if (this.undupper != null)
             {
                List<JObject> list = e.GetAll();
-               if (list.Count == 0) goto NEXT_PROC;
+               if (list.Count == 0) goto EXIT_RTN;
 
                cnt = list.Count;
                JObject prev = list[0];
@@ -175,10 +175,9 @@ namespace Bitmanager.ImportPipeline
                exp = cnt;
             }
 
-NEXT_PROC:
+EXIT_RTN:
             numAfterSort += cnt;
             numAfterUndup += exp;
-            base.CallNextPostProcessor(ctx);
             return exp;
          }
          finally

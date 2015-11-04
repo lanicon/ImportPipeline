@@ -138,6 +138,7 @@ namespace Bitmanager.ImportPipeline
 
 
       static ConverterFactory[] arr = {
+                new ConverterFactory ("normalize", typeof(NormalizeConverter)),
                 new ConverterFactory ("htmlencode", typeof(HtmlEncodeConverter)),
                 new ConverterFactory ("htmldecode", typeof(HtmlDecodeConverter)),
                 new ConverterFactory ("urlencode", typeof(UrlEncodeConverter)),
@@ -180,28 +181,6 @@ namespace Bitmanager.ImportPipeline
             if (arr[i].Name!=type) continue;
             return arr[i].Create(node);
          }
-         //switch (type)
-         //{
-         //   case "htmlencode": return new HtmlEncodeConverter(node);
-         //   case "htmldecode": return new HtmlDecodeConverter(node);
-         //   case "urlencode": return new UrlEncodeConverter(node);
-         //   case "urldecode": return new UrlDecodeConverter(node);
-         //   case "dateonly":
-         //   case "datetime":
-         //   case "date": 
-         //   case "time": return new ToDateConverter(node, type);
-         //   case "datepart": return new ToDatePartConverter(node, type);
-         //   case "trim": return new TrimConverter(node);
-         //   case "trimwhite": return new TrimWhiteConverter(node);
-         //   case "lower": return new ToLowerConverter(node);
-         //   case "upper": return new ToUpperConverter(node);
-         //   case "string": return new ToStringConverter(node);
-         //   case "double": return new ToDoubleConverter(node);
-         //   case "int32": return new ToInt32Converter(node);
-         //   case "int64": return new ToInt64Converter(node);
-         //   case "split": return new SplitConverter(node);
-         //   case "format": return new FormatConverter(node);
-         //}
          return Objects.CreateObject<Converter>(type, node);
       }
    }

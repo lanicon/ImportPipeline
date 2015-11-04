@@ -102,6 +102,7 @@
     <Compile Include="Categorizer\Catergory.cs" />
     <Compile Include="Categorizer\JsEvaluator.cs" />
     <Compile Include="Conditions\Condition.cs" />
+    <Compile Include="Converters\NormalizeConverter.cs" />
     <Compile Include="Converters\ComplexConverters.cs" />
     <Compile Include="AsyncEndpointRequestQueue.cs" />
     <Compile Include="Converters\HtmlToTextConverter.cs" />

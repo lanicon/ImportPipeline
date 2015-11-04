@@ -112,7 +112,7 @@ namespace Bitmanager.ImportPipeline
          if (x == null) return null;
          zipStream.Close();
          x.Position = 0;
-         zipStream = new GZipStream(x, CompressionMode.Decompress, true);
+         zipStream = new GZipStream(x, CompressionMode.Decompress, false);
 
          return zipStream.CreateTextReader();
       }

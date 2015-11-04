@@ -168,8 +168,11 @@ namespace Bitmanager.ImportPipeline
 
       private void getEnum(AsyncRequestElement ctx)
       {
+         Logger logger = Logs.CreateLogger("import", "load");
          int i = (int)ctx.Context;
-         ctx.Result = mapper.GetObjectEnumerator (i, true);
+         logger.Log(_LogType.ltTimerStart, "-- loading part {0}", i);
+         ctx.Result = mapper.GetObjectEnumerator(i, true);
+         logger.Log(_LogType.ltTimerStop, "-- loading finished");
       }
 
       public override void CallNextPostProcessor(PipelineContext ctx)
@@ -177,29 +180,31 @@ namespace Bitmanager.ImportPipeline
          ctx.PostProcessor = this;
          if (mapper!=null)
          {
+            ctx.ImportLog.Log(_LogType.ltTimerStart, "Reduce phase maxparallel={0}, fanout={1}.", readMaxParallel, fanOut);
             AsyncRequestQueue q = (readMaxParallel == 0 || fanOut <= 1) ? null : AsyncRequestQueue.Create(readMaxParallel);
 
             MappedObjectEnumerator e;
+            int i;
             if (q == null)
             {
-               for (int i = 0; true; i++)
+               for (i = 0; true; i++)
                {
                   e = mapper.GetObjectEnumerator(i);
                   if (e == null) break;
-                  ctx.Added += enumeratePartialAndClose(ctx, e);
+                  ctx.Added += enumeratePartialAndClose(ctx, e, i);
                }
             }
             else
             {
                //Push enum requests into the Q and process the results
-               for (int i = 0; true; i++)
+               for (i = 0; true; i++)
                {
                   var x = q.PushAndOptionalPop(new AsyncRequestElement(i, getEnum));
                   if (x == null) continue;
                   e = (MappedObjectEnumerator)x.Result;
                   if (e == null) break;
 
-                  ctx.Added += enumeratePartialAndClose(ctx, e);
+                  ctx.Added += enumeratePartialAndClose(ctx, e, i);
                }
 
                //Pop all existing from the Q and process them
@@ -210,15 +215,16 @@ namespace Bitmanager.ImportPipeline
                   e = (MappedObjectEnumerator)x.Result;
                   if (e == null) continue; ;
 
-                  ctx.Added += enumeratePartialAndClose(ctx, e);
+                  ctx.Added += enumeratePartialAndClose(ctx, e, i++);
                }
             }
          }
+         ctx.ImportLog.Log(_LogType.ltTimerStop, "Reduce phase ended.");
          Utils.FreeAndNil(ref mapper);
          base.CallNextPostProcessor(ctx);
       }
 
-      private int enumeratePartialAndClose(PipelineContext ctx, MappedObjectEnumerator e)
+      private int enumeratePartialAndClose(PipelineContext ctx, MappedObjectEnumerator e, int N)
       {
          try
          {
@@ -231,6 +237,7 @@ namespace Bitmanager.ImportPipeline
                if (list.Count == 0) goto EXIT_RTN;
 
                cnt = list.Count;
+               ctx.ImportLog.Log(_LogType.ltTimerStart, "-- enum partial[{0}]: count={1}", N, cnt);
                JObject prev = list[0];
                JToken[] prevKeys = undupper.GetKeys(prev);
                int prevIdx = 0;
@@ -258,9 +265,11 @@ namespace Bitmanager.ImportPipeline
                   nextEndpoint.Add(ctx);
                   ++exp;
                }
+               ctx.ImportLog.Log(_LogType.ltTimerStop, "-- enum done. Forwarded {0} recs.", exp);
             }
             else
             {
+               ctx.ImportLog.Log(_LogType.ltTimerStart, "-- enum partial[{0}]: count={1}", N, cnt);
                while (true)
                {
                   var obj = e.GetNext();
@@ -270,6 +279,7 @@ namespace Bitmanager.ImportPipeline
                   ++cnt;
                }
                exp = cnt;
+               ctx.ImportLog.Log(_LogType.ltTimerStop, "-- enum done. Forwarded {0} recs.", exp);
             }
 
       EXIT_RTN:

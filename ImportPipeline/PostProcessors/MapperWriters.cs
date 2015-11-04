@@ -51,32 +51,6 @@ namespace Bitmanager.ImportPipeline
 
    public abstract class MapperWritersBase : IDisposable
    {
-      //static Logger dbgLogger = null;//Logs.CreateLogger("import", "map");
-      //readonly JComparer comparer;
-      //readonly JComparer hasher;
-      //String[] fileNames;
-      //StreamWriter[] writers;
-      //private readonly bool compress, keepFiles;
-
-      //public FileBasedMapperWriters(JComparer hasher, JComparer comparer, String dir, String id, int cnt, bool compress, bool keepFiles = false)
-      //{
-      //   this.hasher = hasher;
-      //   this.comparer = comparer;
-      //   this.compress = compress;
-      //   this.keepFiles = keepFiles;
-      //   fileNames = new String[cnt];
-      //   writers = new StreamWriter[cnt];
-
-      //   IOUtils.ForceDirectories(dir, false);
-      //   String part1 = Path.GetFullPath(dir + "\\" + id);
-      //   dir = IOUtils.DelSlash(part1);
-      //   for (int i = 0; i < cnt; i++)
-      //   {
-      //      fileNames[i] = String.Format("{0}_{1}.tmp", part1, i);
-      //      writers[i] = createWriter(fileNames[i], compress, keepFiles);
-      //   }
-      //}
-
 
       /// <summary>
       /// Writes the data to the appropriate file (designed by the hash)

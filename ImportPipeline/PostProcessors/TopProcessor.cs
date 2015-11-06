@@ -32,14 +32,20 @@ using System.Xml;
 
 namespace Bitmanager.ImportPipeline
 {
+   /// <summary>
+   /// Holds the top/bottom N results and outputs them sorted or unsorted
+   /// </summary>
    public class TopProcessor : PostProcessorBase
    {
       private readonly JComparer sorter;
       FixedPriorityQueue<JObject> prique;
 
       int topCount;
+      int accepted;
       bool reverse;
+      _SortAfter sortAfter;
 
+      enum _SortAfter { True=1, False=2, Reverse=3}
 
       public TopProcessor(ImportEngine engine, XmlNode node): base (engine, node)
       {
@@ -47,10 +53,9 @@ namespace Bitmanager.ImportPipeline
          sorter = JComparer.Create(list);
          topCount = node.ReadInt ("@count");
          reverse = node.ReadBool ("@reverse", false);
+         sortAfter = node.ReadEnum("@sortafter", _SortAfter.True);
       }
 
-
-      //public delegate int Comparison<in T>(T x, T y);
 
       public TopProcessor(PipelineContext ctx, TopProcessor other, IDataEndpoint epOrnextProcessor)
          : base(other, epOrnextProcessor)
@@ -58,7 +63,7 @@ namespace Bitmanager.ImportPipeline
          sorter = other.sorter;
          reverse = other.reverse;
          topCount = other.topCount;
-         prique = new FixedPriorityQueue<JObject>(topCount, ComparisonWrappers.Create (sorter, !reverse));
+         prique = new FixedPriorityQueue<JObject>(topCount, ComparisonWrappers.Create (sorter, reverse));
       }
 
 
@@ -70,8 +75,8 @@ namespace Bitmanager.ImportPipeline
       public override string ToString()
       {
          StringBuilder sb = new StringBuilder();
-         sb.AppendFormat("{0} [type={1}, clone=#{2}, sorter={3}, count={4}, reverse={5}]",
-            Name, GetType().Name, InstanceNo, sorter, topCount, reverse);
+         sb.AppendFormat("{0} [type={1}, clone=#{2}, sorter={3}, count={4}, reverse={5}, sortafter={6}]",
+            Name, GetType().Name, InstanceNo, sorter, topCount, reverse, sortAfter);
          return sb.ToString();
       }
 
@@ -79,8 +84,9 @@ namespace Bitmanager.ImportPipeline
       {
          Logger logger = ctx.ImportLog;
          logger.Log("PostProcessor {0} ended.", this);
-         //logger.Log("-- In={0}, out={1}, passed through={2}, sorted={3}, after undup={4}.", numAfterSort, numAfterUndup, 0, numAfterSort, numAfterUndup);
+         logger.Log("-- In={0}, out={1}.", accepted, prique == null ? 0 : prique.Count);
       }
+
       public override void Stop(PipelineContext ctx)
       {
          dumpStats(ctx);
@@ -92,7 +98,16 @@ namespace Bitmanager.ImportPipeline
       {
          ctx.PostProcessor = this;
          int N = prique.Count;
-         prique.SortDestructive(sorter); 
+         switch (sortAfter)
+         {
+            case _SortAfter.True:
+               prique.SortDestructive(sorter);
+               break;
+            case _SortAfter.Reverse:
+               prique.SortDestructive(ComparisonWrappers.Create (sorter, true));
+               break;
+         }
+
          for (int i = 0; i < N; i++)
          {
             nextEndpoint.SetField(null, prique[i]);
@@ -105,6 +120,7 @@ namespace Bitmanager.ImportPipeline
       {
          if (accumulator.Count > 0)
          {
+            accepted++;
             prique.Add(accumulator);
             Clear();
          }

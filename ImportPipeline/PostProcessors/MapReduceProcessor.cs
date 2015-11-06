@@ -168,11 +168,8 @@ namespace Bitmanager.ImportPipeline
 
       private void getEnum(AsyncRequestElement ctx)
       {
-         Logger logger = Logs.CreateLogger("import", "load");
          int i = (int)ctx.Context;
-         logger.Log(_LogType.ltTimerStart, "-- loading part {0}", i);
          ctx.Result = mapper.GetObjectEnumerator(i, true);
-         logger.Log(_LogType.ltTimerStop, "-- loading finished");
       }
 
       public override void CallNextPostProcessor(PipelineContext ctx)

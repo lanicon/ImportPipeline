@@ -78,14 +78,6 @@ namespace Bitmanager.ImportPipeline
       }
 
 
-
-      //public override void CallNextPostProcessor(PipelineContext ctx)
-      //{
-      //   ctx.PostProcessor = this;
-      //   base.CallNextPostProcessor(ctx);
-      //}
-
-
       public override void Add(PipelineContext ctx)
       {
          if (accumulator.Count > 0)

@@ -27,7 +27,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-//using System.Threading.Tasks;
 using System.Xml;
 using System.Net;
 using System.IO;
@@ -36,8 +35,10 @@ using System.Text.RegularExpressions;
 using System.Web;
 using System.Threading;
 using Bitmanager.Elastic;
+using Bitmanager.IO;
 using Newtonsoft.Json;
 using Bitmanager.ImportPipeline.StreamProviders;
+using System.Reflection;
 
 namespace Bitmanager.ImportPipeline
 {
@@ -77,11 +78,7 @@ namespace Bitmanager.ImportPipeline
       private void importUrl(PipelineContext ctx, IDatasourceSink sink, IStreamProvider elt)
       {
          StringDict attribs = getAttributes(elt.ContextNode);
-         String fileName = elt.FullName;
-         sink.HandleValue(ctx, "_start", fileName);
-         //DateTime dtFile = File.GetLastWriteTimeUtc(fileName);
-         //sink.HandleValue(ctx, "record/lastmodutc", dtFile);
-         sink.HandleValue(ctx, "record/virtualFilename", elt.VirtualName);
+         ctx.SendItemStart(elt);
 
          ExistState existState = ExistState.NotExist;
          if ((ctx.ImportFlags & _ImportFlags.ImportFull) == 0) //Not a full import
@@ -104,12 +101,24 @@ namespace Bitmanager.ImportPipeline
          {
             fs = elt.CreateStream();
             JsonTextReader rdr = new JsonTextReader  (new StreamReader (fs, true));
-            JObject obj = (JObject)JObject.ReadFrom(rdr);
+            JToken jt = JObject.ReadFrom(rdr);
             rdr.Close();
             fs.Close();
 
-            Pipeline.EmitToken (ctx, sink, obj, "record", splitUntil);
-            ctx.IncrementEmitted();
+            if (jt.Type != JTokenType.Array)
+            {
+               Pipeline.EmitToken(ctx, sink, jt, "record", splitUntil);
+               ctx.IncrementEmitted();
+            }
+            else
+            {
+               foreach (var item in (JArray)jt)
+               {
+                  Pipeline.EmitToken(ctx, sink, item, "record", splitUntil);
+                  ctx.IncrementEmitted();
+               }
+            }
+            ctx.OptSendItemStop();
          }
          catch (Exception e)
          {

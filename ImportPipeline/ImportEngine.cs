@@ -64,6 +64,7 @@ namespace Bitmanager.ImportPipeline
       public ProcessHostCollection ProcessHostCollection;
       public PostProcessors PostProcessors;
       public ScriptHost ScriptHost;
+      protected internal ScriptExpressionHolder ScriptExpressions;
       public Logger ImportLog;
       public Logger DebugLog;
       public Logger ErrorLog;
@@ -194,6 +195,7 @@ namespace Bitmanager.ImportPipeline
 
       public IVariables MainVariables {get; set;}
       public IVariables FileVariables { get; set; }
+      public String TempDir { get; private set; }
 
       public void Load(XmlHelper xml)
       {
@@ -221,6 +223,9 @@ namespace Bitmanager.ImportPipeline
             ImportLog.Log(_LogType.ltInfo, "No bin dir found... All executables are loaded from {0}.\r\nCheck bin dir={1}.", Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), binDir);
          }
 
+         TempDir = IOUtils.AddSlash(Xml.CombinePath("temp"));
+         IOUtils.ForceDirectories(TempDir, true);
+
          XmlNode x = Xml.SelectSingleNode("report");
          if (x == null)
             Reporter = null;
@@ -230,15 +235,9 @@ namespace Bitmanager.ImportPipeline
          //Load the supplied script
          ImportLog.Log(_LogType.ltTimerStart, "loading: scripts"); 
          XmlNode scriptNode = xml.SelectSingleNode("script");
-         if (scriptNode != null)
-         {
-            ScriptHost = new ScriptHost(ScriptHostFlags.Default, TemplateFactory);
-            String fn = xml.CombinePath (scriptNode.ReadStr("@file"));
-            ScriptHost.ExtraSearchPath = binDir;
-            ScriptHost.AddFile(fn);
-            ScriptHost.AddReference(Assembly.GetExecutingAssembly());
-            ScriptHost.Compile();
-         }
+
+         //Create the holder for the expressions
+         ScriptExpressions = new ScriptExpressionHolder();
 
          ImportLog.Log(_LogType.ltTimer, "loading: helper process definitions ");
          ProcessHostCollection = new ProcessHostCollection(this, xml.SelectSingleNode("processes"));
@@ -278,6 +277,26 @@ namespace Bitmanager.ImportPipeline
             (node) => new DatasourceAdmin(ctx, node),
             true);
 
+         //Compile script if needed
+         if (ScriptExpressions.Count > 0 || scriptNode != null)
+         {
+            ScriptHost = new ScriptHost(ScriptHostFlags.Default, TemplateFactory);
+            if (scriptNode != null)
+            {
+               String fn = scriptNode.ReadStr("@file", null);
+               if (fn != null)
+                  ScriptHost.AddFile(xml.CombinePath(fn));
+            }
+            ScriptHost.ExtraSearchPath = binDir;
+            if (ScriptExpressions.Count > 0)
+            {
+               String fn = TempDir + "_ScriptExpressions.cs";
+               ScriptExpressions.SaveAndClose(fn);
+               ScriptHost.AddFile(fn);
+            }
+            ScriptHost.AddReference(Assembly.GetExecutingAssembly());
+            ScriptHost.Compile();
+         }
 
          ImportLog.Log(_LogType.ltTimerStop, "loading: finished. Loaded {0} datasources, {1} pipelines, {2} endpoints, {3} converters, {4} category collections.",
             Datasources.Count,

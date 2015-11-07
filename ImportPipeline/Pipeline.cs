@@ -84,6 +84,7 @@ namespace Bitmanager.ImportPipeline
       public readonly String DefaultPostProcessors;
 
       public Object ScriptObject { get; private set; }
+      public Object ScriptExprObject {get; private set;}
 
       internal bool trace;
       private bool started;
@@ -174,7 +175,7 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
-      public T CreateScriptDelegate<T>(String scriptName, XmlNode ctx=null) where T : class
+      public T CreateScriptDelegate<T>(String scriptName, XmlNode ctx = null) where T : class
       {
          if (scriptName == null) return null;
          if (ScriptObject == null)
@@ -185,6 +186,20 @@ namespace Bitmanager.ImportPipeline
          MethodInfo mi = t.GetMethod(scriptName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance);
          if (mi == null) throw new BMNodeException(ctx, "Cannot find method {0} in class {1}.", scriptName, t.FullName);
          T dlg = (T)(Object)Delegate.CreateDelegate(typeof(T), ScriptObject, mi);
+         logger.Log("-- CreateScriptDelegate({0}) -> {1}.", scriptName, dlg);
+         return dlg;
+      }
+      public T CreateScriptExprDelegate<T>(String scriptName, XmlNode ctx = null) where T : class
+      {
+         if (scriptName == null) return null;
+         if (ScriptExprObject == null)
+            throw new BMNodeException(ctx, "Cannot create expr-script [{0}]: ScriptExprObject==null: should not happen!", scriptName);
+
+         Type t = ScriptExprObject.GetType();
+
+         MethodInfo mi = t.GetMethod(scriptName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance);
+         if (mi == null) throw new BMNodeException(ctx, "Cannot find method {0} in class {1}.", scriptName, t.FullName);
+         T dlg = (T)(Object)Delegate.CreateDelegate(typeof(T), ScriptExprObject, mi);
          logger.Log("-- CreateScriptDelegate({0}) -> {1}.", scriptName, dlg);
          return dlg;
       }
@@ -211,6 +226,12 @@ namespace Bitmanager.ImportPipeline
          {
             ScriptObject = Objects.CreateObject(ScriptTypeName, ctx);
             logger.Log("Script({0})={1}", ScriptTypeName, ScriptObject);
+         }
+         if (ImportEngine.ScriptExpressions.Count > 0) //NB: always create a new script object. Never reuse an existing one.
+         {
+            String cls = ImportEngine.ScriptExpressions.FullClassName;
+            ScriptExprObject = Objects.CreateObject(cls, ctx);
+            logger.Log("ScriptExpr({0})={1}", cls, ScriptExprObject);
          }
 
          //Clone the list of actions and strat them

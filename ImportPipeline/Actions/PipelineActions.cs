@@ -63,11 +63,13 @@ namespace Bitmanager.ImportPipeline
       protected readonly XmlNode node;
       protected static Logger logger;
       protected ValueSource valueSource;
-      protected ScriptDelegate scriptDelegate;
+      protected ScriptDelegate[] scriptDelegates;
       protected Converter[] converters;
       protected IDataEndpoint endPoint;
       protected readonly String postProcessors;
       protected readonly String endpointName, convertersName, scriptName;
+      protected readonly String condExpr, valExpr;
+      protected readonly String condExprFunc, valExprFunc;
       protected readonly String clrvarName;
       internal String[] VarsToClear;
       public readonly bool Debug;
@@ -91,6 +93,12 @@ namespace Bitmanager.ImportPipeline
          if (src != null) valueSource = ValueSource.Parse (src);
 
          scriptName = node.ReadStr("@script", null);
+         valExpr = node.ReadStr("@valexpr", null);
+         if (valExpr != null)
+         {
+            valExprFunc = getGeneratedScriptName(pipeline, node, "expr");
+            pipeline.ImportEngine.ScriptExpressions.AddExpression(valExprFunc, valExpr);
+         }
 
          clrvarName = node.ReadStr("@clrvar", null);
          VarsToClear = clrvarName.SplitStandard();
@@ -103,6 +111,21 @@ namespace Bitmanager.ImportPipeline
             throw new BMNodeException (node, "[forward] attribute not supported. Use type='forward' instead."); 
 
          updateConvertAndCallScriptNeeded();
+      }
+
+      protected static String getGeneratedScriptName(Pipeline pipeline, XmlNode node, String what)
+      {
+         StringBuilder sb = new StringBuilder();
+         sb.Append(pipeline.Name);
+         sb.Append('_');
+         sb.Append(node.Name);
+         sb.Append('_');
+         XmlNodeList list = node.ParentNode.SelectNodes(node.Name);
+         for (int i = 0; i < list.Count; i++)
+            if (list[i] == node) { sb.Append(i); break; }
+         sb.Append('_');
+         sb.Append(what);
+         return sb.ToString();
       }
 
       protected PipelineAction(String name) : base(name) { }  //Only needed for NOP action
@@ -137,15 +160,22 @@ namespace Bitmanager.ImportPipeline
 
       protected void updateConvertAndCallScriptNeeded()
       {
-         ConvertAndCallScriptNeeded = (valueSource != null || convertersName != null || scriptName != null);
+         ConvertAndCallScriptNeeded = (valueSource != null || convertersName != null || scriptName != null || valExpr != null);
       }
 
       public virtual void Start(PipelineContext ctx)
       {
          converters = ctx.ImportEngine.Converters.ToConverters(convertersName);
          endPoint = ctx.Pipeline.CreateOrGetDataEndpoint(ctx, endpointName, postProcessors);
-         if (scriptName != null)
-            scriptDelegate = pipeline.CreateScriptDelegate<ScriptDelegate>(scriptName, node);
+         if (scriptName != null || valExpr != null)
+         {
+            List<ScriptDelegate> list = new List<ScriptDelegate>(4);
+            if (valExpr != null)
+               list.Add(pipeline.CreateScriptExprDelegate<ScriptDelegate>(valExprFunc, node));
+            if (scriptName != null)
+               list.Add(pipeline.CreateScriptDelegate<ScriptDelegate>(scriptName, node));
+            scriptDelegates = list.ToArray();
+         }
       }
 
       protected static String optReplace(Regex regex, String arg, String repl)
@@ -161,10 +191,13 @@ namespace Bitmanager.ImportPipeline
       protected Object ConvertAndCallScript(PipelineContext ctx, String key, Object value)
       {
          if (valueSource != null) value = valueSource.GetValue(ctx, value);
-         if (scriptDelegate != null)
+         if (scriptDelegates != null)
          {
-            value = scriptDelegate(ctx, key, value);
-            if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) return value;
+            foreach (var fn in scriptDelegates)
+            {
+               value = fn (ctx, key, value);
+               if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) return value;
+            }
          }
 
          if (converters == null) return value;

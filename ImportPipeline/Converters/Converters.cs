@@ -652,7 +652,7 @@ namespace Bitmanager.ImportPipeline
          flags = node.ReadEnum("@flags", FormatFlags.NeedArguments);
          needValue = (flags & FormatFlags.NeedValue) != 0;
 
-         String[] args = node.ReadStr("@arguments").SplitStandard();
+         String[] args = node.ReadStr("@arguments", null).SplitStandard();
          if (args != null && args.Length > 0)
          {
             arguments = new FormatArgument[args.Length];

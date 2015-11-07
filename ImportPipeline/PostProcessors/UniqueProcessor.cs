@@ -113,20 +113,20 @@ namespace Bitmanager.ImportPipeline
             return comparer.CompareKeys(x, y);
          }
       }
-      class KeysHashComparer: IEqualityComparer<JToken[]>
-      {
-         private readonly JComparer comarer;
+      //class KeysHashComparer: IEqualityComparer<JToken[]>
+      //{
+      //   private readonly JComparer comarer;
 
 
-         public bool Equals(JToken[] x, JToken[] y)
-         {
-            throw new NotImplementedException();
-         }
+      //   public bool Equals(JToken[] x, JToken[] y)
+      //   {
+      //      throw new NotImplementedException();
+      //   }
 
-         public int GetHashCode(JToken[] obj)
-         {
-            throw new NotImplementedException();
-         }
-      }
+      //   public int GetHashCode(JToken[] obj)
+      //   {
+      //      throw new NotImplementedException();
+      //   }
+      //}
    }
 }

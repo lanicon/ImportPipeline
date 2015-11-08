@@ -19,6 +19,7 @@ Thumbs.db
 /Importer/ImportDirs/
 
 **/logs/
+**/new/
 *.swp
 *.disabled
 *.old

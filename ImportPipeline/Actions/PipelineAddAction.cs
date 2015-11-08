@@ -40,9 +40,11 @@ namespace Bitmanager.ImportPipeline
    {
       private readonly Condition cond;
       public CategoryCollection[] Categories;
+      public readonly bool AutoClearOnSkip;
       public PipelineAddAction(Pipeline pipeline, XmlNode node)
          : base(pipeline, node)
       {
+          AutoClearOnSkip = node.ReadBool("autoclearonskip", true);
           Categories = loadCategories(pipeline, node);
           cond = Condition.OptCreate(node);
       }
@@ -50,6 +52,7 @@ namespace Bitmanager.ImportPipeline
       internal PipelineAddAction(PipelineAddAction template, String name, Regex regex)
          : base(template, name, regex)
       {
+         AutoClearOnSkip = template.AutoClearOnSkip;
          Categories = template.Categories;
          if (template.cond != null)
          {
@@ -75,7 +78,7 @@ namespace Bitmanager.ImportPipeline
       public override Object HandleValue(PipelineContext ctx, String key, Object value)
       {
          value = ConvertAndCallScript(ctx, key, value);
-         if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) { ctx.Skipped++; goto EXIT_RTN; }
+         if ((ctx.ActionFlags & _ActionFlags.Skip) != 0) { ctx.Skipped++; if (AutoClearOnSkip) goto CLEAR; goto EXIT_RTN; }
 
          if (Categories != null)
             foreach (var cat in Categories) cat.HandleRecord(ctx);
@@ -96,6 +99,12 @@ namespace Bitmanager.ImportPipeline
       EXIT_RTN:
          return value;
       }
+
+      protected override void _ToString(StringBuilder b)
+      {
+         b.AppendFormat(", autoclearonskip={0}", this.AutoClearOnSkip);
+      }
+
    }
 
    public class PipelineAddTemplate : PipelineTemplate

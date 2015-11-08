@@ -30,26 +30,22 @@ using Bitmanager.IO;
 namespace UnitTests
 {
    [TestClass]
-   public class ScriptExpressionHolderTest : FileTestBase
+   public class BlackboxTest : FileTestBase
    {
       [TestMethod]
       public void TestSimple()
       {
-         String fn = "testSimple.txt"; 
-         ScriptExpressionHolder h = new ScriptExpressionHolder(null);
-         h.AddExpression("f1", "12");
-         h.AddExpression("f2", "value.ToString();");
-         h.AddExpression("f3", "return value.ToString();");
-         h.AddExpression("f4", "return value.ToString()");
+         ImportEngine eng = new ImportEngine();
+         eng.Load(root + "import.xml");
+         var report = eng.Import("json");
+         Assert.AreEqual(1, report.DatasourceReports.Count);
+         Assert.AreEqual(null, report.ErrorMessage);
+         var dsReport = report.DatasourceReports[0];
+         Console.WriteLine("Report: {0}", dsReport);
+         Assert.AreEqual(5, dsReport.Emitted);
+         Assert.AreEqual(4, dsReport.Added);
 
-         h.AddCondition("f5", "return value.ToString()");
-         h.AddCondition("f6", "ctx.Action != null");
-
-         Assert.AreEqual(6, h.Count);
-         h.SaveAndClose(newDataRoot + fn);
-
-         CheckFiles(fn);
+         CheckFiles("json-out.txt");
       }
-
    }
 }

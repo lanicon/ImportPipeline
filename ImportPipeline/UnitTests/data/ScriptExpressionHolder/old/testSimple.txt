@@ -1,0 +1,46 @@
+﻿using System;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Collections.Generic;
+using Bitmanager.Core;
+using Bitmanager.IO;
+using Bitmanager.Json;
+
+namespace Bitmanager.ImportPipeline
+{
+   public class _ScriptExpressions
+   {
+      public Object f1 (PipelineContext ctx, Object value)
+      {
+         return 12;
+      }
+
+      public Object f2 (PipelineContext ctx, Object value)
+      {
+         return value.ToString();
+      }
+
+      public Object f3 (PipelineContext ctx, Object value)
+      {
+         return value.ToString();
+      }
+
+      public Object f4 (PipelineContext ctx, Object value)
+      {
+         return value.ToString();
+      }
+
+      public Object f5 (PipelineContext ctx, Object value)
+      {
+         return value.ToString();
+      }
+
+      public Object f6 (PipelineContext ctx, Object value)
+      {
+         if (!(ctx.Action != null))  ctx.ActionFlags |= _ActionFlags.SkipAll;
+         return value;
+      }
+
+   }
+}

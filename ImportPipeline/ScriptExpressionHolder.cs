@@ -98,18 +98,45 @@ namespace Bitmanager.ImportPipeline
          Close();
       }
 
+      private void writeMethodEntry(String name)
+      {
+         wtr.Write("      public Object ");
+         wtr.Write(name);
+         wtr.Write(" (PipelineContext ctx, Object value)\r\n      {\r\n");
+      }
+      private void writeMethodExit(bool appendSemiColon)
+      {
+         if (appendSemiColon) wtr.Write(';');
+         wtr.WriteLine("\r\n      }\r\n");
+      }
       public void AddExpression(String name, String expr)
       {
          ++count;
-         wtr.Write ("      public Object ");
-         wtr.Write (name);
-         wtr.Write (" (PipelineContext ctx, String key, Object value)\r\n      {\r\n");
+         writeMethodEntry(name);
          expr = expr.TrimWhiteSpace();
-         wtr.Write ("         ");
-         if (expr.IndexOf("return ") < 0) wtr.Write ("return ");
-         wtr.Write (expr);
-         if (!expr.EndsWith(";")) wtr.Write(';');
-         wtr.WriteLine ("\r\n      }\r\n");
+         wtr.Write("         ");
+         if (expr.IndexOf("return ") < 0) wtr.Write("return ");
+         wtr.Write(expr);
+         writeMethodExit(!expr.EndsWith(";"));
+      }
+
+      public void AddCondition (String name, String expr)
+      {
+         if (expr.IndexOf("return ") >= 0) {
+           AddExpression (name, expr);
+            return;
+         }
+
+         ++count;
+         writeMethodEntry(name);
+         expr = expr.TrimWhiteSpace();
+         if (expr.EndsWith(";")) 
+            expr = expr.Substring(0, expr.Length - 1).TrimWhiteSpace();
+         wtr.Write("         if (!(");
+         wtr.Write(expr);
+         wtr.Write("))  ctx.ActionFlags |= _ActionFlags.SkipAll;\r\n");
+         wtr.Write("         return value;");
+         writeMethodExit(false);
       }
 
       public string ClassName { get { return className; } }

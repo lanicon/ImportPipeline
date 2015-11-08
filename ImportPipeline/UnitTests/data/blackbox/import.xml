@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<root importflags="fullimport">
+   <script file="scripts.cs" />
+   <endpoints>
+      <endpoint name="json" type="jsonEndpoint" file="new\json-out.txt" formatted="true" />
+   </endpoints>
+
+   <converters>
+      <converter name="double" decimalsep="," groupsep="."/>
+      <converter name="flatten" type="ComplexConverter" mode="flatten" sep=","/>
+      <converter name="count" type="ComplexConverter" mode="count" />
+      <converter name="int32"/>
+      <converter name="date"   utc="true" formats="yyyyMMdd"/>
+      <converter name="string" />
+      <converter name="lower" />
+      <converter name="upper" />
+      <converter name="trim" />
+   </converters>
+
+   <pipelines>
+      <pipeline name="json" script="ScriptExtensions" >
+         <action   key="record/x" valexpr="value=1" field="x" converters="string"/>
+         <action   key="record/x" valexpr="value=1" field="xx" converters="string" convertersfirst="false"/>
+         <action   key="record/skip" field="x" script="NewScript" />
+         <action   key="record" type="add"  script="OldScript"/>
+         <template expr="record/_" type="nop" />
+         <template expr="record/(.*)" field="$1" />
+      </pipeline>
+   </pipelines>
+
+   <datasources>
+      <datasource name="json" type="JsonDatasource" file="json-in.txt" />
+   </datasources>
+</root>
+

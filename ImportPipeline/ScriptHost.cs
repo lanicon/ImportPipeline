@@ -165,7 +165,14 @@ namespace Bitmanager.ImportPipeline
       {
          //Check for dynamic assemblies: they have no location, which will cause an exception   
          if (a is _AssemblyBuilder) return;
-         AddReference(a.Location);
+         String loc = null;
+         try
+         {
+            loc = a.Location;
+         }
+         catch { }
+         if (loc != null)
+            AddReference(a.Location);
       }
 
       public Object CreateObject(String typeName)

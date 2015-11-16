@@ -29,6 +29,7 @@ namespace Bitmanager.ImportPipeline
 {
    public class ScriptExpressionHolder: IDisposable
    {
+      enum Needed { None, Endpoint = 1, Record = 2, Action = 4 };
       int count;
       MemoryStream mem;
       StreamWriter wtr;
@@ -98,11 +99,18 @@ namespace Bitmanager.ImportPipeline
          Close();
       }
 
-      private void writeMethodEntry(String name)
+      private void writeMethodEntry(String name, String code)
       {
+         Needed neededVars = checkNeeded(code);
          wtr.Write("      public Object ");
          wtr.Write(name);
          wtr.Write(" (PipelineContext ctx, Object value)\r\n      {\r\n");
+         if ((neededVars &  (Needed.Action | Needed.Endpoint | Needed.Record)) != 0)
+            wtr.Write("         var action = ctx.Action;\r\n");
+         if ((neededVars & (Needed.Endpoint | Needed.Record)) != 0)
+            wtr.Write("         var endpoint = action.Endpoint;\r\n");
+         if ((neededVars & (Needed.Record)) != 0)
+            wtr.Write("         var record = (JObject)endpoint.GetFieldAsToken (null);\r\n");
       }
       private void writeMethodExit(bool appendSemiColon)
       {
@@ -112,7 +120,7 @@ namespace Bitmanager.ImportPipeline
       public void AddExpression(String name, String expr)
       {
          ++count;
-         writeMethodEntry(name);
+         writeMethodEntry(name, expr);
          expr = expr.TrimWhiteSpace();
          wtr.Write("         ");
          if (expr.IndexOf("return ") < 0) wtr.Write("return ");
@@ -128,7 +136,7 @@ namespace Bitmanager.ImportPipeline
          }
 
          ++count;
-         writeMethodEntry(name);
+         writeMethodEntry(name, expr);
          expr = expr.TrimWhiteSpace();
          if (expr.EndsWith(";")) 
             expr = expr.Substring(0, expr.Length - 1).TrimWhiteSpace();
@@ -137,6 +145,55 @@ namespace Bitmanager.ImportPipeline
          wtr.Write("))  ctx.ActionFlags |= _ActionFlags.SkipAll;\r\n");
          wtr.Write("         return value;");
          writeMethodExit(false);
+      }
+
+      private static bool equalSubstring (String sub, String str, int offs)
+      {
+         for (int i=0; i<sub.Length; i++)
+         {
+            if (sub[i] != str[i + offs]) return false;
+         }
+         return true;
+      }
+      private static Needed checkNeeded (String code, int offs, int len)
+      {
+         switch (len)
+         {
+            case 6:
+               if (equalSubstring("record", code, offs)) return Needed.Record;
+               if (equalSubstring("action", code, offs)) return Needed.Record;
+               break;
+            case 8:
+               if (equalSubstring("endpoint", code, offs)) return Needed.Endpoint;
+               break;
+         }
+         return Needed.None;
+      }
+      private static Needed checkNeeded (String code)
+      {
+         var ret = Needed.None;
+
+         int start = -1;
+         for (int i=0; i<code.Length; i++)
+         {
+            switch (code[i])
+            {
+               case ' ':
+               case '.':
+               case '[':
+               case '=':
+                  if (start < 0) continue;
+                  int len = i-start;
+                  ret |= checkNeeded (code, start, len);
+                  continue;
+               default:
+                  if (start < 0) start = i;
+                  continue;
+            }
+         }
+         if (start < code.Length)
+            ret |= checkNeeded (code, start, code.Length-start);
+         return ret; 
       }
 
       public string ClassName { get { return className; } }

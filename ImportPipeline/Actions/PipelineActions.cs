@@ -106,7 +106,7 @@ namespace Bitmanager.ImportPipeline
          if (condExpr != null)
          {
             condExprFunc = getGeneratedScriptName(pipeline, node, "cond");
-            pipeline.ImportEngine.ScriptExpressions.AddExpression(condExprFunc, condExpr);
+            pipeline.ImportEngine.ScriptExpressions.AddCondition(condExprFunc, condExpr);
          }
 
          clrvarName = node.ReadStr("@clrvar", null);

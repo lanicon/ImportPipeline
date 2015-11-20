@@ -39,6 +39,7 @@ namespace Bitmanager.Java
       protected int remainingRestarts;
       protected int exitCode;
       public bool ErrorsDuringExit {get; protected set;}
+      public int ExitCode { get { return exitCode; } }
 
       public ConsoleRunner(ProcessHostSettings settings, String name)
       {
@@ -109,6 +110,7 @@ namespace Bitmanager.Java
          psi.RedirectStandardOutput = true;
          psi.RedirectStandardError = true;
          psi.LoadUserProfile = false;
+         psi.WorkingDirectory = Settings.WorkingDir;
          psi.WindowStyle = ProcessWindowStyle.Normal; //.Hidden;
 
          logger.Log();

@@ -34,16 +34,17 @@ namespace Bitmanager.Java
 {
    public class ProcessHostSettings
    {
-      public readonly String ErrorLogName;
-      public readonly String LogName;
-      public readonly String LogFrom;
-      public readonly String ShutdownUrl;
-      public readonly String ShutdownMethod;
-      public readonly String ExeName;
-      public readonly String Arguments;
-      public readonly int StartDelay; 
-      public readonly int MaxRestarts;
-      public readonly bool ClearLogs;
+      public String ErrorLogName;
+      public String LogName;
+      public String LogFrom;
+      public String ShutdownUrl;
+      public String ShutdownMethod;
+      public String ExeName;
+      public String Arguments;
+      public String WorkingDir;
+      public int StartDelay; 
+      public int MaxRestarts;
+      public bool ClearLogs;
 
       public ProcessHostSettings(XmlNode node)
       {
@@ -58,6 +59,13 @@ namespace Bitmanager.Java
 
          ShutdownUrl = node.ReadStr("shutdown/@url", null);
          if (ShutdownUrl != null) ShutdownMethod = node.ReadStr("shutdown/@method", "POST");
+      }
+      public ProcessHostSettings()
+      {
+         ClearLogs = false;
+         LogName = "console";
+         ErrorLogName = LogName;
+         LogFrom = "console";
       }
 
    }

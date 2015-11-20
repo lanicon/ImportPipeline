@@ -47,5 +47,21 @@ namespace UnitTests
 
          CheckFiles("json-out.txt");
       }
+      [TestMethod]
+      public void TestCommands()
+      {
+         File.Delete(newDataRoot + "cmd-out.txt");
+         ImportEngine eng = new ImportEngine();
+         eng.Load(root + "import.xml");
+         var report = eng.Import("jsoncmd");
+         Assert.AreEqual(1, report.DatasourceReports.Count);
+         Assert.AreEqual(null, report.ErrorMessage);
+         var dsReport = report.DatasourceReports[0];
+         Console.WriteLine("Report: {0}", dsReport);
+         Assert.AreEqual(5, dsReport.Emitted);
+         Assert.AreEqual(4, dsReport.Added);
+
+         CheckFiles("cmd-out.txt");
+      }
    }
 }

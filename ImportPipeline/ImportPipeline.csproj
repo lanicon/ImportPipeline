@@ -115,6 +115,7 @@
     <Compile Include="Datasources\StreamDatasourceBase.cs" />
     <Compile Include="Datasources\TextDatasource.cs" />
     <Compile Include="Datasources\NopDatasource.cs" />
+    <Compile Include="Endpoints\CommandEndpoint.cs" />
     <Compile Include="Endpoints\TextEndpoint.cs" />
     <Compile Include="Endpoints\ESIndexDefinitions.cs" />
     <Compile Include="Endpoints\ESIndexDocType.cs" />

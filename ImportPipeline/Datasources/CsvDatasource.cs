@@ -35,7 +35,9 @@ namespace Bitmanager.ImportPipeline
 {
    public class CsvDatasource: Datasource
    {
+      enum _HeaderOptions { False, True, UseForFieldNames };
       private IDatasourceFeeder feeder;
+      List<String> initialFieldNames;
       //DSString file;
       //int[] sortValuesToKeep;
       int sortKey;
@@ -43,16 +45,20 @@ namespace Bitmanager.ImportPipeline
 
       String escChar;
       char delimChar, quoteChar, commentChar;
-      bool hasHeaders;
+      _HeaderOptions headerOptions;
       CsvLenientMode lenient;
       CsvTrimOptions trim;
-
 
       public void Init(PipelineContext ctx, XmlNode node)
       {
          feeder = ctx.CreateFeeder(node, typeof (FileNameFeeder));
          //DS file = ctx.ImportEngine.Xml.CombinePath(node.ReadStr("@file"));
-         hasHeaders = node.ReadBool("@headers", false);
+         headerOptions = node.ReadEnum("@headers", _HeaderOptions.False);
+         String fieldNames = node.ReadStr("@fieldnames", null);
+         initialFieldNames = createInitialFieldNames(fieldNames);
+         if (initialFieldNames != null && headerOptions == _HeaderOptions.UseForFieldNames)
+            throw new BMNodeException(node, "Cannot specify both  fieldnames and headers=UseForFieldNames.");
+
          lenient = node.ReadEnum("@lenient", CsvLenientMode.False);
          trim = node.ReadEnum("@trim", CsvTrimOptions.None);
          escChar = node.ReadStr("@escape", null);
@@ -128,22 +134,24 @@ namespace Bitmanager.ImportPipeline
 
       protected void processFile(PipelineContext ctx, String fileName, IDatasourceSink sink)
       {
-         List<String> keys = new List<string>();
+         List<String> keys;
          ctx.SendItemStart(fileName);
 
          using (FileStream strm = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
          {
             CsvReader csvRdr = createReader(strm);
-            int line;
-            for (line=0; csvRdr.NextRecord(); line++ )
+            optReadHeader(csvRdr);
+            keys = createKeysForEmit();
+            int startAt = this.startAt;
+            while (csvRdr.NextRecord())
             {
-               if (startAt > line) continue;
+               if (startAt>0 && startAt > csvRdr.Line) continue;
                ctx.IncrementEmitted();
                sink.HandleValue(ctx, "record/_start", null);
                var fields = csvRdr.Fields;
                int fieldCount = fields.Count;
                //ctx.DebugLog.Log("Record {0}. FC={1}", line, fieldCount); 
-               for (int i = keys.Count; i <= fieldCount; i++) keys.Add(String.Format("record/f{0}", i));
+               generateMissingKeysForEmit(keys, fieldCount);
                for (int i = 0; i < fieldCount; i++)
                {
                   sink.HandleValue(ctx, keys[i], fields[i]);
@@ -156,6 +164,21 @@ namespace Bitmanager.ImportPipeline
          ctx.SendItemStop();
       }
 
+      private void optReadHeader(CsvReader rdr)
+      {
+         if (headerOptions == _HeaderOptions.False) return;
+         if (!rdr.NextRecord()) return;
+
+         switch (headerOptions)
+         {
+            case _HeaderOptions.True: return;
+            case _HeaderOptions.UseForFieldNames:
+               initialFieldNames = replaceEmptyNames(rdr.Fields.ToList());
+               break;
+         }
+      }
+
+
       private int cbSortString(String[] a, String[] b)
       {
          return StringComparer.OrdinalIgnoreCase.Compare(a[0], b[0]);
@@ -166,7 +189,7 @@ namespace Bitmanager.ImportPipeline
          rdr.QuoteOrd = (int)quoteChar;
          rdr.SepOrd = (int)delimChar;
          if (escChar != null) rdr.EscapeChar = escChar;
-         rdr.SkipHeader = hasHeaders;
+         //rdr.SkipHeader = hasHeaders;
          rdr.LenientMode = lenient;
          rdr.SkipEmptyRecords = true;
          rdr.TrimOptions = trim;
@@ -181,8 +204,11 @@ namespace Bitmanager.ImportPipeline
          using (FileStream strm = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
          {
             CsvReader csvRdr = createReader(strm);
+            optReadHeader(csvRdr);
+            int startAt = this.startAt;
             while (csvRdr.NextRecord())
             {
+               if (startAt>0 && startAt > csvRdr.Line) continue;
                var fields = csvRdr.Fields;
                int fieldCount = fields.Count;
                if (fieldCount > maxFieldCount) maxFieldCount = fieldCount;
@@ -211,8 +237,8 @@ namespace Bitmanager.ImportPipeline
          }
 
          //Fill pre-calculated keys
-         List<String> keys = new List<string>();
-         for (int i = 0; i <= maxFieldCount; i++) keys.Add(String.Format("record/f{0}", i));
+         List<String> keys = createKeysForEmit();
+         generateMissingKeysForEmit(keys, maxFieldCount);
 
          //Emit sorted records
          ctx.SendItemStart (fileName);
@@ -229,6 +255,46 @@ namespace Bitmanager.ImportPipeline
             sink.HandleValue(ctx, "record", null);
          }
          ctx.SendItemStop(fileName);
+      }
+
+      private static List<String> createInitialFieldNames(String fields)
+      {
+         if (String.IsNullOrEmpty(fields)) return null;
+         using (var strm = IOUtils.CreateStreamFromString(fields))
+         {
+            int dlm, quote;
+            CsvReader.GetBestSeparators(null, strm.CreateTextReader(), out dlm, out quote);
+            strm.Position = 0;
+            var rdr = new CsvReader(strm, null);
+            rdr.QuoteOrd = quote;
+            rdr.SepOrd = dlm;
+            if (rdr.NextRecord())
+            {
+               return replaceEmptyNames(rdr.Fields.ToList());
+            }
+         }
+         return null;
+      }
+
+      private static List<String> replaceEmptyNames(List<String> list)
+      {
+         if (list == null) return list;
+         for (int i = 0; i < list.Count; i++)
+         {
+            String x = list[i].TrimToNull();
+            list[i] = x == null ? String.Format("f{0}", i) : x;
+         }
+         return list;
+      }
+
+      private List<String> createKeysForEmit()
+      {
+         return initialFieldNames == null ? new List<string>() : initialFieldNames.Select(s => "record/" + s).ToList();
+      }
+
+      private static void generateMissingKeysForEmit(List<String> list, int needed)
+      {
+         for (int i = list.Count; i <= needed; i++) list.Add(String.Format("record/f{0}", i));
       }
    }
 

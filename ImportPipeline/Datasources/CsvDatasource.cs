@@ -30,6 +30,7 @@ using System.IO;
 using System.Globalization;
 using Bitmanager.Elastic;
 using Bitmanager.IO;
+using System.IO.Compression;
 
 namespace Bitmanager.ImportPipeline
 {
@@ -132,12 +133,27 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
+      private Stream createInputStream (String fn)
+      {
+         FileStream fs = new FileStream(fn, FileMode.Open, FileAccess.Read, FileShare.Read, 16 * 1024, false);
+         //_FileStream fs = new _FileStream(fn, _FileMode.Open, _FileAccess.Read, _FileShare.Read, 16 * 1024);
+         String ext = Path.GetExtension(fn);
+         if (!String.Equals(".gz", ext, StringComparison.OrdinalIgnoreCase)) goto NO_ZIP;
+         byte[] buf = new byte[2];
+         fs.Read(buf, 0, 2);
+         if (buf[0] != 0x1f || buf[1] != 0x8b) goto NO_ZIP;
+         fs.Position = 0;
+         return new GZipStream(fs, CompressionMode.Decompress, false);
+
+      NO_ZIP:
+         return fs;
+      }
       protected void processFile(PipelineContext ctx, String fileName, IDatasourceSink sink)
       {
          List<String> keys;
          ctx.SendItemStart(fileName);
 
-         using (FileStream strm = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
+         using (Stream strm = createInputStream(fileName))
          {
             CsvReader csvRdr = createReader(strm);
             optReadHeader(csvRdr);
@@ -183,7 +199,7 @@ namespace Bitmanager.ImportPipeline
       {
          return StringComparer.OrdinalIgnoreCase.Compare(a[0], b[0]);
       }
-      CsvReader createReader(FileStream strm)
+      CsvReader createReader(Stream strm)
       {
          CsvReader rdr = new CsvReader(strm);
          rdr.QuoteOrd = (int)quoteChar;

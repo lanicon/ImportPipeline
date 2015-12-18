@@ -306,7 +306,7 @@ namespace Bitmanager.ImportPipeline
          DateTime ret;
          String sValue = null;
          double dblDate = 0.0;
-         if (value == null) goto CANNOT_CONVERT;
+         if (value == null) return null;
 
          JValue jv = value as JValue;
          if (jv != null)
@@ -355,6 +355,7 @@ namespace Bitmanager.ImportPipeline
          throwConvert("DateTime", value);
 
       FROM_STR:
+         if (String.IsNullOrEmpty(sValue)) return null;
          sValue = replaceTimeZone(sValue);
          if (formats != null)
          {

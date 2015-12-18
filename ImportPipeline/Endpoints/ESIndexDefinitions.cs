@@ -74,7 +74,7 @@ namespace Bitmanager.ImportPipeline
 
       public void OptionalRename(ESConnection conn, int defaultGenerationsToKeep = 2)
       {
-         for (int i = 0; i < list.Count; i++) list[i].OptionalRename(conn, defaultGenerationsToKeep);
+         for (int i = 0; i < list.Count; i++) list[i].OptionalRename(conn);
       }
       public void OptionalOptimize(ESConnection conn)
       {
@@ -82,7 +82,11 @@ namespace Bitmanager.ImportPipeline
       }
       public void Flush(ESConnection conn)
       {
-         for (int i = 0; i < list.Count; i++) list[i].Flush (conn);
+         for (int i = 0; i < list.Count; i++) list[i].Flush(conn);
+      }
+      public void PrepareClose (ESConnection conn)
+      {
+         for (int i = 0; i < list.Count; i++) list[i].PrepareClose(conn);
       }
 
 
@@ -138,6 +142,9 @@ namespace Bitmanager.ImportPipeline
       public String IndexName { get; private set; }
 
       public String ConfigFile { get; private set; }
+      public String IndexDateTimeFormat { get; private set; }
+      public String RefreshIntervalDuringImport { get; private set; }
+      private String savedRefreshInterval;
 
       /// <summary>
       /// If NumShardsOnCreate > 0: override the #shards during the creation of the index
@@ -148,7 +155,6 @@ namespace Bitmanager.ImportPipeline
       /// </summary>
       public int NumReplicasAfterIndexed;
 
-      public int RefreshInterval;
       public int Generations;
 
       /// <summary>
@@ -165,7 +171,6 @@ namespace Bitmanager.ImportPipeline
 
       public bool IsNewIndex { get; private set; }
       public bool RenameNeeded { get; private set; }
-      public bool IsReadOnly { get { return ConfigFile == null; } }
 
 
       private ESIndexDefinition(XmlNode node, OnLoadConfig onLoadConfig)
@@ -179,10 +184,12 @@ namespace Bitmanager.ImportPipeline
          NumReplicasAfterIndexed = node.ReadInt("@replicas", -1);
          OptimizeToSegments = node.ReadInt("@optimize_segments", 5);
          OptimizeWait = node.ReadInt("@optimize_wait", 300000); //Default: 5 minutes
-         RefreshInterval = node.ReadInt("@refreshinterval", -1);
-         Generations = node.ReadInt("@generations", -2);
+         RefreshIntervalDuringImport = node.ReadStr("@refreshinterval", null);
          ConfigFile = node.ReadStrRaw("@config", _XmlRawMode.ExceptNullValue | _XmlRawMode.EmptyToNull);
-
+         IndexDateTimeFormat = node.ReadStrRaw("@indexname_dateformat", _XmlRawMode.DefaultOnNull | _XmlRawMode.EmptyToNull, ESIndexCmd.DEFAULT_DATETIMEFORMAT);
+         Generations = node.ReadInt("@generations", IndexDateTimeFormat==null ? 0 : 2);
+         if (Generations != 0 && IndexDateTimeFormat == null)
+            throw new BMNodeException(node, "Cannot have generations without indexname_dateformat.");
       }
       public ESIndexDefinition(XmlHelper xml, XmlNode node, OnLoadConfig onLoadConfig)
          : this(node, onLoadConfig)
@@ -193,6 +200,11 @@ namespace Bitmanager.ImportPipeline
       }
       private static JObject _defOnLoadConfig(ESIndexDefinition index, String fn, out DateTime fileUtcDate)
       {
+         if (fn==null)
+         {
+            fileUtcDate = DateTime.MinValue;
+            return null;
+         }
          fileUtcDate = File.GetLastWriteTimeUtc(fn);
          return JObject.Parse(IOUtils.LoadFromFile(fn));
       }
@@ -288,6 +300,8 @@ namespace Bitmanager.ImportPipeline
 
       private void patchConfig(JObject config)
       {
+         if (config == null) return;
+
          const String ERRORS = "errors_";
          const String ADMIN = "admin_";
          JObject mappings = (JObject)config["mappings"];
@@ -336,8 +350,11 @@ namespace Bitmanager.ImportPipeline
       public bool Create(ESConnection conn, ESIndexCmd._CheckIndexFlags flags)
       {
          if (!Active) return false;
-         if (IsReadOnly) return false;
          if (IsOpen) return false;
+
+         //Switch off append flags if there's nothing to append
+         if (IndexDateTimeFormat == null || Generations == 0)
+            flags &= ~ESIndexCmd._CheckIndexFlags.AppendDate;
 
          DocMappings = null;
          DateTime configDate;
@@ -346,6 +363,7 @@ namespace Bitmanager.ImportPipeline
 
          ESIndexCmd cmd = conn.CreateIndexRequest();
          cmd.OnCreate = overrideShardsOnCreate;
+         cmd.DateFormat = this.IndexDateTimeFormat;
          bool isNew;
          IndexName = cmd.CheckIndexFromFile(AliasName, configJson, configDate, flags, out isNew);//PW naar kijken!
          IsNewIndex = isNew;
@@ -363,9 +381,19 @@ namespace Bitmanager.ImportPipeline
             DocMappings.Add(mapping.Name);
          }
 
+         if (RefreshIntervalDuringImport != null)
+         {
+            JObject curSettings = cmd.GetSettings();
+            this.savedRefreshInterval = curSettings.ReadStr ("refresh_interval", "1s");
+            curSettings = new JObject();
+            curSettings["refresh_interval"] = RefreshIntervalDuringImport;
+            cmd.PutSettings(curSettings);
+            conn.Logger.Log("-- RefreshInterval changed from={0} into {1}", savedRefreshInterval, RefreshIntervalDuringImport);
+         }
          IsOpen = true;
          return isNew;
       }
+
 
       public void Flush(ESConnection conn)
       {
@@ -373,6 +401,20 @@ namespace Bitmanager.ImportPipeline
          ESIndexCmd cmd = conn.CreateIndexRequest();
          cmd.Flush(IndexName);
       }
+      public void PrepareClose(ESConnection conn)
+      {
+         if (!IsOpen) return;
+         ESIndexCmd cmd = conn.CreateIndexRequest();
+         if (savedRefreshInterval != null)
+         {
+            JObject curSettings = new JObject();
+            curSettings["refresh_interval"] = savedRefreshInterval;
+            cmd.PutSettings(curSettings);
+            conn.Logger.Log("-- RefreshInterval restored to {0}", savedRefreshInterval);
+         }
+         cmd.Flush(IndexName);
+      }
+
       public void OptionalOptimize(ESConnection conn)
       {
          if (OptimizeToSegments <= 0) return;
@@ -380,15 +422,14 @@ namespace Bitmanager.ImportPipeline
          ESIndexCmd cmd = conn.CreateIndexRequest();
          cmd.Optimize(IndexName, OptimizeToSegments, OptimizeWait);
       }
-      public void OptionalRename(ESConnection conn, int generationsToKeep = 2)
+      public void OptionalRename(ESConnection conn)
       {
          if (!IsOpen || !Active) return;
          IsOpen = false;
          if (!RenameNeeded) return;
 
-         if (Generations != -2) generationsToKeep = Generations;
-         Logger logger = conn.Logger.Clone(GetType().Name); //.LLogs.DebugLog;
-         logger.Log("Optional rename name={0}, alias={1}, gen={2}", IndexName, AliasName, generationsToKeep);
+         Logger logger = conn.Logger.Clone(GetType().Name); 
+         logger.Log("Optional rename name={0}, alias={1}, gen={2}", IndexName, AliasName, Generations);
          ESIndexCmd cmd = conn.CreateIndexRequest();
 
          String existingIndexName;
@@ -413,7 +454,7 @@ namespace Bitmanager.ImportPipeline
             setNumberOfReplicas(conn, IndexName, NumReplicasAfterIndexed);
          }
 
-         if (generationsToKeep < 0) return;
+         if (Generations <= 0) return;
          List<String> indexes = cmd.GetIndexes(AliasName, true);
 
          logger.Log("Found {0} indexes starting with {1}:", indexes.Count, AliasName);
@@ -440,7 +481,11 @@ namespace Bitmanager.ImportPipeline
          if (currentIdx < 0)
             throwNotFound(IndexName);
          if (existingIdx < 0 && existingIndexName != null)
-            throwNotFound(existingIndexName);
+         {
+            String msg = notFoundMsg(existingIndexName);
+            Logs.ErrorLog.Log(msg);
+            logger.Log(_LogType.ltError, msg);
+         }
 
          //Remove all indexes between the current one and an existing alias. These are artifacts of temp. or crashed imports
          logger.Log("Removing indexes between existing ({0}) and current ({1})...", existingIdx, currentIdx);
@@ -451,8 +496,8 @@ namespace Bitmanager.ImportPipeline
          }
 
          //Remove all indexes between start-of-time and the existing alias, keeping 'generationsToKeep' generations
-         logger.Log("Removing indexes between epoch and existing ({0}), keeping {1} generations...", existingIdx, generationsToKeep);
-         for (int i = 0; i <= existingIdx - generationsToKeep + 1; i++)
+         logger.Log("Removing indexes between epoch and existing ({0}), keeping {1} generations...", existingIdx, Generations);
+         for (int i = 0; i <= existingIdx - Generations + 1; i++)
          {
             logger.Log("Removing index {0}", indexes[i]);
             cmd.RemoveIndex(indexes[i]);
@@ -464,9 +509,13 @@ namespace Bitmanager.ImportPipeline
          obj.WriteToken("settings.number_of_replicas", replicas);
          conn.Put(name + "/_settings", obj).ThrowIfError();
       }
+      private static String notFoundMsg (String s)
+      {
+         return String.Format ("OptionalRename: index '{0}' not found in the list of existing indexes.", s);
+      }
       private static void throwNotFound(String s)
       {
-         throw new BMException("OptionalRename: index '{0}' not found in the list of existing indexes.", s);
+         throw new BMException(notFoundMsg (s));
       }
 
    }

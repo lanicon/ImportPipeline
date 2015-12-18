@@ -87,6 +87,11 @@ namespace Bitmanager.ImportPipeline
 
       private JObject _loadConfig(ESIndexDefinition index, String fn, out DateTime fileUtcDate)
       {
+         if (fn == null)
+         {
+            fileUtcDate = DateTime.MinValue;
+            return null;
+         }
          Engine.ImportLog.Log("Loading config via template. fn={0}", fn);
          fileUtcDate = File.GetLastWriteTimeUtc(fn);
          ITemplateEngine template = Engine.TemplateFactory.CreateEngine();

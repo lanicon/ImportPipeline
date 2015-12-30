@@ -40,33 +40,21 @@ namespace Bitmanager.ImportPipeline
       public readonly ESIndexDefinition Index;
       public readonly String KeyFieldName;
       public readonly String DateFieldName;
+      public readonly String AutoTimestampFieldName;
       public readonly String IdPath;
-      //private IndexDefinition indexDefinition;
-      //private XmlNode xmlNode;
       public String UrlPart { get { return Index.IndexName + "/" + TypeName; } }
       public String UrlPartForPreviousIndex { get { return Index.AliasName + "/" + TypeName; } }
 
-      private ESIndexDocType(XmlNode node)
+      public ESIndexDocType(ESIndexDefinition indexDefinition, XmlNode node)
       {
+         Index = indexDefinition;
+
          Name = node.ReadStr("@name");
          TypeName = node.ReadStr("@typename", Name);
          KeyFieldName = node.ReadStr("@keyfield", null);
          DateFieldName = node.ReadStr("@datefield", null);
          IdPath = node.ReadStr("@idpath", null);
-      }
-
-      public ESIndexDocType(ESIndexDefinitions indexes, XmlNode node)
-         : this(node)
-      {
-         String indexName = node.ReadStr("@index");
-         Index = indexes.GetDefinition(indexName, false);
-         if (Index == null) throw new BMNodeException(node, "Index '{0}' not found.", indexName);
-      }
-
-      internal ESIndexDocType(ESIndexDefinition indexDefinition, XmlNode node)
-         : this(node)
-      {
-         Index = indexDefinition;
+         AutoTimestampFieldName = node.ReadStr("@ts", indexDefinition.AutoTimestampFieldName);
       }
 
       public JObject GetCmdForBulk(JObject obj, String verb="index")
@@ -215,64 +203,5 @@ namespace Bitmanager.ImportPipeline
          return ret;
       }
    }
-
-   public class ESIndexDocTypes : IEnumerable<ESIndexDocType>
-   {
-      private List<ESIndexDocType> list;
-      private StringDict<ESIndexDocType> dict;
-
-      public ESIndexDocTypes()
-      {
-         list = new List<ESIndexDocType>();
-         dict = new StringDict<ESIndexDocType>();
-      }
-      public ESIndexDocTypes(ESIndexDefinitions indexDefs, XmlNode node)
-      {
-         XmlNodeList nodes = node.SelectMandatoryNodes("type");
-         list = new List<ESIndexDocType>(nodes.Count);
-         dict = new StringDict<ESIndexDocType>(nodes.Count);
-         Load(indexDefs, nodes);
-      }
-
-      public void Load(ESIndexDefinitions indexDefs, XmlNode node)
-      {
-         Load(indexDefs, node.SelectNodes("type"));
-      }
-      public void Load(ESIndexDefinitions indexDefs, XmlNodeList nodes)
-      {
-         foreach (XmlNode x in nodes) Add(new ESIndexDocType(indexDefs, x));
-      }
-
-      public ESIndexDocType Add(ESIndexDocType x)
-      {
-         dict.Add(x.Name, x);
-         list.Add(x);
-         return x;
-      }
-
-      public int Count { get { return list.Count; } }
-      public ESIndexDocType this[int index] { get { return list[index]; } }
-
-      public ESIndexDocType GetDocType(String name, bool mustExcept = true)
-      {
-         ESIndexDocType x;
-         if (name != null && dict.TryGetValue(name, out x)) return x;
-
-         if (!mustExcept) return null;
-         throw new BMException("DocType '{0}' is not defined in the config.", name);
-      }
-
-      public IEnumerator<ESIndexDocType> GetEnumerator()
-      {
-         return list.GetEnumerator();
-      }
-
-      System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-      {
-         return list.GetEnumerator();
-      }
-
-   }
-
 
 }

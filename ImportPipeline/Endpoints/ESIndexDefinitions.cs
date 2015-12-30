@@ -144,6 +144,7 @@ namespace Bitmanager.ImportPipeline
       public String ConfigFile { get; private set; }
       public String IndexDateTimeFormat { get; private set; }
       public String RefreshIntervalDuringImport { get; private set; }
+      public String AutoTimestampFieldName { get; private set; }
       private String savedRefreshInterval;
 
       /// <summary>
@@ -184,6 +185,7 @@ namespace Bitmanager.ImportPipeline
          NumReplicasAfterIndexed = node.ReadInt("@replicas", -1);
          OptimizeToSegments = node.ReadInt("@optimize_segments", 5);
          OptimizeWait = node.ReadInt("@optimize_wait", 300000); //Default: 5 minutes
+         AutoTimestampFieldName = node.ReadStr("@refreshinterval", null);
          RefreshIntervalDuringImport = node.ReadStr("@refreshinterval", null);
          ConfigFile = node.ReadStrRaw("@config", _XmlRawMode.ExceptNullValue | _XmlRawMode.EmptyToNull);
          IndexDateTimeFormat = node.ReadStrRaw("@indexname_dateformat", _XmlRawMode.DefaultOnNull | _XmlRawMode.EmptyToNull, ESIndexCmd.DEFAULT_DATETIMEFORMAT);

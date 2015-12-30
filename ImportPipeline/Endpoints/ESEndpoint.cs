@@ -270,7 +270,11 @@ namespace Bitmanager.ImportPipeline
             ctx.DebugLog.Log("Add: accumulator.Count={0}", accumulator.Count);
          }
          if (accumulator.Count == 0) return;
+
          OptLogAdd();
+
+         if (DocType.AutoTimestampFieldName != null)
+            accumulator[DocType.AutoTimestampFieldName] = DateTime.UtcNow;
 
          if (cache == null)
          {

@@ -261,7 +261,7 @@ namespace Bitmanager.ImportPipeline
          if (endPointCache != null)
             foreach (var kvp in this.endPointCache) {
                kvp.Value.Endpoint.Start(ctx);
-               var resolver = kvp.Value as IEndpointResolver;
+               var resolver = kvp.Value.Endpoint as IEndpointResolver;
                if (ctx.AdminEndpoint==null && resolver != null) ctx.AdminEndpoint = resolver.GetAdminEndpoint(ctx);
             }
 

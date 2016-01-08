@@ -241,6 +241,7 @@ namespace Bitmanager.ImportPipeline
       public override IAdminEndpoint GetAdminEndpoint(PipelineContext ctx)
       {
          var type = getDocType("admin_", false);
+         ctx.ImportLog.Log("admin doctype={0}...", type);
          return type==null ? null : new ESDataEndpoint(this, type);
       }
    }

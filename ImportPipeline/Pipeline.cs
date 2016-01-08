@@ -197,7 +197,7 @@ namespace Bitmanager.ImportPipeline
             if (parms.Length != 3 || parms[0].ParameterType != typeof(PipelineContext) || parms[1].ParameterType != typeof(String) || parms[2].ParameterType != typeof(Object))
                throw;
             PipelineAction.OldScriptDelegate old = (PipelineAction.OldScriptDelegate)(Object)Delegate.CreateDelegate(typeof(PipelineAction.OldScriptDelegate), ScriptObject, mi);
-            ImportEngine.ImportLog.Log (_LogType.ltWarning, "Script [{0}] still has a key-param. It will be wrapped for backward compatibility.", old);
+            ImportEngine.ImportLog.Log (_LogType.ltWarning, "Script [{0}] still has a key-param. It will be wrapped for backward compatibility.", scriptName);
             dlg = (T)(Object)new ScriptOldWrapper(old).CreateDelegate();
          }
          logger.Log("-- CreateScriptDelegate({0}) -> {1}.", scriptName, dlg);

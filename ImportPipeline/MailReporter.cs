@@ -37,7 +37,7 @@ namespace Bitmanager.ImportPipeline
    /// </summary>
    public class MailReporter
    {
-      public enum _Mode { Always, Never, Errors}
+      public enum _Mode { Never = 0, Always=1, Errors=2, Limited=4 }
 
       public readonly MailAddress[] MailTo;
       public readonly MailAddress MailFrom;
@@ -74,18 +74,16 @@ namespace Bitmanager.ImportPipeline
          if ((ctx.ImportEngine.ImportFlags & _ImportFlags.NoMailReport) != 0)
             return;
 
-         switch (Mode)
-         {
-            case _Mode.Never: return;
-            case _Mode.Always: break;
-            case _Mode.Errors:
-               if (!report.HasErrors) return;
-               break;
-            default:
-               Mode.ThrowUnexpected();
-               break;
-         }
+         if ((Mode & ~(_Mode.Limited | _Mode.Always | _Mode.Never | _Mode.Errors)) != 0)
+            Mode.ThrowUnexpected();
 
+         if ((Mode & _Mode.Always) != 0) goto SEND_REPORT;
+         if ((report.ErrorState & _ErrorState.Error) != 0 && (Mode & _Mode.Errors) != 0) goto SEND_REPORT;
+         if ((report.ErrorState & _ErrorState.Limited) != 0 && (Mode & _Mode.Limited) != 0) goto SEND_REPORT;
+         
+         return;
+
+         SEND_REPORT:
          StringBuilder sb = new StringBuilder();
          String fn = ctx.ImportEngine.Xml.FileName;
          sb.AppendFormat("Import report for {0}.\r\n", fn);
@@ -108,7 +106,7 @@ namespace Bitmanager.ImportPipeline
                foreach (var x in MailTo) m.To.Add(x);
 
 
-               m.Subject = String.Format (MailSubject, fn, shortName, report.HasErrors ? "Errors" : "Report");
+               m.Subject = String.Format (MailSubject, fn, shortName, report.ErrorState==0 ? "Report" : report.ErrorState.ToString());
                m.SubjectEncoding = Encoding.UTF8;
                m.BodyEncoding = Encoding.UTF8;
                m.Body = sb.ToString();

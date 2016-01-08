@@ -35,7 +35,7 @@ namespace Bitmanager.ImportPipeline
    {
       public List<DatasourceReport> DatasourceReports;
       public String ErrorMessage;
-      private bool hasErrors;
+      private _ErrorState errorState;
 
       public ImportReport()
       {
@@ -44,12 +44,13 @@ namespace Bitmanager.ImportPipeline
 
       public void Add(DatasourceReport rep)
       {
-         if (rep.Errors > 0 || rep.ErrorMessage != null)
-            hasErrors = true;
+         errorState |= rep.ErrorState; 
+         //if (rep.Errors > 0 || rep.ErrorMessage != null)
+         //   hasErrors = true;
          DatasourceReports.Add(rep);
       }
 
-      public bool HasErrors { get { return hasErrors; } }
+      public _ErrorState ErrorState { get { return errorState; } }
 
       public void SetGlobalStatus(PipelineContext ctx)
       {
@@ -81,6 +82,7 @@ namespace Bitmanager.ImportPipeline
       public String ErrorMessage;
       public int Added, Emitted, Deleted, Errors, Skipped, PostProcessed, ElapsedSeconds;
       public String Stats;
+      public _ErrorState ErrorState;
 
       public DatasourceReport(PipelineContext ctx, DateTime utcStart)
       {
@@ -94,6 +96,7 @@ namespace Bitmanager.ImportPipeline
          PostProcessed = ctx.PostProcessed;
          ErrorMessage = ctx.LastError == null ? null : ctx.LastError.Message;
          Stats = ctx.GetStats() + ", elapsed="+Pretty.ToElapsed(ElapsedSeconds);
+         ErrorState = ctx.ErrorState;
       }
 
       public String GetStats()

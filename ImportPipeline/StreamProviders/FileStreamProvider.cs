@@ -38,6 +38,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          credentialsInitialized = true;
          base.SetNames(fileElt.Name, parent.RootLen, parent.VirtualRoot);
          base.SetMeta(fileElt.LastWriteUtc, fileElt.Size);
+         base.isDir = fileElt.IsDir;
          uri = new Uri ("file://" + fullName);
       }
 
@@ -52,6 +53,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
       public enum SortMode { None = 0, FileName = 1, FileSize = 2, FileDate = 4, Asc = 8, Desc = 16 };
       public SortMode Sort { get; set; }
       public bool IgnoreDates { get; set; }
+      public bool ExportDirs { get; set; }
       private bool recursive;
 
       private static Logger errLogger = Logs.ErrorLog.Clone("FileStreamProvider");
@@ -68,6 +70,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          this.ctx = ctx;
          VirtualRoot = XmlUtils.ReadStr(node, "@virtualroot", null);
          Sort = node.ReadEnum("@filesort", SortMode.FileName | SortMode.Desc);
+         ExportDirs = node.ReadBool("@exportdirs", false);
          IgnoreDates = node.ReadBool("@ignoredates", false);
          if ((ctx.ImportFlags & _ImportFlags.FullImport) != 0)
             IgnoreDates = true;
@@ -174,6 +177,17 @@ namespace Bitmanager.ImportPipeline.StreamProviders
             tree.MinUtcDate = getMinDate();
             tree.UserTag = list;  //We fill list instead of tree.Files...
             tree.ReadFiles(Root, recursive ? _ReadFileFlags.rfSubdirs : 0);
+            if (ExportDirs)
+            {
+               foreach (var d in tree.Dirs)
+               {
+                  if (String.IsNullOrEmpty(d)) continue;
+                  String full = tree.GetFullName(d);
+                  var fsi = new DirectoryInfo(full);
+                  list.Add(new _FileElt(fsi));
+               }
+            }
+
             if (ctx != null) ctx.ImportLog.Log("-- Found {0} files.", list.Count);
             goto EXIT_RTN;
          }
@@ -197,7 +211,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
             if (info.LastWriteTimeUtc >= maxUtc) continue;
             list.Add(new _FileElt(info));
          }
- 
+
          EXIT_RTN:
          //Sort the list if requested and return the sorted list
          if (list.Count > 1)
@@ -228,18 +242,21 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          public readonly String Name;
          public readonly DateTime LastWriteUtc;
          public readonly long Size;
+         public readonly bool IsDir;
 
          public _FileElt(FileSystemInfo fi)
          {
             Name = fi.FullName;
             LastWriteUtc = fi.LastWriteTimeUtc;
             Size = -1;
+            IsDir = (fi.Attributes & FileAttributes.Directory) != 0;
          }
          public _FileElt(String fullName)
          {
             Name = fullName;
             LastWriteUtc = System.IO.File.GetLastWriteTimeUtc(fullName);
             Size = -1;
+            IsDir = false;
          }
 
          public static int sortAscName(_FileElt left, _FileElt right)

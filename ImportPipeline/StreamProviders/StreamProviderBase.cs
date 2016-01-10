@@ -73,6 +73,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
       protected bool credentialsInitialized;
       protected bool credentialsNeeded;
       protected bool silent;
+      protected bool isDir;
 
 
       public StreamProviderBase(XmlNode contextNode): base (contextNode)
@@ -213,6 +214,11 @@ namespace Bitmanager.ImportPipeline.StreamProviders
       public long Size
       {
          get { return size; }
+      }
+
+      public bool IsDir
+      {
+         get { return isDir; }
       }
    }
 }

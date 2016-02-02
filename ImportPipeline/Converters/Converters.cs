@@ -153,6 +153,7 @@ namespace Bitmanager.ImportPipeline
                 new ConverterFactory ("lower", typeof(ToLowerConverter)),
                 new ConverterFactory ("upper", typeof(ToUpperConverter)),
                 new ConverterFactory ("string", typeof(ToStringConverter)),
+                new ConverterFactory ("nullifempty", typeof(ToNullIfEmptyConverter)),
                 new ConverterFactory ("double", typeof(ToDoubleConverter)),
                 new ConverterFactory ("int32", typeof(ToInt32Converter)),
                 new ConverterFactory ("int64", typeof(ToInt64Converter)),
@@ -534,6 +535,17 @@ namespace Bitmanager.ImportPipeline
       {
          if (value == null) return null;
          return Invariant.ToString(value);
+      }
+   }
+
+   public class ToNullIfEmptyConverter : Converter
+   {
+      public ToNullIfEmptyConverter(XmlNode node) : base(node) { }
+
+      public override Object ConvertScalar(PipelineContext ctx, Object value)
+      {
+         if (value == null) return null;
+         return Invariant.ToString(value).ToNullIfEmpty();
       }
    }
 

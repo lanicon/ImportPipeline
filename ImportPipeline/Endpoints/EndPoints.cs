@@ -98,7 +98,14 @@ namespace Bitmanager.ImportPipeline
          dataName = name.Substring(ix + 1);
 
       CHECK_DATA_ENDPOINT:
-         return ep == null ? false : ep._CheckDataEndpoint(ctx, dataName, mustExcept);
+         try
+         {
+            return ep == null ? false : ep._CheckDataEndpoint(ctx, dataName, mustExcept);
+         }
+         catch (Exception err)
+         {
+            throw new BMException (err, String.Format ("{0}\nFull endpoint name ={1}.", err.Message, name));
+         }
       }
 
       public void Open(PipelineContext ctx)

@@ -44,10 +44,14 @@ namespace Bitmanager.ImportPipeline
          usings.Add("System.IO", null);
          usings.Add("System.Linq", null);
          usings.Add("System.Text", null);
+         usings.Add("System.Xml", null);
          usings.Add("System.Collections.Generic", null);
          usings.Add("Bitmanager.Core", null);
          usings.Add("Bitmanager.IO", null);
          usings.Add("Bitmanager.Json", null);
+         usings.Add("Bitmanager.ImportPipeline", null);
+         usings.Add("Bitmanager.ImportPipeline.StreamProviders", null);
+         usings.Add("Newtonsoft.Json.Linq", null);
 
          if (customUsings != null)
             foreach (var u in customUsings)
@@ -157,6 +161,7 @@ namespace Bitmanager.ImportPipeline
       }
       private static Needed checkNeeded (String code, int offs, int len)
       {
+         Logs.ErrorLog.Log("CHECKNEEDED ({0}) len={1}", code.Substring(offs, len), len);
          switch (len)
          {
             case 6:
@@ -178,6 +183,10 @@ namespace Bitmanager.ImportPipeline
          {
             switch (code[i])
             {
+               case '\n':
+               case '\r':
+               case '\t':
+               case ';':
                case ' ':
                case '.':
                case '[':
@@ -185,6 +194,7 @@ namespace Bitmanager.ImportPipeline
                   if (start < 0) continue;
                   int len = i-start;
                   ret |= checkNeeded (code, start, len);
+                  start = i+1;
                   continue;
                default:
                   if (start < 0) start = i;

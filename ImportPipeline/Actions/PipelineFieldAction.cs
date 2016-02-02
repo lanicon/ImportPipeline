@@ -30,6 +30,9 @@ using System.Text.RegularExpressions;
 
 namespace Bitmanager.ImportPipeline
 {
+   /// <summary>
+   /// Old, backward compt. deprecated field... 
+   /// </summary>
    public class PipelineFieldAction : PipelineAction
    {
       protected enum FieldSource { Value, Field, Event, Variable };

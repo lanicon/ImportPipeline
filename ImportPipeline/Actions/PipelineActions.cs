@@ -68,9 +68,9 @@ namespace Bitmanager.ImportPipeline
       protected Converter[] converters;
       protected IDataEndpoint endPoint;
       protected readonly String postProcessors;
-      protected readonly String endpointName, convertersName, scriptName;
+      protected readonly String endpointName, convertersName, scriptName, scriptBody;
       protected readonly String condExpr, valExpr;
-      protected readonly String condExprFunc, valExprFunc;
+      protected readonly String condExprFunc, valExprFunc, bodyFunc;
       protected readonly String clrvarName;
       internal String[] VarsToClear;
       public readonly bool Debug;
@@ -96,6 +96,15 @@ namespace Bitmanager.ImportPipeline
          if (src != null) valueSource = ValueSource.Parse (src);
 
          scriptName = node.ReadStr("@script", null);
+         scriptBody = node.ReadStr(null, null);
+         if (scriptBody != null)
+         {
+            scriptBody = scriptBody.TrimWhiteSpaceToNull();
+            if (scriptBody != null && scriptName != null)
+               throw new BMNodeException(node, "Cannot have a script in the body when @script is specified.");
+            bodyFunc = getGeneratedScriptName(pipeline, node, "body");
+            pipeline.ImportEngine.ScriptExpressions.AddExpression(bodyFunc, scriptBody);
+         }
          valExpr = node.ReadStr("@valexpr", null);
          condExpr = node.ReadStr("@condexpr", null);
          if (valExpr != null)
@@ -151,6 +160,7 @@ namespace Bitmanager.ImportPipeline
          this.postProcessors = optReplace(regex, name, template.postProcessors);
          this.convertersName = optReplace(regex, name, template.convertersName);
          this.scriptName = optReplace(regex, name, template.scriptName);
+
          this.clrvarName = optReplace(regex, name, template.clrvarName);
          if (this.clrvarName == template.clrvarName)
             this.VarsToClear = template.VarsToClear;
@@ -169,12 +179,14 @@ namespace Bitmanager.ImportPipeline
          this.valExprFunc = template.valExprFunc;
          this.condExpr = template.condExpr;
          this.condExprFunc = template.condExprFunc;
+         this.scriptBody = template.scriptBody;
+         this.bodyFunc = template.bodyFunc;
          updateConvertAndCallScriptNeeded();
       }
 
       protected void updateConvertAndCallScriptNeeded()
       {
-         ConvertAndCallScriptNeeded = (valueSource != null || convertersName != null || scriptName != null || valExpr != null || condExpr != null);
+         ConvertAndCallScriptNeeded = (valueSource != null || convertersName != null || scriptName != null || valExpr != null || condExpr != null || scriptBody != null);
       }
 
       public virtual void Start(PipelineContext ctx)
@@ -194,6 +206,8 @@ namespace Bitmanager.ImportPipeline
                list.Add(pipeline.CreateScriptExprDelegate<ScriptDelegate>(valExprFunc, node));
             if (scriptName != null)
                list.Add(pipeline.CreateScriptDelegate<ScriptDelegate>(scriptName, node));
+            if (bodyFunc != null)
+               list.Add(pipeline.CreateScriptExprDelegate<ScriptDelegate>(bodyFunc, node));
 
             if (!ConvertersFirst) addConverters(list);
             scriptDelegates = list.ToArray();

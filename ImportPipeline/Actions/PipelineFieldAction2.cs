@@ -48,7 +48,7 @@ namespace Bitmanager.ImportPipeline
          sep = node.ReadStr("@sep", null);
          fieldFlags = node.ReadEnum("@flags", sep == null ? FieldFlags.OverWrite : FieldFlags.Append);
 
-         if (toField == null && toVar == null && base.scriptName == null && toFieldFromVar == null)
+         if (toField == null && toVar == null && base.scriptName == null && toFieldFromVar == null && base.bodyFunc == null)
             throw new BMNodeException(node, "At least one of 'field', 'toFieldFromVar', 'tovar', 'script'-attributes is mandatory.");
 
          toFieldReal = toField == "*" ? null : toField;

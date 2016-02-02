@@ -56,6 +56,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
       Stream CreateStream();
       CredentialCache Credentials { get; }
       DateTime LastModified { get; }
+      FileAttributes Attributes { get; }
       long Size { get; }
       bool IsDir { get; }
    }

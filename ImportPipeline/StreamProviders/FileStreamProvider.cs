@@ -27,6 +27,7 @@ using System.Xml;
 using Bitmanager.Xml;
 using Bitmanager.Core;
 using Bitmanager.IO;
+using System.Reflection;
 
 namespace Bitmanager.ImportPipeline.StreamProviders
 {
@@ -39,6 +40,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          base.SetNames(fileElt.Name, parent.RootLen, parent.VirtualRoot);
          base.SetMeta(fileElt.LastWriteUtc, fileElt.Size);
          base.isDir = fileElt.IsDir;
+         base.attributes = fileElt.Attributes;
          uri = new Uri ("file://" + fullName);
       }
 
@@ -242,14 +244,25 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          public readonly String Name;
          public readonly DateTime LastWriteUtc;
          public readonly long Size;
+         public readonly FileAttributes Attributes;
          public readonly bool IsDir;
+
+         private static Func<FileSystemInfo, String> lambda = typeof(FileSystemInfo).GetBestMember("FullPath", MemberTypes.Field, ReflectionExtensions.DefaultBinding | BindingFlags.NonPublic).CreateGetterLambda<FileSystemInfo, String>();
+
 
          public _FileElt(FileSystemInfo fi)
          {
-            Name = fi.FullName;
+            Name = lambda(fi);// fi.FullName;
             LastWriteUtc = fi.LastWriteTimeUtc;
             Size = -1;
+            Attributes = fi.Attributes;
             IsDir = (fi.Attributes & FileAttributes.Directory) != 0;
+            if (!IsDir)
+            {
+               var x = fi as FileInfo;
+               if (x != null)
+                  Size = x.Length;
+            }
          }
          public _FileElt(String fullName)
          {

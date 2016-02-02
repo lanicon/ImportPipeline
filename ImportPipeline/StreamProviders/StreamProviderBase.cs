@@ -69,6 +69,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
       protected CredentialCache credentialCache;
       protected StreamProtocol protocol;
       protected DateTime lastModUtc;
+      protected FileAttributes attributes;
       protected long size;
       protected bool credentialsInitialized;
       protected bool credentialsNeeded;
@@ -209,6 +210,11 @@ namespace Bitmanager.ImportPipeline.StreamProviders
       public DateTime LastModified
       {
          get { return lastModUtc; }
+      }
+
+      public FileAttributes Attributes
+      {
+         get { return attributes; }
       }
 
       public long Size

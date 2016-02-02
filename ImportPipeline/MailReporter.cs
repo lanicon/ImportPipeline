@@ -69,13 +69,15 @@ namespace Bitmanager.ImportPipeline
          Mode = node.ReadEnum("@mode", _Mode.Errors);
       }
 
+      public override String ToString()
+      {
+         return String.Format("MailReporter [server={0}, port={1}, mode={2}, to={3}, from={4}]", MailServer, Port, Mode, MailTo.FirstOrDefault(), MailFrom);
+      }
+
       public void SendReport (PipelineContext ctx, ImportReport report)
       {
          if ((ctx.ImportEngine.ImportFlags & _ImportFlags.NoMailReport) != 0)
             return;
-
-         if ((Mode & ~(_Mode.Limited | _Mode.Always | _Mode.Never | _Mode.Errors)) != 0)
-            Mode.ThrowUnexpected();
 
          if ((Mode & _Mode.Always) != 0) goto SEND_REPORT;
          if ((report.ErrorState & _ErrorState.Error) != 0 && (Mode & _Mode.Errors) != 0) goto SEND_REPORT;

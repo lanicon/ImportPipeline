@@ -231,6 +231,8 @@ namespace Bitmanager.ImportPipeline
             Reporter = null;
          else
             Reporter = new MailReporter(x);
+         ImportLog.Log("loaded reporter: {0}", Reporter); 
+
 
          //Load the supplied script
          ImportLog.Log(_LogType.ltTimerStart, "loading: scripts"); 
@@ -428,7 +430,24 @@ namespace Bitmanager.ImportPipeline
             try
             {
                Endpoints.CloseFinally(mainCtx);
+            }
+            catch (Exception e2)
+            {
+               ErrorLog.Log(e2);
+               ImportLog.Log(e2);
+            }
+            try
+            {
                ProcessHostCollection.StopAll();
+            }
+            catch (Exception e2)
+            {
+               ErrorLog.Log(e2);
+               ImportLog.Log(e2);
+            }
+            try
+            {
+               if (Reporter != null) Reporter.SendReport(mainCtx, ret);
             }
             catch (Exception e2)
             {
@@ -437,7 +456,6 @@ namespace Bitmanager.ImportPipeline
             }
          }
          ret.SetGlobalStatus(mainCtx);
-         if (Reporter != null) Reporter.SendReport(mainCtx, ret);
          return ret;
       }
 

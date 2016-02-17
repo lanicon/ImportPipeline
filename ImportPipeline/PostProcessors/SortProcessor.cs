@@ -39,7 +39,6 @@ namespace Bitmanager.ImportPipeline
       private readonly UndupActions undupActions;
 
       private int numAfterSort;
-      private int numAfterUndup;
 
       private MapperWritersBase mapper;
 
@@ -88,18 +87,10 @@ namespace Bitmanager.ImportPipeline
          return sb.ToString();
       }
 
-      private void dumpStats(PipelineContext ctx)
+      protected override String getStatsLine()
       {
-         Logger logger = ctx.ImportLog;
-         logger.Log("PostProcessor {0} ended.", this);
-         logger.Log("-- In={0}, out={1}, passed through={2}, sorted={3}, after undup={4}.", numAfterSort, numAfterUndup, 0, numAfterSort, numAfterUndup);
+         return String.Format("-- In={0}, out={1}, passed through={2}, sorted={3}.", cnt_received, cnt_added, 0, numAfterSort);
       }
-      public override void Stop(PipelineContext ctx)
-      {
-         dumpStats(ctx);
-         base.Stop(ctx);
-      }
-
 
 
       private void getEnum(AsyncRequestElement ctx)
@@ -113,21 +104,19 @@ namespace Bitmanager.ImportPipeline
          ctx.PostProcessor = this;
          if (mapper!=null)
          {
-            MappedObjectEnumerator e = mapper.GetObjectEnumerator(0);
-            if (e != null)
-               ctx.Added += enumeratePartialAndClose(ctx, e);
+            enumeratePartialAndClose(ctx, mapper.GetObjectEnumerator(0));
          }
          Utils.FreeAndNil(ref mapper);
          base.CallNextPostProcessor(ctx);
       }
 
-      private int enumeratePartialAndClose(PipelineContext ctx, MappedObjectEnumerator e)
+      private void enumeratePartialAndClose(PipelineContext ctx, MappedObjectEnumerator e)
       {
+         if (e == null) return;
          try
          {
             //ctx.ImportLog.Log("enumeratePartial e={0}", e.GetType().Name);
             int cnt = 0;
-            int exp = 0;
             if (this.undupper != null)
             {
                List<JObject> list = e.GetAll();
@@ -145,9 +134,7 @@ namespace Bitmanager.ImportPipeline
 
                   if (undupActions != null)
                      undupActions.ProcessRecords(ctx, list, prevIdx, i - prevIdx);
-                  nextEndpoint.SetField(null, prev);
-                  nextEndpoint.Add(ctx);
-                  ++exp;
+                  PassThrough(ctx, prev);
 
                   prevIdx = i;
                   prev = cur;
@@ -157,9 +144,7 @@ namespace Bitmanager.ImportPipeline
                {
                   if (undupActions != null)
                      undupActions.ProcessRecords(ctx, list, prevIdx, list.Count - prevIdx);
-                  nextEndpoint.SetField(null, prev);
-                  nextEndpoint.Add(ctx);
-                  ++exp;
+                  PassThrough(ctx, prev);
                }
             }
             else
@@ -168,17 +153,12 @@ namespace Bitmanager.ImportPipeline
                {
                   var obj = e.GetNext();
                   if (obj == null) break;
-                  nextEndpoint.SetField(null, obj);
-                  nextEndpoint.Add(ctx);
-                  ++cnt;
+                  PassThrough(ctx, obj);
                }
-               exp = cnt;
             }
 
 EXIT_RTN:
             numAfterSort += cnt;
-            numAfterUndup += exp;
-            return exp;
          }
          finally
          {
@@ -195,6 +175,7 @@ EXIT_RTN:
          }
          if (accumulator.Count > 0)
          {
+            ++cnt_received;
             mapper.Write(accumulator);
             Clear();
          }

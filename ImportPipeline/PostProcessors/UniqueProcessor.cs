@@ -37,8 +37,6 @@ namespace Bitmanager.ImportPipeline
       private readonly JComparer undupper;
       SortedDictionary<JToken[], bool> dict; 
 
-      private int numAfterUndup, numAdded;
-
       public UniqueProcessor(ImportEngine engine, XmlNode node): base (engine, node)
       {
          List<KeyAndType> list = KeyAndType.CreateKeyList(node.SelectMandatoryNode("undupper"), "key", true);
@@ -65,24 +63,12 @@ namespace Bitmanager.ImportPipeline
          return sb.ToString();
       }
 
-      private void dumpStats(PipelineContext ctx)
-      {
-         Logger logger = ctx.ImportLog;
-         logger.Log("PostProcessor {0} ended.", this);
-         logger.Log("-- In={0}, out={1}, skipped={2}.", numAdded, numAfterUndup, numAdded-numAfterUndup);
-      }
-      public override void Stop(PipelineContext ctx)
-      {
-         dumpStats(ctx);
-         base.Stop(ctx);
-      }
-
 
       public override void Add(PipelineContext ctx)
       {
          if (accumulator.Count > 0)
          {
-            ++numAdded;
+            ++cnt_received;
             JToken[] keys = undupper.GetKeys(accumulator);
             if (dict==null)
             {
@@ -94,9 +80,7 @@ namespace Bitmanager.ImportPipeline
                if (dict.ContainsKey (keys)) return;
                dict.Add(keys, false);
             }
-            ++numAfterUndup;
-            nextEndpoint.SetField(null, accumulator);
-            nextEndpoint.Add(ctx);
+            PassThrough (ctx, accumulator);
             Clear();
          }
       }

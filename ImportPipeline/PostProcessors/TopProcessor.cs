@@ -41,7 +41,6 @@ namespace Bitmanager.ImportPipeline
       FixedPriorityQueue<JObject> prique;
 
       int topCount;
-      int accepted;
       bool reverse;
       _SortAfter sortAfter;
 
@@ -80,20 +79,6 @@ namespace Bitmanager.ImportPipeline
          return sb.ToString();
       }
 
-      private void dumpStats(PipelineContext ctx)
-      {
-         Logger logger = ctx.ImportLog;
-         logger.Log("PostProcessor {0} ended.", this);
-         logger.Log("-- In={0}, out={1}.", accepted, prique == null ? 0 : prique.Count);
-      }
-
-      public override void Stop(PipelineContext ctx)
-      {
-         dumpStats(ctx);
-         base.Stop(ctx);
-      }
-
-
       public override void CallNextPostProcessor(PipelineContext ctx)
       {
          ctx.PostProcessor = this;
@@ -110,8 +95,7 @@ namespace Bitmanager.ImportPipeline
 
          for (int i = 0; i < N; i++)
          {
-            nextEndpoint.SetField(null, prique[i]);
-            nextEndpoint.Add(ctx);
+            PassThrough (ctx, prique[i]);
          }
          base.CallNextPostProcessor(ctx);
       }
@@ -120,7 +104,7 @@ namespace Bitmanager.ImportPipeline
       {
          if (accumulator.Count > 0)
          {
-            accepted++;
+            cnt_received++;
             prique.Add(accumulator);
             Clear();
          }

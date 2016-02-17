@@ -34,8 +34,7 @@ namespace Bitmanager.ImportPipeline
 {
    public class RepeatProcessor : PostProcessorBase
    {
-      private int repeatCount;
-      private int cntIn, cntOut;
+      private readonly int repeatCount;
 
       public RepeatProcessor(ImportEngine engine, XmlNode node): base (engine, node)
       {
@@ -62,29 +61,13 @@ namespace Bitmanager.ImportPipeline
          return sb.ToString();
       }
 
-      private void dumpStats(PipelineContext ctx)
-      {
-         Logger logger = ctx.ImportLog;
-         logger.Log("PostProcessor {0} ended.", this);
-         logger.Log("-- In={0}, out={1}.", cntIn, cntOut);
-      }
-      public override void Stop(PipelineContext ctx)
-      {
-         dumpStats(ctx);
-         base.Stop(ctx);
-      }
-
       public override void Add(PipelineContext ctx)
       {
          if (accumulator.Count > 0)
          {
-            cntIn++;
+            cnt_received++;
             for (int i = 0; i < repeatCount; i++)
-            {
-               cntOut++;
-               nextEndpoint.SetField(null, accumulator.DeepClone());
-               nextEndpoint.Add(ctx);
-            }
+               PassThrough(ctx, (JObject)accumulator.DeepClone());
             Clear();
          }
       }

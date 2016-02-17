@@ -59,7 +59,6 @@ namespace Bitmanager.ImportPipeline
 
       private int numPassThrough;
       private int numAfterSort;
-      private int numAfterUndup;
 
       private MapperWritersBase mapper;
 
@@ -152,18 +151,10 @@ namespace Bitmanager.ImportPipeline
          return sb.ToString();
       }
 
-      private void dumpStats(PipelineContext ctx)
+      protected override String getStatsLine()
       {
-         Logger logger = ctx.ImportLog;
-         logger.Log("PostProcessor {0} ended.", this);
-         logger.Log("-- In={0}, out={1}, passed through={2}, sorted={3}, after undup={4}.", numPassThrough + numAfterSort, numPassThrough + numAfterUndup, numPassThrough, numAfterSort, numAfterUndup);
+         return String.Format("-- In={0}, out={1}, passed through={2}, sorted={3}.", cnt_received, cnt_added, numPassThrough, numAfterSort);
       }
-      public override void Stop(PipelineContext ctx)
-      {
-         dumpStats(ctx);
-         base.Stop(ctx);
-      }
-
 
 
       private void getEnum(AsyncRequestElement ctx)
@@ -188,7 +179,7 @@ namespace Bitmanager.ImportPipeline
                {
                   e = mapper.GetObjectEnumerator(i);
                   if (e == null) break;
-                  ctx.Added += enumeratePartialAndClose(ctx, e, i);
+                  enumeratePartialAndClose(ctx, e, i);
                }
             }
             else
@@ -201,7 +192,7 @@ namespace Bitmanager.ImportPipeline
                   e = (MappedObjectEnumerator)x.Result;
                   if (e == null) break;
 
-                  ctx.Added += enumeratePartialAndClose(ctx, e, i);
+                  enumeratePartialAndClose(ctx, e, i);
                }
 
                //Pop all existing from the Q and process them
@@ -212,7 +203,7 @@ namespace Bitmanager.ImportPipeline
                   e = (MappedObjectEnumerator)x.Result;
                   if (e == null) continue; ;
 
-                  ctx.Added += enumeratePartialAndClose(ctx, e, i++);
+                  enumeratePartialAndClose(ctx, e, i++);
                }
             }
          }
@@ -221,68 +212,65 @@ namespace Bitmanager.ImportPipeline
          base.CallNextPostProcessor(ctx);
       }
 
-      private int enumeratePartialAndClose(PipelineContext ctx, MappedObjectEnumerator e, int N)
+      private void enumeratePartialAndClose(PipelineContext ctx, MappedObjectEnumerator e, int N)
       {
          try
          {
             //ctx.ImportLog.Log("enumeratePartial e={0}", e.GetType().Name);
-            int cnt = 0;
-            int exp = 0;
-            if (this.undupper != null)
+
+            int startedExpCount = base.cnt_added; 
+            if (this.undupper == null)  //Easy case without undupper?
             {
-               List<JObject> list = e.GetAll();
-               if (list.Count == 0) goto EXIT_RTN;
-
-               cnt = list.Count;
-               ctx.ImportLog.Log(_LogType.ltTimerStart, "-- enum partial[{0}]: count={1}", N, cnt);
-               JObject prev = list[0];
-               JToken[] prevKeys = undupper.GetKeys(prev);
-               int prevIdx = 0;
-               for (int i = 1; i < list.Count; i++)
-               {
-                  JObject cur = list[i];
-                  JToken[] keys = undupper.GetKeys(cur);
-                  if (undupper.CompareKeys(prevKeys, keys) == 0) continue;
-
-                  if (undupActions != null)
-                     undupActions.ProcessRecords(ctx, list, prevIdx, i - prevIdx);
-                  nextEndpoint.SetField(null, prev);
-                  nextEndpoint.Add(ctx);
-                  ++exp;
-
-                  prevIdx = i;
-                  prev = cur;
-                  prevKeys = keys;
-               }
-               if (prevIdx < list.Count)
-               {
-                  if (undupActions != null)
-                     undupActions.ProcessRecords(ctx, list, prevIdx, list.Count - prevIdx);
-                  nextEndpoint.SetField(null, prev);
-                  nextEndpoint.Add(ctx);
-                  ++exp;
-               }
-               ctx.ImportLog.Log(_LogType.ltTimerStop, "-- enum done. Forwarded {0} recs.", exp);
-            }
-            else
-            {
-               ctx.ImportLog.Log(_LogType.ltTimerStart, "-- enum partial[{0}]: count={1}", N, cnt);
+               ctx.ImportLog.Log(_LogType.ltTimerStart, "-- enum partial[{0}]: count=unknown (not undupping)", N);
                while (true)
                {
                   var obj = e.GetNext();
                   if (obj == null) break;
-                  nextEndpoint.SetField(null, obj);
-                  nextEndpoint.Add(ctx);
-                  ++cnt;
+                  PassThrough(ctx, obj);
                }
-               exp = cnt;
-               ctx.ImportLog.Log(_LogType.ltTimerStop, "-- enum done. Forwarded {0} recs.", exp);
+               numAfterSort += cnt_added - startedExpCount;
+               ctx.ImportLog.Log(_LogType.ltTimerStop, "-- enum done. Forwarded {0} recs, skipped 0 recs.", cnt_added - startedExpCount);
+               goto EXIT_RTN;
             }
 
-      EXIT_RTN:
+            //More complex case with undupper
+            List<JObject> list = e.GetAll();
+            int cnt = list.Count;
+            if (cnt == 0) goto EXIT_RTN;
+
             numAfterSort += cnt;
-            numAfterUndup += exp;
-            return exp;
+            ctx.ImportLog.Log(_LogType.ltTimerStart, "-- enum partial[{0}]: count={1}", N, cnt);
+            JObject prev = list[0];
+            JToken[] prevKeys = undupper.GetKeys(prev);
+            int prevIdx = 0;
+            ctx.ActionFlags = _ActionFlags.None;
+            for (int i = 1; i < list.Count; i++)
+            {
+               JObject cur = list[i];
+               JToken[] keys = undupper.GetKeys(cur);
+               if (undupper.CompareKeys(prevKeys, keys) == 0) continue;
+
+               if (undupActions != null)
+                  undupActions.ProcessRecords(ctx, list, prevIdx, i - prevIdx);
+
+               if ((ctx.ActionFlags & _ActionFlags.Skip) == 0)
+                  PassThrough (ctx, prev);
+
+               prevIdx = i;
+               prev = cur;
+               prevKeys = keys;
+            }
+            if (prevIdx < list.Count)
+            {
+               if (undupActions != null)
+                  undupActions.ProcessRecords(ctx, list, prevIdx, list.Count - prevIdx);
+               if ((ctx.ActionFlags & _ActionFlags.Skip) == 0)
+                  PassThrough(ctx, prev);
+            }
+            int exp = base.cnt_added - startedExpCount;
+            ctx.ImportLog.Log(_LogType.ltTimerStop, "-- enum done. Forwarded {0} recs, skipped {1} recs.", exp, cnt-exp);
+
+      EXIT_RTN:;
          }
          finally
          {
@@ -302,6 +290,7 @@ namespace Bitmanager.ImportPipeline
          }
          if (accumulator.Count > 0)
          {
+            ++cnt_received;
             if (!mapper.OptWrite(accumulator, maxNullIndex))
             {
                //Just passthrough to the next endpoint if this record had a failing hash-value

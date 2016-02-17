@@ -87,6 +87,7 @@ namespace Bitmanager.ImportPipeline
 
       public void ProcessRecords(PipelineContext ctx, List<JObject> records, int offset, int len)
       {
+         ctx.ActionFlags = _ActionFlags.None;
          foreach (var a in actions)
             a.ProcessRecords(ctx, records, offset, len);
       }

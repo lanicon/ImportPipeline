@@ -37,6 +37,7 @@ namespace Bitmanager.ImportPipeline
    {
       String Name { get; }
       void CallNextPostProcessor(PipelineContext ctx);
+      void PassThrough (PipelineContext ctx, JObject value);
       IPostProcessor Clone(PipelineContext ctx, IDataEndpoint epOrnextProcessor);
       IDataEndpoint GetLastEndPoint();
    }
@@ -48,7 +49,10 @@ namespace Bitmanager.ImportPipeline
       protected readonly IDataEndpoint nextEndpoint;
       protected readonly IPostProcessor nextProcessor;
       private int instanceNo; //Unique number per clone
-      public int InstanceNo { get { return instanceNo; } } 
+      public int InstanceNo { get { return instanceNo; } }
+      protected int cnt_added;
+      protected int cnt_skipped;
+      protected int cnt_received;
 
       public PostProcessorBase(ImportEngine engine, XmlNode node) {
          name = node.ReadStr("@name");
@@ -68,6 +72,14 @@ namespace Bitmanager.ImportPipeline
          ctx.PostProcessor = this;
          if (nextProcessor != null) nextProcessor.CallNextPostProcessor(ctx);
       }
+
+      public virtual void PassThrough(PipelineContext ctx, JObject value)
+      {
+         ++cnt_added;
+         nextEndpoint.SetField(null, value);
+         nextEndpoint.Add(ctx);
+      }
+
       public virtual IDataEndpoint GetLastEndPoint()
       {
          return nextProcessor == null ? nextEndpoint : nextProcessor.GetLastEndPoint();
@@ -81,7 +93,19 @@ namespace Bitmanager.ImportPipeline
 
       public override void Stop(PipelineContext ctx)
       {
+         dumpStats(ctx);
          nextEndpoint.Stop(ctx);
+      }
+
+      protected virtual String getStatsLine()
+      {
+         return String.Format("-- In={0}, out={1}, skipped={2}.", cnt_received, cnt_added, cnt_skipped);
+      }
+      protected virtual void dumpStats(PipelineContext ctx)
+      {
+         Logger logger = ctx.ImportLog;
+         logger.Log("PostProcessor {0} ended.", this);
+         logger.Log(getStatsLine());
       }
 
       public override ExistState Exists(PipelineContext ctx, string key, DateTime? timeStamp)

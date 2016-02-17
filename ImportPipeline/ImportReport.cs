@@ -83,11 +83,18 @@ namespace Bitmanager.ImportPipeline
       public int Added, Emitted, Deleted, Errors, Skipped, PostProcessed, ElapsedSeconds;
       public String Stats;
       public _ErrorState ErrorState;
+      private DateTime utcStart;
 
-      public DatasourceReport(PipelineContext ctx, DateTime utcStart)
+      public DatasourceReport(PipelineContext ctx)
+      {
+         utcStart = DateTime.UtcNow;
+         DatasourceName = ctx.DatasourceAdmin.Name;
+         ErrorState = _ErrorState.Running;
+         Stats = "Running...";
+      }
+      public void MarkEnded(PipelineContext ctx)
       {
          ElapsedSeconds = (int)(DateTime.UtcNow - utcStart).TotalSeconds;
-         DatasourceName = ctx.DatasourceAdmin.Name;
          Added = ctx.Added;
          Deleted = ctx.Deleted;
          Emitted = ctx.Emitted;
@@ -95,21 +102,15 @@ namespace Bitmanager.ImportPipeline
          Skipped = ctx.Skipped;
          PostProcessed = ctx.PostProcessed;
          ErrorMessage = ctx.LastError == null ? null : ctx.LastError.Message;
-         Stats = ctx.GetStats() + ", elapsed="+Pretty.ToElapsed(ElapsedSeconds);
+         Stats = ctx.GetStats() + ", elapsed=" + Pretty.ToElapsed(ElapsedSeconds);
          ErrorState = ctx.ErrorState;
       }
-
-      public String GetStats()
-      {
-         return Stats;// String.Format("Emitted={3}, Added={0}, Skipped={2}, Errors={4}, Deleted={1}", Added, Deleted, Skipped, Emitted, Errors);
-      }
-
 
       public override string ToString()
       {
          if (ErrorMessage == null)
-            return DatasourceName + "\t " + GetStats();
-         return DatasourceName + "\t " + GetStats() + "\r\n\t" + ErrorMessage;
+            return DatasourceName + "\t " + Stats;
+         return DatasourceName + "\t " + Stats + "\r\n\t" + ErrorMessage;
       }
    }
 }

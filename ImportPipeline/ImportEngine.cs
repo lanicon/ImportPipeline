@@ -398,18 +398,20 @@ namespace Bitmanager.ImportPipeline
                PipelineContext ctx = new PipelineContext(this, admin);
                var pipeline = admin.Pipeline;
 
+               var report = new DatasourceReport(ctx);
+               ret.Add(report);
                try
                {
-                  DateTime start = DateTime.UtcNow;
                   admin.Import(ctx);
                   mainCtx.ErrorState |= (ctx.ErrorState & stateFilter);
                   if (ctx.LastError != null) mainCtx.LastError = ctx.LastError;
-                  ret.Add(new DatasourceReport(ctx, start));
+                  report.MarkEnded (ctx);
                }
                catch (Exception err)
                {
                   mainCtx.LastError = err;
                   mainCtx.ErrorState |= (ctx.ErrorState & stateFilter) | _ErrorState.Error;
+                  report.MarkEnded(ctx);
                   throw;
                }
                Endpoints.OptClosePerDatasource(ctx);

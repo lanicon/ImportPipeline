@@ -48,7 +48,8 @@ namespace Bitmanager.ImportPipeline
       OK = 0,
       Error = 1 << 0,
       Limited = 1 << 2,
-      All = Error | Limited,
+      Running = 1<<3,
+      All = Error | Limited | Running,
    };
 
    public class PipelineContext

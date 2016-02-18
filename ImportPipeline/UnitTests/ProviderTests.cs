@@ -43,7 +43,7 @@ namespace UnitTests
          {
             eng.Load(root + "providers.xml");
 
-            PipelineContext ctx = new PipelineContext(eng, eng.Datasources[0]);
+            PipelineContext ctx = new PipelineContext(eng, eng.Datasources[0], new DatasourceReport(eng.Datasources[0]));
             XmlHelper xml = new XmlHelper(root + "providers.xml");
 
             using (FileStream actual = new FileStream(root + "actual.txt", FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite, 4096))

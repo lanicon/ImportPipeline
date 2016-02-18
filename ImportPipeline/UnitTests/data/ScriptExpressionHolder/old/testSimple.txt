@@ -2,10 +2,14 @@
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Xml;
 using System.Collections.Generic;
 using Bitmanager.Core;
 using Bitmanager.IO;
 using Bitmanager.Json;
+using Bitmanager.ImportPipeline;
+using Bitmanager.ImportPipeline.StreamProviders;
+using Newtonsoft.Json.Linq;
 
 namespace Bitmanager.ImportPipeline
 {

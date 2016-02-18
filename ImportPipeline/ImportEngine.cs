@@ -395,11 +395,11 @@ namespace Bitmanager.ImportPipeline
                   continue;
                }
 
-               PipelineContext ctx = new PipelineContext(this, admin);
+               var report = new DatasourceReport(admin);
+               ret.Add(report);
+               PipelineContext ctx = new PipelineContext(this, admin, report);
                var pipeline = admin.Pipeline;
 
-               var report = new DatasourceReport(ctx);
-               ret.Add(report);
                try
                {
                   admin.Import(ctx);

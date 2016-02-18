@@ -166,6 +166,7 @@ namespace Bitmanager.ImportPipeline
       public override void CallNextPostProcessor(PipelineContext ctx)
       {
          ctx.PostProcessor = this;
+         ReportStart(ctx);
          if (mapper!=null)
          {
             ctx.ImportLog.Log(_LogType.ltTimerStart, "Reduce phase maxparallel={0}, fanout={1}.", readMaxParallel, fanOut);
@@ -207,6 +208,7 @@ namespace Bitmanager.ImportPipeline
                }
             }
          }
+         ReportEnd(ctx);
          ctx.ImportLog.Log(_LogType.ltTimerStop, "Reduce phase ended.");
          Utils.FreeAndNil(ref mapper);
          base.CallNextPostProcessor(ctx);
@@ -295,8 +297,7 @@ namespace Bitmanager.ImportPipeline
             {
                //Just passthrough to the next endpoint if this record had a failing hash-value
                ++numPassThrough;
-               nextEndpoint.SetField(null, accumulator);
-               nextEndpoint.Add(ctx);
+               PassThrough(ctx, accumulator);
             }
             Clear();
          }
@@ -312,10 +313,8 @@ namespace Bitmanager.ImportPipeline
                if (!mapper.OptWrite(accumulator, maxNullIndex))
                {
                   //Just passthrough to the next endpoint if this record had a failing hash-value
-                  nextEndpoint.SetField(null, accumulator);
-                  nextEndpoint.Add(null);
+                  PassThrough(null, accumulator); //PW Kan dit? null als ctx?
                }
-
             }
          }
       }

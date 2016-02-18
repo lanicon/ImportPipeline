@@ -102,11 +102,13 @@ namespace Bitmanager.ImportPipeline
       public override void CallNextPostProcessor(PipelineContext ctx)
       {
          ctx.PostProcessor = this;
+         ReportStart(ctx);
          if (mapper!=null)
          {
             enumeratePartialAndClose(ctx, mapper.GetObjectEnumerator(0));
          }
          Utils.FreeAndNil(ref mapper);
+         ReportEnd(ctx);
          base.CallNextPostProcessor(ctx);
       }
 

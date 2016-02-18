@@ -80,15 +80,16 @@ namespace Bitmanager.ImportPipeline
    {
       public String DatasourceName;
       public String ErrorMessage;
+      public List<PostProcessorReport> PostProcessorReports;
       public int Added, Emitted, Deleted, Errors, Skipped, PostProcessed, ElapsedSeconds;
       public String Stats;
       public _ErrorState ErrorState;
       private DateTime utcStart;
 
-      public DatasourceReport(PipelineContext ctx)
+      public DatasourceReport(DatasourceAdmin ds)
       {
          utcStart = DateTime.UtcNow;
-         DatasourceName = ctx.DatasourceAdmin.Name;
+         DatasourceName = ds.Name;
          ErrorState = _ErrorState.Running;
          Stats = "Running...";
       }
@@ -108,9 +109,84 @@ namespace Bitmanager.ImportPipeline
 
       public override string ToString()
       {
-         if (ErrorMessage == null)
-            return DatasourceName + "\t " + Stats;
-         return DatasourceName + "\t " + Stats + "\r\n\t" + ErrorMessage;
+         StringBuilder sb = new StringBuilder();
+         ToString(sb);
+         return sb.ToString();
+      }
+      public StringBuilder ToString(StringBuilder sb)
+      {
+         sb.Append(DatasourceName);
+         sb.Append("\t ");
+         sb.Append(Stats);
+         if (ErrorMessage != null)
+         {
+            sb.Append("\r\n\t");
+            sb.Append(ErrorMessage);
+         }
+         if (PostProcessorReports != null)
+         {
+            foreach (var ppr in PostProcessorReports)
+            {
+               sb.Append("\r\n\t");
+               ppr.ToString(sb);
+            }
+         }
+         return sb;
+      }
+
+      public void AddPostProcessorReport (PostProcessorReport rep)
+      {
+         if (PostProcessorReports == null) PostProcessorReports = new List<PostProcessorReport>();
+         PostProcessorReports.Add(rep);
+      }
+   }
+
+
+   /// <summary>
+   /// Holds global stats about a postprocessor
+   /// </summary>
+   [Serializable]
+   public class PostProcessorReport
+   {
+      public String Name;
+      public int Received, Passed, Skipped, ElapsedSeconds;
+      public String Stats;
+      private DateTime utcStart;
+
+      public PostProcessorReport(IPostProcessor proc)
+      {
+         utcStart = DateTime.UtcNow;
+         Name = proc.Name;
+         Stats = "Running...";
+      }
+      public void MarkEnded(PipelineContext ctx, String stats=null)
+      {
+         ElapsedSeconds = (int)(DateTime.UtcNow - utcStart).TotalSeconds;
+         StringBuilder sb = new StringBuilder();
+         sb.Append (Name);
+         sb.Append (": ");
+         if (stats==null)
+            sb.AppendFormat ("in={0}, out={1}, skipped={2}.", Received, Passed, Skipped);
+         else
+            sb.Append (stats);
+         sb.Append (", elapsed=");
+         sb.Append (Pretty.ToElapsed(ElapsedSeconds));
+         sb.Append('.');
+
+         Stats = sb.ToString();
+      }
+
+      public override string ToString()
+      {
+         return Name + "\t " + Stats;
+      }
+
+      public StringBuilder ToString(StringBuilder sb)
+      {
+         sb.Append(Name);
+         sb.Append("\t");
+         sb.Append(Stats);
+         return sb;
       }
    }
 }

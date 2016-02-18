@@ -82,6 +82,7 @@ namespace Bitmanager.ImportPipeline
       public override void CallNextPostProcessor(PipelineContext ctx)
       {
          ctx.PostProcessor = this;
+         ReportStart(ctx);
          int N = prique.Count;
          switch (sortAfter)
          {
@@ -97,6 +98,7 @@ namespace Bitmanager.ImportPipeline
          {
             PassThrough (ctx, prique[i]);
          }
+         ReportEnd(ctx);
          base.CallNextPostProcessor(ctx);
       }
 

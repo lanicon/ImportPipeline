@@ -48,6 +48,7 @@ namespace Bitmanager.ImportPipeline
       public String Name { get { return name; } }
       protected readonly IDataEndpoint nextEndpoint;
       protected readonly IPostProcessor nextProcessor;
+      protected PostProcessorReport report;
       private int instanceNo; //Unique number per clone
       public int InstanceNo { get { return instanceNo; } }
       protected int cnt_added;
@@ -69,6 +70,11 @@ namespace Bitmanager.ImportPipeline
 
       public virtual void CallNextPostProcessor(PipelineContext ctx)
       {
+         if (report==null)
+         {
+            ReportStart(ctx);
+            ReportEnd(ctx);
+         }
          ctx.PostProcessor = this;
          if (nextProcessor != null) nextProcessor.CallNextPostProcessor(ctx);
       }
@@ -125,6 +131,24 @@ namespace Bitmanager.ImportPipeline
       }
       #endregion
 
+      protected PostProcessorReport ReportStart(PipelineContext ctx)
+      {
+         report = new PostProcessorReport(this);
+         if (ctx.DatasourceReport != null)
+            ctx.DatasourceReport.AddPostProcessorReport(report);
+         return report;
+      }
+      protected PostProcessorReport ReportEnd(PipelineContext ctx, String stats=null)
+      {
+         if (report != null)
+         {
+            report.Received = cnt_received;
+            report.Passed = cnt_added;
+            report.Skipped = cnt_skipped;
+            report.MarkEnded(ctx, stats);
+         }
+         return report;
+      }
 
       public override abstract void Add(PipelineContext ctx);
       public abstract IPostProcessor Clone(PipelineContext ctx, IDataEndpoint epOrnextProcessor);

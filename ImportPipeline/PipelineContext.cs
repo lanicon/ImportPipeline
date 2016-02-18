@@ -57,6 +57,7 @@ namespace Bitmanager.ImportPipeline
       public readonly ImportEngine ImportEngine;
       public readonly Pipeline Pipeline;
       public readonly DatasourceAdmin DatasourceAdmin;
+      public readonly DatasourceReport DatasourceReport;
       public readonly Logger ImportLog;
       public readonly Logger DebugLog;
       public readonly Logger ErrorLog;
@@ -80,10 +81,11 @@ namespace Bitmanager.ImportPipeline
       private bool itemStartPending;
       private Object valueForItemStart;
 
-      public PipelineContext(ImportEngine eng, DatasourceAdmin ds)
+      public PipelineContext(ImportEngine eng, DatasourceAdmin ds, DatasourceReport report)
       {
          ImportEngine = eng;
          DatasourceAdmin = ds;
+         DatasourceReport = report;
          Pipeline = ds.Pipeline;
          ImportLog = eng.ImportLog.Clone (ds.Name);
          DebugLog = eng.DebugLog.Clone(ds.Name);

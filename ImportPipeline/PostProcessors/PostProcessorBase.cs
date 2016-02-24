@@ -36,9 +36,25 @@ namespace Bitmanager.ImportPipeline
    public interface IPostProcessor
    {
       String Name { get; }
-      void CallNextPostProcessor(PipelineContext ctx);
-      void PassThrough (PipelineContext ctx, JObject value);
+
+      /// <summary>
+      /// Calls the next processor (if any) and returns the total #added records by the last processor
+      /// </summary>
+      int CallNextPostProcessor(PipelineContext ctx);
+
+      /// <summary>
+      /// Passes the record to the next processor or endpoint
+      /// </summary>
+      void PassThrough(PipelineContext ctx, JObject value);
+
+      /// <summary>
+      /// Wraps a copy of the processor around the endpoint and returns the copy
+      /// </summary>
       IPostProcessor Clone(PipelineContext ctx, IDataEndpoint epOrnextProcessor);
+
+      /// <summary>
+      /// Returns the end Endpoint of the post-processor chain
+      /// </summary>
       IDataEndpoint GetLastEndPoint();
    }
 
@@ -68,15 +84,17 @@ namespace Bitmanager.ImportPipeline
          instanceNo = ++other.instanceNo;
       }
 
-      public virtual void CallNextPostProcessor(PipelineContext ctx)
+      public virtual int CallNextPostProcessor(PipelineContext ctx)
       {
+         var ret = cnt_added;
          if (report==null)
          {
             ReportStart(ctx);
             ReportEnd(ctx);
          }
          ctx.PostProcessor = this;
-         if (nextProcessor != null) nextProcessor.CallNextPostProcessor(ctx);
+         if (nextProcessor != null) ret = nextProcessor.CallNextPostProcessor(ctx);
+         return ret; 
       }
 
       public virtual void PassThrough(PipelineContext ctx, JObject value)

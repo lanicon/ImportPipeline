@@ -81,7 +81,7 @@ namespace Bitmanager.ImportPipeline
       public String DatasourceName;
       public String ErrorMessage;
       public List<PostProcessorReport> PostProcessorReports;
-      public int Added, Emitted, Deleted, Errors, Skipped, PostProcessed, ElapsedSeconds;
+      public int Added, Emitted, Deleted, Errors, Skipped, ElapsedSeconds;
       public String Stats;
       public _ErrorState ErrorState;
       private DateTime utcStart;
@@ -101,9 +101,28 @@ namespace Bitmanager.ImportPipeline
          Emitted = ctx.Emitted;
          Errors = ctx.Errors;
          Skipped = ctx.Skipped;
-         PostProcessed = ctx.PostProcessed;
          ErrorMessage = ctx.LastError == null ? null : ctx.LastError.Message;
-         Stats = ctx.GetStats() + ", elapsed=" + Pretty.ToElapsed(ElapsedSeconds);
+
+         StringBuilder sb = new StringBuilder();
+         sb.Append("Elapsed=");
+         sb.Append(Pretty.ToElapsed(ElapsedSeconds));
+         sb.Append(", ");
+         sb.Append(ctx.GetStats());
+         if (ErrorMessage != null)
+         {
+            sb.Append("\r\n\t");
+            sb.Append(ErrorMessage);
+         }
+         if (PostProcessorReports != null)
+         {
+            foreach (var ppr in PostProcessorReports)
+            {
+               sb.Append("\r\n\t");
+               ppr.ToString(sb);
+            }
+         }
+         Stats = sb.ToString();
+
          ErrorState = ctx.ErrorState;
       }
 
@@ -163,14 +182,13 @@ namespace Bitmanager.ImportPipeline
       {
          ElapsedSeconds = (int)(DateTime.UtcNow - utcStart).TotalSeconds;
          StringBuilder sb = new StringBuilder();
-         sb.Append (Name);
-         sb.Append (": ");
-         if (stats==null)
-            sb.AppendFormat ("in={0}, out={1}, skipped={2}.", Received, Passed, Skipped);
+         sb.Append("Elapsed=");
+         sb.Append(Pretty.ToElapsed(ElapsedSeconds));
+         sb.Append(", ");
+         if (stats == null)
+            sb.AppendFormat ("In={0}, Out={1}, Skipped={2}.", Received, Passed, Skipped);
          else
             sb.Append (stats);
-         sb.Append (", elapsed=");
-         sb.Append (Pretty.ToElapsed(ElapsedSeconds));
          sb.Append('.');
 
          Stats = sb.ToString();
@@ -178,13 +196,13 @@ namespace Bitmanager.ImportPipeline
 
       public override string ToString()
       {
-         return Name + "\t " + Stats;
+         return Name + ": \t " + Stats;
       }
 
       public StringBuilder ToString(StringBuilder sb)
       {
          sb.Append(Name);
-         sb.Append("\t");
+         sb.Append(": \t");
          sb.Append(Stats);
          return sb;
       }

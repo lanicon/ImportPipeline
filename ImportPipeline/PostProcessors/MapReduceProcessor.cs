@@ -163,7 +163,7 @@ namespace Bitmanager.ImportPipeline
          ctx.Result = mapper.GetObjectEnumerator(i, true);
       }
 
-      public override void CallNextPostProcessor(PipelineContext ctx)
+      public override int CallNextPostProcessor(PipelineContext ctx)
       {
          ctx.PostProcessor = this;
          ReportStart(ctx);
@@ -211,7 +211,7 @@ namespace Bitmanager.ImportPipeline
          ReportEnd(ctx);
          ctx.ImportLog.Log(_LogType.ltTimerStop, "Reduce phase ended.");
          Utils.FreeAndNil(ref mapper);
-         base.CallNextPostProcessor(ctx);
+         return base.CallNextPostProcessor(ctx);
       }
 
       private void enumeratePartialAndClose(PipelineContext ctx, MappedObjectEnumerator e, int N)

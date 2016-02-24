@@ -79,7 +79,7 @@ namespace Bitmanager.ImportPipeline
          return sb.ToString();
       }
 
-      public override void CallNextPostProcessor(PipelineContext ctx)
+      public override int CallNextPostProcessor(PipelineContext ctx)
       {
          ctx.PostProcessor = this;
          ReportStart(ctx);
@@ -99,7 +99,7 @@ namespace Bitmanager.ImportPipeline
             PassThrough (ctx, prique[i]);
          }
          ReportEnd(ctx);
-         base.CallNextPostProcessor(ctx);
+         return base.CallNextPostProcessor(ctx);
       }
 
       public override void Add(PipelineContext ctx)

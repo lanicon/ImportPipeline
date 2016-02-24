@@ -3,6 +3,13 @@
    <script file="scripts.cs" />
    <endpoints>
       <endpoint name="json" type="jsonEndpoint" file="new\json-out.txt" formatted="true" />
+      $$#define name=tika_raw$$
+      $$#include tika_endpoint.inc$$
+      $$#define name=tika_sort_title$$
+      $$#include tika_endpoint.inc$$
+      $$#define name=tika_undup_title$$
+      $$#include tika_endpoint.inc$$
+
       <_endpoint name="jsoncmdstart" type="CommandEndpoint">
          <command cmd="del cmd-out.txt" curdir="new" />
       </_endpoint>   
@@ -11,17 +18,79 @@
       </endpoint>   
    </endpoints>
 
+   <categories>
+      <collection name="all">
+         <category cat="spam" dstfield="doc_cat" >
+            <select field="author" expr="nagios@booking|aanbestedingskalender" />
+            <select field="title" expr="spam" />
+         </category>   
+         <category cat="delete" dstfield="doc_cat" >
+            <and>
+               <_select field="recip" expr="@booking\.com" />
+               <select field="title" expr="^\[dev.search.cron\].*had \d* [a-z,A-Z]* messages!$" />
+               <_select field="title" expr="had \d* [a-z,A-Z]* messages!" />
+            </and>
+         </category>   
+      </collection>
+   </categories>
+
    <converters>
       <converter name="double" decimalsep="," groupsep="."/>
+      <converter name="date"   mode="toUtc" _formats="yyyyMMdd">
+         <timezone name="CEST" offset="+0200" />
+         <timezone name="CET" offset="+0100" />
+      </converter>
+      <converter name="dateYMD"  type="date" utc="true" formats="yyyyMMdd"/>
+      <converter name="year"   mode="toLocal" select="y" type="datepart"/>
+      <converter name="doctype" type="ReplaceConverter" dumpmissed="100">
+         <replace value="application/pdf" repl="Pdf" />
+         <replace value="application/msword" repl="Word" />
+         <replace value="application/rtf" repl="Word" />
+         <replace value="application/vnd.openxmlformats-officedocument.wordprocessingml.document" repl="Word" />
+         <replace value="application/vnd.ms-excel" repl="Excel" />
+         <replace value="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" repl="Excel" />
+         <replace value="application/vnd.ms-powerpoint" repl="Powerpoint" />
+         <replace value="application/vnd.openxmlformats-officedocument.presentationml.presentation" repl="Powerpoint" />
+         <replace value="ConversionError" repl="Error" />
+         <replace value="application/vnd.ms-outlook" repl="Mail" />
+         <replace expr="message" repl="Mail" /> 
+         <replace expr="text" repl="Text" />
+      </converter>
+
       <converter name="flatten" type="ComplexConverter" mode="flatten" sep=","/>
       <converter name="count" type="ComplexConverter" mode="count" />
-      <converter name="int32"/>
-      <converter name="date"   utc="true" formats="yyyyMMdd"/>
-      <converter name="string" />
-      <converter name="lower" />
-      <converter name="upper" />
-      <converter name="trim" />
    </converters>
+
+   <processes>
+      <process name='tika' maxrestarts="25" log="tika" errlog="tika_err" logfrom="tika" clearlogs="false">
+         <exe>%JAVA_HOME%\bin\java</exe>
+         <arguments>-jar %IMPORT_TIKA_CMD%</arguments>
+         <shutdown method="GET" url="http://localhost:8080/shutdown" />
+      </process>
+   </processes>
+   
+   <postprocessors>
+      <postprocessor name="undup_title"  type="MapReduceProcessor" fan_out="3" max_null_index="100" >
+         <read maxparallel="3" />
+         <_dir name="temp"  compress="false" keepfiles="true" />
+         <sorter>
+            <key expr="title" type="string" />
+         </sorter>
+         <hasher from_sort="true"/>
+         <undupper>
+            <key expr="title" type="string" />
+            <actions>
+               <action type="count" tofield="undup_cnt" />
+            </actions>
+         </undupper>
+      </postprocessor>
+      <postprocessor name="sort_title"  type="SortProcessor" >
+         <sorter>
+            <key expr="title" type="string" />
+         </sorter>
+      </postprocessor>
+   </postprocessors>
+
 
    <pipelines>
       <pipeline name="json" script="ScriptExtensions" >
@@ -33,11 +102,29 @@
          <template expr="record/_" type="nop" />
          <template expr="record/(.*)" field="$1" />
       </pipeline>
+
+      $$#define name=tika_raw$$
+      $$#include tika_pipeline.inc$$
+      $$#define name=tika_sort_title$$
+      $$#define post=sort_title$$
+      $$#include tika_pipeline.inc$$
+      $$#define name=tika_undup_title$$
+      $$#define post=undup_title$$
+      $$#include tika_pipeline.inc$$
+
    </pipelines>
 
    <datasources>
       <datasource name="json" type="JsonDatasource" file="json-in.txt" />
       <datasource name="jsoncmd" pipeline="json" endpoint="jsoncmd" type="JsonDatasource" file="json-in.txt" />
+
+      $$#define name=tika_raw$$
+      $$#include tika_datasource.inc$$
+      $$#define name=tika_sort_title$$
+      $$#include tika_datasource.inc$$
+      $$#define name=tika_undup_title$$
+      $$#include tika_datasource.inc$$
+
    </datasources>
 </root>
 

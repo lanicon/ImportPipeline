@@ -70,7 +70,7 @@ namespace Bitmanager.ImportPipeline
       public PipelineAction Action;
       public String SkipUntilKey;
 
-      public int Added, Deleted, Skipped, Emitted, Errors, PostProcessed;
+      public int Added, Deleted, Skipped, Emitted, Errors;
       public int LogAdds;
       public int MaxAdds;
       public int MaxEmits;
@@ -214,7 +214,7 @@ namespace Bitmanager.ImportPipeline
 
       public String GetStats()
       {
-         return String.Format("Emitted={3}, Added={0}, PostProcessed={5}, Errors={4}, Deleted={1}, Skipped={2}", Added, Deleted, Skipped, Emitted, Errors, PostProcessed);
+         return String.Format("Added={0}, Emitted={3}, Errors={4}, Deleted={1}, Skipped={2}", Added, Deleted, Skipped, Emitted, Errors);
       }
 
       public Object SendItemStart(Object value = null)

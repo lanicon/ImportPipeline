@@ -99,7 +99,7 @@ namespace Bitmanager.ImportPipeline
          ctx.Result = mapper.GetObjectEnumerator (i, true);
       }
 
-      public override void CallNextPostProcessor(PipelineContext ctx)
+      public override int CallNextPostProcessor(PipelineContext ctx)
       {
          ctx.PostProcessor = this;
          ReportStart(ctx);
@@ -109,7 +109,7 @@ namespace Bitmanager.ImportPipeline
          }
          Utils.FreeAndNil(ref mapper);
          ReportEnd(ctx);
-         base.CallNextPostProcessor(ctx);
+         return base.CallNextPostProcessor(ctx);
       }
 
       private void enumeratePartialAndClose(PipelineContext ctx, MappedObjectEnumerator e)

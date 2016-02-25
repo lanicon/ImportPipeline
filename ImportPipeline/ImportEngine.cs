@@ -173,7 +173,6 @@ namespace Bitmanager.ImportPipeline
             TemplateFactory = CreateObject<ITemplateFactory>(factoryClass, this, tmp);
          }
          _ImportFlags flagsFromXml = tmp.ReadEnum("@importflags", (_ImportFlags)0);
-         tmp = null;
 
          if (((ImportFlags | flagsFromXml) & _ImportFlags.DebugTemplate) != 0) 
             TemplateFactory.AutoWriteGenerated = true; 
@@ -182,6 +181,8 @@ namespace Bitmanager.ImportPipeline
 
          XmlHelper xml = new XmlHelper();
          ITemplateEngine eng = TemplateFactory.CreateEngine();
+         eng.Variables.Set("IMPORT_ROOT", Path.GetDirectoryName(tmp.FileName));
+         tmp = null;
 
          eng.LoadFromFile(fileName);
          MainVariables = eng.Variables;
@@ -202,7 +203,7 @@ namespace Bitmanager.ImportPipeline
          Xml = xml;
          String dir = xml.FileName;
          if (!String.IsNullOrEmpty(dir)) dir = Path.GetDirectoryName(xml.FileName);
-         Environment.SetEnvironmentVariable("IMPORT_DIR", dir);
+         Environment.SetEnvironmentVariable("IMPORT_ROOT", dir);
          fillTikaVars();
 
          _ImportFlags flags = ImportFlags;

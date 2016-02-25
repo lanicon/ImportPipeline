@@ -59,7 +59,7 @@ namespace Bitmanager.ImportPipeline
 
             XmlNode actionsNode = undupNode.SelectSingleNode("actions");
             if (actionsNode != null)
-               undupActions = new UndupActions(this, actionsNode);
+               undupActions = new UndupActions(engine, this, actionsNode);
          }
 
       }

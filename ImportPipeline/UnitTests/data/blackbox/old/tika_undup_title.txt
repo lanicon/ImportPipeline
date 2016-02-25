@@ -1,0 +1,112 @@
+﻿{
+  "filename": "E:\\Bitmanager\\Import\\ImportPipeline\\ImportPipeline\\UnitTests\\data\\Blackbox\\data_in\\msg1 (2).eml",
+  "filedate": "2013-08-25T14:16:11.1355949Z",
+  "virtualFilename": "ma\\msg1 (2).eml",
+  "virtualRoot": "ma",
+  "author": [
+    "Bas Zwaan"
+  ],
+  "date_created": "2002-09-11T08:58:31Z",
+  "subject": "FW: Java Virtual Machine",
+  "recip": [
+    "Linda & Aida"
+  ],
+  "recip_cc": [
+    "Linda & Aida",
+    "Jasper Kaizer",
+    "Jeroen Deken",
+    "Peter Groenen",
+    "Peter van der Weerd",
+    "René Schilpzand",
+    "Taco Ekkel",
+    "Yangkie Kwee"
+  ],
+  "title": "FW: Java Virtual Machine",
+  "doctype": "Mail",
+  "content_type": "message/rfc822",
+  "secgroups": [
+    "AuthenticatedUserSid"
+  ],
+  "isTextMail": true,
+  "numparts": 1,
+  "numattachments": 0,
+  "filesize": 2869,
+  "shortcontent": "Linda,\r\r\nzou jij willen kijken wanneer zich de eerste gelegenheid voordoet voor een intern overleg van 2 uur waarin alle genoemde personen aanwezig kunnen zijn?\r\r\nBedankt\r\r\nBas\r\r\n\r\r\n -----Original Message-----\r\r\nFrom: \tYangkie Kwee  \r\r\nSent:\twoensdag 11 …",
+  "head": "<meta name=\"X-Parsed-By\" content=\"org.apache.tika.parser.DefaultParser\"><meta name=\"X-Parsed-By\" content=\"org.apache.tika.parser.mail.RFC822Parser\"><meta name=\"creator\" content=\"Bas Zwaan\"><meta name=\"meta:author\" content=\"Bas Zwaan\"><meta name=\"meta:creation-date\" content=\"2002-09-11T08:58:31Z\"><meta name=\"subject\" content=\"FW: Java Virtual Machine\"><meta name=\"dc:creator\" content=\"Bas Zwaan\"><meta name=\"Creation-Date\" content=\"2002-09-11T08:58:31Z\"><meta name=\"resourceName\" content=\"msg1 (2).eml\"><meta name=\"dcterms:created\" content=\"2002-09-11T08:58:31Z\"><meta name=\"Message-To\" content=\"Linda &amp; Aida\"><meta name=\"Message-Cc\" content=\"Linda &amp; Aida\"><meta name=\"Message-Cc\" content=\"Jasper Kaizer\"><meta name=\"Message-Cc\" content=\"Jeroen Deken\"><meta name=\"Message-Cc\" content=\"Peter Groenen\"><meta name=\"Message-Cc\" content=\"Peter van der Weerd\"><meta name=\"Message-Cc\" content=\"Ren&eacute; Schilpzand\"><meta name=\"Message-Cc\" content=\"Taco Ekkel\"><meta name=\"Message-Cc\" content=\"Yangkie Kwee\"><meta name=\"dc:title\" content=\"FW: Java Virtual Machine\"><meta name=\"Author\" content=\"Bas Zwaan\"><meta name=\"Content-Length\" content=\"2869\"><meta name=\"Message-From\" content=\"Bas Zwaan\"><meta name=\"Content-Type\" content=\"message/rfc822\"><title>FW: Java Virtual Machine</title>",
+  "content": "<div class=\"email-entry\"><p><pre>Linda,&#13;\r\nzou jij willen kijken wanneer zich de eerste gelegenheid voordoet voor een intern overleg van 2 uur waarin alle genoemde personen aanwezig kunnen zijn?&#13;\r\nBedankt&#13;\r\nBas&#13;\r\n&#13;\r\n -----Original Message-----&#13;\r\nFrom: \tYangkie Kwee  &#13;\r\nSent:\twoensdag 11 september 2002 10:39&#13;\r\nTo:\tBas Zwaan; Jasper Kaizer; Jeroen Deken; Peter Groenen; Ren&eacute; Schilpzand&#13;\r\nCc:\tPeter van der Weerd; Taco Ekkel&#13;\r\nSubject:\tFW: Java Virtual Machine&#13;\r\n&#13;\r\nWaarde heren,&#13;\r\n&#13;\r\nIk gisteren eind van de dag een aantal zaken met Ren&eacute; doorgesproken.&#13;\r\nEen van de zaken die terloops aan de orde kwamen was de policy van Microsoft t.a.v. de java virtual machine.&#13;\r\n&#13;\r\nKort samengevat lijkt het erop dat Microsoft vanaf XP een ontmoedigingsbeleid richting Java gaat volgen.&#13;\r\nHet is een goede zaak als we binnen afzienbare termijn hier een strategisch overleg gaan houden. Mogelijk dat deze ontwikkelingen op de markt ons op korte termijn richting Flash 'pushen'.&#13;\r\n&#13;\r\nBespreekpunten:&#13;\r\n*\tGesignaleerde knelpunten door gedrag Microsoft&#13;\r\n*\tOplossingsrichtingen (Java, Flash, andere?)&#13;\r\n*\tKeuze en gevolgen&#13;\r\n*\tBeslissing, plan, uitvoering&#13;\r\n&#13;\r\nBas, ik hoor van jouw graag wanneer jij hier tijd voor kunt vrijmaken.&#13;\r\nRen&eacute;, graag jouw gesignaleerde (mogelijke) knelpunten even puntsgewijs in een mailtje zodat we die als leidraad kunnen gebruiken.&#13;\r\nJeroen, uiteraard naar aanleiding van deze signalen graag jouw mening / oplossingsmogelijkheden.&#13;\r\n&#13;\r\nWordt vervolgd.&#13;\r\n&#13;\r\nYangkie&#13;\r\n&#13;\r\n&#13;\r\n -----Original Message-----&#13;\r\nFrom: \tRen&eacute; Schilpzand  &#13;\r\nSent:\twoensdag 11 september 2002 10:13&#13;\r\nTo:\tYangkie Kwee&#13;\r\nSubject:\tJava Virtual Machine&#13;\r\n&#13;\r\nDag Yangkie,&#13;\r\n&#13;\r\nNog even over de java problemen onder XP.&#13;\r\n&#13;\r\nVanaf 1 juli kan je bij Microsoft niet meer de Microsoft java virual machine downloaden.&#13;\r\n&#13;\r\nEchter... in zijn oneindige wijsheid heeft Microsoft de VM nu wel verstopt in service pack 1 van XP.&#13;\r\n&#13;\r\nDat is alleen wel een download van 134 Megabyte, dus geen praktisch alternatief voor de meeste thuis gebruikers.&#13;\r\n&#13;\r\nZo, weet je weer het hele verhaal...&#13;\r\n&#13;\r\nGroetjes&#13;\r\n&#13;\r\nRen&eacute;&#13;\r\n&#13;\r\n</pre></p></div>",
+  "sort_subject_prefixes": "FW",
+  "sort_subject": "Java Virtual Machine",
+  "date_modified": "2002-09-11T08:58:31Z",
+  "year_modified": 2002,
+  "undup_cnt": 3
+}
+{
+  "filename": "E:\\Bitmanager\\Import\\ImportPipeline\\ImportPipeline\\UnitTests\\data\\Blackbox\\data_in\\msg1 (1).eml",
+  "filedate": "2013-08-25T14:14:09.0716132Z",
+  "virtualFilename": "ma\\msg1 (1).eml",
+  "virtualRoot": "ma",
+  "author": [
+    "Monique Meijer"
+  ],
+  "date_created": "1999-11-26T08:24:41Z",
+  "subject": "Maandstaat van deze maand",
+  "recip": [
+    "Anne Veling",
+    "Daan van der Weide",
+    "Earl de Wijs",
+    "Ed Bolman",
+    "Henk Alles",
+    "Jeroen Bakker",
+    "Monique Meijer",
+    "Paul Lodder",
+    "Peter van der Weerd"
+  ],
+  "title": "Maandstaat van deze maand",
+  "doctype": "Mail",
+  "content_type": "message/rfc822",
+  "secgroups": [
+    "AuthenticatedUserSid"
+  ],
+  "isTextMail": true,
+  "numparts": 1,
+  "numattachments": 1,
+  "filesize": 278252,
+  "shortcontent": "Yesterday is history, tomorrow is a mystery, today is a gift, that's why they call it present\r\r\n----------\r\r\nThe attached document has a routing slip.  When you are done reviewing this document, choose Next Routing Recipient from the Microsoft Excel Send To …",
+  "head": "<meta name=\"X-Parsed-By\" content=\"org.apache.tika.parser.DefaultParser\"><meta name=\"X-Parsed-By\" content=\"org.apache.tika.parser.mail.RFC822Parser\"><meta name=\"creator\" content=\"Monique Meijer\"><meta name=\"meta:author\" content=\"Monique Meijer\"><meta name=\"meta:creation-date\" content=\"1999-11-26T08:24:41Z\"><meta name=\"subject\" content=\"Maandstaat van deze maand\"><meta name=\"dc:creator\" content=\"Monique Meijer\"><meta name=\"Creation-Date\" content=\"1999-11-26T08:24:41Z\"><meta name=\"resourceName\" content=\"msg1 (1).eml\"><meta name=\"dcterms:created\" content=\"1999-11-26T08:24:41Z\"><meta name=\"Message-To\" content=\"Anne Veling\"><meta name=\"Message-To\" content=\"Daan van der Weide\"><meta name=\"Message-To\" content=\"Earl de Wijs\"><meta name=\"Message-To\" content=\"Ed Bolman\"><meta name=\"Message-To\" content=\"Henk Alles\"><meta name=\"Message-To\" content=\"Jeroen Bakker\"><meta name=\"Message-To\" content=\"Monique Meijer\"><meta name=\"Message-To\" content=\"Paul Lodder\"><meta name=\"Message-To\" content=\"Peter van der Weerd\"><meta name=\"dc:title\" content=\"Maandstaat van deze maand\"><meta name=\"Author\" content=\"Monique Meijer\"><meta name=\"Content-Length\" content=\"278252\"><meta name=\"Message-From\" content=\"Monique Meijer\"><meta name=\"Content-Type\" content=\"message/rfc822\"><title>Maandstaat van deze maand</title>",
+  "content": "<div class=\"email-entry\"><p><pre>Yesterday is history, tomorrow is a mystery, today is a gift, that's why they call it present&#13;\r\n----------&#13;\r\nThe attached document has a routing slip.  When you are done reviewing this document, choose Next Routing Recipient from the Microsoft Excel Send To menu on the File menu to return the document to its sender.&#13;\r\n&#13;\r\n</pre></p></div><div class=\"email-attachment-names\"><p class=\"email-attachment-name\">dec99.xls</p></div>",
+  "sort_subject": "Maandstaat van deze maand",
+  "date_modified": "1999-11-26T08:24:41Z",
+  "year_modified": 1999,
+  "undup_cnt": 3
+}
+{
+  "filename": "E:\\Bitmanager\\Import\\ImportPipeline\\ImportPipeline\\UnitTests\\data\\Blackbox\\data_in\\msg2 (3).eml",
+  "filedate": "2015-07-20T14:52:38.6496419Z",
+  "virtualFilename": "ma\\msg2 (3).eml",
+  "virtualRoot": "ma",
+  "author": [
+    "René Schilpzand"
+  ],
+  "date_created": "2002-04-11T15:09:09Z",
+  "subject": "PETER!",
+  "recip": [
+    "Medialab FUNlist"
+  ],
+  "title": "PETER!",
+  "doctype": "Mail",
+  "content_type": "message/rfc822",
+  "secgroups": [
+    "AuthenticatedUserSid"
+  ],
+  "isTextMail": true,
+  "numparts": 1,
+  "numattachments": 2,
+  "filesize": 45932,
+  "shortcontent": "En met de volgende ongein verwelkomen wij Peter Groenen op de FUNLIST...\r\r\n\r\r\nKan ie meteen een beetje aan het niveau wennen...\r\r\n\r\r\nRené\r\r\n\r\r\n\r\r\n\r\r\n  \r\r\n\r\r\n\r\r\n WHAT_A~1.JPG BATMAN~1.JPG",
+  "head": "<meta name=\"X-Parsed-By\" content=\"org.apache.tika.parser.DefaultParser\"><meta name=\"X-Parsed-By\" content=\"org.apache.tika.parser.mail.RFC822Parser\"><meta name=\"creator\" content=\"Ren&eacute; Schilpzand\"><meta name=\"meta:author\" content=\"Ren&eacute; Schilpzand\"><meta name=\"meta:creation-date\" content=\"2002-04-11T15:09:09Z\"><meta name=\"subject\" content=\"PETER!\"><meta name=\"dc:creator\" content=\"Ren&eacute; Schilpzand\"><meta name=\"Creation-Date\" content=\"2002-04-11T15:09:09Z\"><meta name=\"resourceName\" content=\"msg2 (3).eml\"><meta name=\"dcterms:created\" content=\"2002-04-11T15:09:09Z\"><meta name=\"Message-To\" content=\"Medialab FUNlist\"><meta name=\"dc:title\" content=\"PETER!\"><meta name=\"Author\" content=\"Ren&eacute; Schilpzand\"><meta name=\"Content-Length\" content=\"45932\"><meta name=\"Message-From\" content=\"Ren&eacute; Schilpzand\"><meta name=\"Content-Type\" content=\"message/rfc822\"><title>PETER!</title>",
+  "content": "<div class=\"email-entry\"><p><pre>En met de volgende ongein verwelkomen wij Peter Groenen op de FUNLIST...&#13;\r\n&#13;\r\nKan ie meteen een beetje aan het niveau wennen...&#13;\r\n&#13;\r\nRen&eacute;&#13;\r\n&#13;\r\n&#13;\r\n&#13;\r\n  &#13;\r\n&#13;\r\n&#13;\r\n</pre></p></div><div class=\"email-attachment-names\"><p class=\"email-attachment-name\">WHAT_A~1.JPG</p><p class=\"email-attachment-name\">BATMAN~1.JPG</p></div>",
+  "sort_subject": "PETER!",
+  "date_modified": "2002-04-11T15:09:09Z",
+  "year_modified": 2002,
+  "undup_cnt": 3
+}

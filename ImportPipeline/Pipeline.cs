@@ -289,10 +289,13 @@ namespace Bitmanager.ImportPipeline
                if (proc == null) continue;
 
                ctx.ImportLog.Log(_LogType.ltTimerStart, "Processing post-processors for endpoint '{0}'. First processor is '{1}'.", kvp.Key, proc.Name);
+               ctx.ImportLog.Log("REPORTa={0}", ctx.DatasourceReport);
                ctx.Added = proc.CallNextPostProcessor(ctx);
+               ctx.ImportLog.Log("REPORTb={0}", ctx.DatasourceReport);
                ctx.ImportLog.Log(_LogType.ltTimerStop, "Processing post-processors finished");
             }
          }
+         ctx.ImportLog.Log("REPORT={0}", ctx.DatasourceReport);
          ctx.PostProcessor = null;
          ctx.MissedLog.Log();
          ctx.MissedLog.Log("Datasource [{0}] missed {1} keys.", ctx.DatasourceAdmin.Name, missed.Count);

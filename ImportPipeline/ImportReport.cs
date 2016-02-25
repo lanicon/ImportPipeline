@@ -142,14 +142,8 @@ namespace Bitmanager.ImportPipeline
             sb.Append("\r\n\t");
             sb.Append(ErrorMessage);
          }
-         if (PostProcessorReports != null)
-         {
-            foreach (var ppr in PostProcessorReports)
-            {
-               sb.Append("\r\n\t");
-               ppr.ToString(sb);
-            }
-         }
+
+         //No Dump of the postproc's is needed: already contained in the stats
          return sb;
       }
 
@@ -189,7 +183,6 @@ namespace Bitmanager.ImportPipeline
             sb.AppendFormat ("In={0}, Out={1}, Skipped={2}.", Received, Passed, Skipped);
          else
             sb.Append (stats);
-         sb.Append('.');
 
          Stats = sb.ToString();
       }

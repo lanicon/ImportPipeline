@@ -33,19 +33,38 @@ namespace UnitTests
    public class BlackboxTest : FileTestBase
    {
       [TestMethod]
-      public void TestSimple()
+      public void TestImports()
       {
+         File.Delete(newDataRoot + "cmd_out.txt"); //this is needed because the add on the ds/_start has no value and gets ignored
+
          ImportEngine eng = new ImportEngine();
          eng.Load(root + "import.xml");
-         var report = eng.Import("json");
-         Assert.AreEqual(1, report.DatasourceReports.Count);
+         var report = eng.Import("json,jsoncmd,tika_raw,tika_sort_title,tika_undup_title");
+         Console.WriteLine("Report: {0}", report);
+         foreach (var r in report.DatasourceReports)
+            Console.WriteLine("-- " + r);
          Assert.AreEqual(null, report.ErrorMessage);
-         var dsReport = report.DatasourceReports[0];
-         Console.WriteLine("Report: {0}", dsReport);
-         Assert.AreEqual(5, dsReport.Emitted);
-         Assert.AreEqual(4, dsReport.Added);
 
-         CheckFiles("json-out.txt");
+         CheckFiles("cmd_out.txt");
+         CheckFiles("json_out.txt");
+         CheckFiles("tika_raw.txt");
+         CheckFiles("tika_sort_title.txt");
+         CheckFiles("tika_undup_title.txt");
+
+         Assert.AreEqual(5, report.DatasourceReports.Count);
+         int i = -1;
+         checkDataSourceStats(report.DatasourceReports[++i], 5, 5);//The string value will not be added, bcause its emitted as 'record'. It is 5/5 because there are 2 EP's. Maybe we need to do something for the string value...
+         checkDataSourceStats(report.DatasourceReports[++i], 5, 5);
+         checkDataSourceStats(report.DatasourceReports[++i], 10, 10);
+         checkDataSourceStats(report.DatasourceReports[++i], 10, 10);
+         checkDataSourceStats(report.DatasourceReports[++i], 10, 3);
+      }
+
+      private void checkDataSourceStats (DatasourceReport rep, int expEmitted, int expAdded)
+      {
+         Assert.AreEqual(null, rep.ErrorMessage);
+         Assert.AreEqual(expEmitted, rep.Emitted);
+         Assert.AreEqual(expAdded, rep.Added);
       }
       [TestMethod]
       public void TestCommands()

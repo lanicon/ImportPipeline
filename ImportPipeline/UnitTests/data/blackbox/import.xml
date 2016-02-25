@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
-<root importflags="fullimport">
+<root importflags="fullimport|DebugTemplate">
    <script file="scripts.cs" />
    <endpoints>
-      <endpoint name="json" type="jsonEndpoint" file="new\json-out.txt" formatted="true" />
+      <endpoint name="json" type="jsonEndpoint" file="new\json_out.txt" formatted="true" />
       $$#define name=tika_raw$$
       $$#include tika_endpoint.inc$$
       $$#define name=tika_sort_title$$
@@ -10,11 +10,11 @@
       $$#define name=tika_undup_title$$
       $$#include tika_endpoint.inc$$
 
-      <_endpoint name="jsoncmdstart" type="CommandEndpoint">
-         <command cmd="del cmd-out.txt" curdir="new" />
-      </_endpoint>   
+      <endpoint name="jsoncmdstart" type="CommandEndpoint">
+         <command cmd="del cmd_out.txt" curdir="new" />
+      </endpoint>   
       <endpoint name="jsoncmd" type="CommandEndpoint">
-         <command cmd="echo {0}_{1} &gt;&gt;cmd-out.txt" arguments="x,i" curdir="new" />
+         <command cmd="echo {0}_{1} &gt;&gt;cmd_out.txt" arguments="x,i" curdir="new" />
       </endpoint>   
    </endpoints>
 
@@ -81,12 +81,18 @@
             <key expr="title" type="string" />
             <actions>
                <action type="count" tofield="undup_cnt" />
+               <action type="script">
+                  //ctx.ImportLog.Log ("c={0}, f={1}", len,
+                  if (len == 1)
+                     ctx.ActionFlags = _ActionFlags.Skip;
+               </action>   
             </actions>
          </undupper>
       </postprocessor>
       <postprocessor name="sort_title"  type="SortProcessor" >
          <sorter>
             <key expr="title" type="string" />
+            <key expr="filename" type="string" />
          </sorter>
       </postprocessor>
    </postprocessors>
@@ -94,7 +100,7 @@
 
    <pipelines>
       <pipeline name="json" script="ScriptExtensions" >
-         <_action   key="_datasource/_start" type="add" endpoint="jsoncmdstart"/>
+         <action   key="_datasource/_start" type="add" endpoint="jsoncmdstart"/>
          <action   key="record/x" valexpr="value=1" field="x" converters="string"/>
          <action   key="record/x" valexpr="value=1" field="xx" converters="string" convertersfirst="false"/>
          <action   key="record/skip" field="x" script="NewScript" />
@@ -109,14 +115,14 @@
       $$#define post=sort_title$$
       $$#include tika_pipeline.inc$$
       $$#define name=tika_undup_title$$
-      $$#define post=undup_title$$
+      $$#define post=undup_title,sort_title$$
       $$#include tika_pipeline.inc$$
 
    </pipelines>
 
    <datasources>
-      <datasource name="json" type="JsonDatasource" file="json-in.txt" />
-      <datasource name="jsoncmd" pipeline="json" endpoint="jsoncmd" type="JsonDatasource" file="json-in.txt" />
+      <datasource name="json" type="JsonDatasource" file="data_in\json_in.txt" />
+      <datasource name="jsoncmd" pipeline="json" endpoint="jsoncmd" type="JsonDatasource" file="data_in\json_in.txt" />
 
       $$#define name=tika_raw$$
       $$#include tika_datasource.inc$$

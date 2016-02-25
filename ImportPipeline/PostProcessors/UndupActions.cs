@@ -51,13 +51,16 @@ namespace Bitmanager.ImportPipeline
    public class UndupActions
    {
       protected readonly List<IUndupAction> actions;
-      public UndupActions(IPostProcessor processor, XmlNode node)
+      private ImportEngine engine;
+      private SortProcessor sortProcessor;
+      private XmlNode actionsNode;
+      public UndupActions(ImportEngine engine, IPostProcessor processor, XmlNode node)
       {
          XmlNodeList nodes = node.SelectNodes("action");
          actions = new List<IUndupAction>(nodes.Count);
          foreach (XmlNode child in nodes)
          {
-            actions.Add(CreateAction(processor, child));
+            actions.Add(CreateAction(engine, processor, child));
          }
       }
       protected UndupActions(PipelineContext ctx, UndupActions other)
@@ -72,7 +75,7 @@ namespace Bitmanager.ImportPipeline
          return new UndupActions(ctx, this);
       }
 
-      public static IUndupAction CreateAction(IPostProcessor processor, XmlNode node)
+      public static IUndupAction CreateAction(ImportEngine engine, IPostProcessor processor, XmlNode node)
       {
          String type = node.ReadStr("@type");
          if ("add".Equals (type, StringComparison.OrdinalIgnoreCase)) return new UndupNumericAddAction(processor, node);
@@ -80,7 +83,7 @@ namespace Bitmanager.ImportPipeline
          if ("min".Equals (type, StringComparison.OrdinalIgnoreCase)) return new UndupNumericMinAction(processor, node);
          if ("mean".Equals (type, StringComparison.OrdinalIgnoreCase)) return new UndupNumericMeanAction(processor, node);
          if ("count".Equals(type, StringComparison.OrdinalIgnoreCase)) return new UndupCountAction(processor, node);
-         if ("script".Equals(type, StringComparison.OrdinalIgnoreCase)) return new UndupScriptAction(processor, node);
+         if ("script".Equals(type, StringComparison.OrdinalIgnoreCase)) return new UndupScriptAction(engine, processor, node);
          throw new BMException("Unrecognized type [{0}] for a post process action.", type);
          //TODO make this more generic
       }
@@ -98,17 +101,43 @@ namespace Bitmanager.ImportPipeline
    {
       public delegate void ScriptDelegate(PipelineContext ctx, List<JObject> records, int offset, int len);
       public readonly String ScriptName;
+      public readonly String ScriptBody;
+      private readonly String bodyFunc;
+      private readonly XmlNode originalNode;
       protected ScriptDelegate scriptDelegate;
 
-      public UndupScriptAction(IPostProcessor processor, XmlNode node)
+      public UndupScriptAction(ImportEngine engine, IPostProcessor processor, XmlNode node)
       {
-         ScriptName = node.ReadStr("@script");
+         originalNode = node;
+         ScriptName = node.ReadStr("@script", null);
+         ScriptBody = node.ReadStr(null, null);
+         if (ScriptBody == null)
+            throw new BMNodeException(node, "@script should be specified if there is no script in the body.");
+         else
+         {
+            ScriptBody = ScriptBody.TrimWhiteSpaceToNull();
+            if (ScriptBody != null && ScriptName != null)
+               throw new BMNodeException(node, "Cannot have a script in the body when @script is specified.");
+            var scriptHolder = engine.ScriptExpressions;
+
+            bodyFunc = ScriptExpressionHolder.GenerateScriptName("postprocessor_undup", processor.Name, node);
+            scriptHolder.AddUndupExpression(bodyFunc, ScriptBody);
+         } 
       }
+
       protected UndupScriptAction(PipelineContext ctx, UndupScriptAction other)
       {
+         originalNode = other.originalNode;
          ScriptName = other.ScriptName;
-         scriptDelegate = ctx.Pipeline.CreateScriptDelegate < ScriptDelegate>(ScriptName);
+         ScriptBody = other.ScriptBody;
+         bodyFunc = other.bodyFunc;
+
+         if (ScriptName != null)
+            scriptDelegate = (ctx.Pipeline.CreateScriptDelegate<ScriptDelegate>(ScriptName, originalNode));
+         else
+            scriptDelegate = (ctx.Pipeline.CreateScriptExprDelegate<ScriptDelegate>(bodyFunc, originalNode));
       }
+
       public override IUndupAction Clone(PipelineContext ctx)
       {
          return new UndupScriptAction(ctx, this);

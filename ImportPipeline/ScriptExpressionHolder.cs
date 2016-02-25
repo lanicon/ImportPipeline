@@ -24,12 +24,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Xml;
 
 namespace Bitmanager.ImportPipeline
 {
    public class ScriptExpressionHolder: IDisposable
    {
-      enum Needed { None, Endpoint = 1, Record = 2, Action = 4 };
+      enum Needed { None, Endpoint = 1, Record = 2, Action = 4, PostProcessor = 8 };
       int count;
       MemoryStream mem;
       StreamWriter wtr;
@@ -103,6 +104,21 @@ namespace Bitmanager.ImportPipeline
          Close();
       }
 
+      public static String GenerateScriptName(String what, String contextName, XmlNode node)
+      {
+         StringBuilder sb = new StringBuilder();
+         sb.Append(what);
+         sb.Append('_');
+         sb.Append(contextName);
+         sb.Append('_');
+         sb.Append(node.Name);
+         sb.Append('_');
+         XmlNodeList list = node.ParentNode.SelectNodes(node.Name);
+         for (int i = 0; i < list.Count; i++)
+            if (list[i] == node) { sb.Append(i); break; }
+         return sb.ToString();
+      }
+
       private void writeMethodEntry(String name, String code)
       {
          Needed neededVars = checkNeeded(code);
@@ -121,6 +137,11 @@ namespace Bitmanager.ImportPipeline
          if (appendSemiColon) wtr.Write(';');
          wtr.WriteLine("\r\n      }\r\n");
       }
+
+      /// <summary>
+      /// Adds an expression for a standard pipeline action
+      /// Signature: func(PipelineContext ctx, Object value)
+      /// </summary>
       public void AddExpression(String name, String expr)
       {
          ++count;
@@ -132,10 +153,42 @@ namespace Bitmanager.ImportPipeline
          writeMethodExit(!expr.EndsWith(";"));
       }
 
-      public void AddCondition (String name, String expr)
+      /// <summary>
+      /// Adds an expression for an Undup-action
+      /// Signature: func(PipelineContext ctx, List&lt;JObject&gt; records, int offset, int len)
+      /// </summary>
+      public void AddUndupExpression(String name, String code)
+      {
+         ++count;
+         code = code.TrimWhiteSpace();
+         Needed neededVars = checkNeeded(code);
+         wtr.Write("      public void ");
+         wtr.Write(name);
+         wtr.Write(" (PipelineContext ctx, List<JObject> records, int offset, int len)\r\n      {\r\n");
+         if ((neededVars & (Needed.PostProcessor)) != 0)
+            wtr.Write("         var processor = ctx.PostProcessor;\r\n");
+         
+         wtr.Write("         ");
+         wtr.Write(code);
+         writeMethodExit(!code.EndsWith(";"));
+
+         //if ((neededVars & (Needed.PostProcessor | Needed.Endpoint | Needed.Record)) != 0)
+         //   wtr.Write("         var processor = ctx.PostProcessor;\r\n");
+         //if ((neededVars & (Needed.Endpoint | Needed.Record)) != 0)
+         //   wtr.Write("         var endpoint = action.Endpoint;\r\n");
+         //if ((neededVars & (Needed.Record)) != 0)
+         //   wtr.Write("         var record = (JObject)endpoint.GetFieldAsToken (null);\r\n");
+      }
+
+      /// <summary>
+      /// Adds a condition for a standard pipeline action
+      /// Signature: func(PipelineContext ctx, Object value)
+      /// The expression itself should evaluate to a bool! This bool will be translated into the appropriate flags in the ctx
+      /// </summary>
+      public void AddCondition(String name, String expr)
       {
          if (expr.IndexOf("return ") >= 0) {
-           AddExpression (name, expr);
+            AddExpression (name, expr);
             return;
          }
 
@@ -170,6 +223,9 @@ namespace Bitmanager.ImportPipeline
                break;
             case 8:
                if (equalSubstring("endpoint", code, offs)) return Needed.Endpoint;
+               break;
+            case 13:
+               if (equalSubstring("postprocessor", code, offs)) return Needed.PostProcessor;
                break;
          }
          return Needed.None;

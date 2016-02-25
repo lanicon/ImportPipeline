@@ -58,7 +58,7 @@ namespace Bitmanager.Importer
             Bitmanager.Core.GlobalExceptionHandler.HookGlobalExceptionHandler();
             InitializeComponent();
             gridStatus.Columns[0].DefaultCellStyle.Alignment = DataGridViewContentAlignment.TopLeft;
-            gridStatus.Columns[0].AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells;
+            gridStatus.Columns[0].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             gridStatus.Columns[1].DefaultCellStyle.WrapMode = DataGridViewTriState.True;
             gridStatus.Columns[1].AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
             gridStatus.DefaultCellStyle.SelectionBackColor = gridStatus.DefaultCellStyle.BackColor;
@@ -180,13 +180,13 @@ namespace Bitmanager.Importer
             gridStatus.Rows.Add(0 + asyncAdmin.Report.DatasourceReports.Count);
 
             int i = 0;
+            var line = new LeveledStringBuilder(null, "    ");
             foreach (var rep in asyncAdmin.Report.DatasourceReports)
             {
                var cells = gridStatus.Rows[i].Cells;
                cells[0].Value = rep.DatasourceName;
-               String stat = rep.Stats;
-               if (rep.ErrorMessage != null) stat = stat + "\r\nError=" + rep.ErrorMessage;
-               cells[1].Value = stat;
+               line.Buffer.Clear();
+               cells[1].Value = rep.ToString(line, false).ToString();
                i++;
             }
             gridStatus.Columns[1].Width = gridStatus.Width - gridStatus.Columns[0].Width-10;

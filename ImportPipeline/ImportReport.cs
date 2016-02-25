@@ -58,20 +58,6 @@ namespace Bitmanager.ImportPipeline
       }
    }
 
-   public class Pretty
-   {
-      public static String ToElapsed (int seconds)
-      {
-         if (seconds < 60) return String.Format("{0} sec", seconds);
-         int min = seconds / 60;
-         seconds = seconds % 60;
-         if (min < 60) return String.Format("{0:00}:{1:00}", min, seconds);
-
-         int h = min / 60;
-         min = min % 60;
-         return String.Format("{0:00}:{1:00}:{2:00}", h, min, seconds);
-      }
-   }
    /// <summary>
    /// Holds global stats about a datasource
    /// </summary>

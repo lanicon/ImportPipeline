@@ -56,6 +56,14 @@ namespace Bitmanager.ImportPipeline
       {
          ErrorMessage = ctx.LastError == null ? null : ctx.LastError.Message;
       }
+
+      public override string ToString()
+      {
+         var sb = new LeveledStringBuilder("-- ", "   ");
+         foreach (var ds in DatasourceReports)
+            ds.ToString(sb.OptAppendLine());
+         return sb.ToString();
+      }
    }
 
    /// <summary>
@@ -91,22 +99,9 @@ namespace Bitmanager.ImportPipeline
 
          StringBuilder sb = new StringBuilder();
          sb.Append("Elapsed=");
-         sb.Append(Pretty.ToElapsed(ElapsedSeconds));
+         sb.Append(Pretty.PrintElapsed(ElapsedSeconds));
          sb.Append(", ");
          sb.Append(ctx.GetStats());
-         if (ErrorMessage != null)
-         {
-            sb.Append("\r\n\t");
-            sb.Append(ErrorMessage);
-         }
-         if (PostProcessorReports != null)
-         {
-            foreach (var ppr in PostProcessorReports)
-            {
-               sb.Append("\r\n\t");
-               ppr.ToString(sb);
-            }
-         }
          Stats = sb.ToString();
 
          ErrorState = ctx.ErrorState;
@@ -114,22 +109,33 @@ namespace Bitmanager.ImportPipeline
 
       public override string ToString()
       {
-         StringBuilder sb = new StringBuilder();
-         ToString(sb);
+         var sb = new LeveledStringBuilder("   ");
+         ToString(sb, true);
          return sb.ToString();
       }
-      public StringBuilder ToString(StringBuilder sb)
+      public LeveledStringBuilder ToString(LeveledStringBuilder sb, bool withName=true)
       {
-         sb.Append(DatasourceName);
-         sb.Append("\t ");
-         sb.Append(Stats);
-         if (ErrorMessage != null)
+         if (withName)
          {
-            sb.Append("\r\n\t");
-            sb.Append(ErrorMessage);
+            sb.Append(DatasourceName);
+            sb.Append(": ");
          }
+         sb.Append(Stats);
+         sb++;
+         if (ErrorMessage != null)
+            sb.AppendLine().Append(ErrorMessage);
 
-         //No Dump of the postproc's is needed: already contained in the stats
+         if (PostProcessorReports != null)
+         {
+            sb++;
+            foreach (var ppr in PostProcessorReports)
+            {
+               sb.AppendLine();
+               ppr.ToString(sb);
+            }
+            sb--;
+         }
+         sb--;
          return sb;
       }
 
@@ -158,30 +164,26 @@ namespace Bitmanager.ImportPipeline
          Name = proc.Name;
          Stats = "Running...";
       }
-      public void MarkEnded(PipelineContext ctx, String stats=null)
+      public void MarkEnded(PipelineContext ctx)
       {
          ElapsedSeconds = (int)(DateTime.UtcNow - utcStart).TotalSeconds;
          StringBuilder sb = new StringBuilder();
          sb.Append("Elapsed=");
-         sb.Append(Pretty.ToElapsed(ElapsedSeconds));
+         sb.Append(Pretty.PrintElapsed(ElapsedSeconds));
          sb.Append(", ");
-         if (stats == null)
-            sb.AppendFormat ("In={0}, Out={1}, Skipped={2}.", Received, Passed, Skipped);
-         else
-            sb.Append (stats);
-
+         sb.AppendFormat ("In={0}, Out={1}, Skipped={2}.", Received, Passed, Skipped);
          Stats = sb.ToString();
       }
 
       public override string ToString()
       {
-         return Name + ": \t " + Stats;
+         return Name + ": " + Stats;
       }
 
-      public StringBuilder ToString(StringBuilder sb)
+      public LeveledStringBuilder ToString(LeveledStringBuilder sb, bool withName = true)
       {
-         sb.Append(Name);
-         sb.Append(": \t");
+         if (withName)
+            sb.Append(Name).Append(": ");
          sb.Append(Stats);
          return sb;
       }

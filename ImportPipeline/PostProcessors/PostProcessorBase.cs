@@ -156,14 +156,14 @@ namespace Bitmanager.ImportPipeline
             ctx.DatasourceReport.AddPostProcessorReport(report);
          return report;
       }
-      protected PostProcessorReport ReportEnd(PipelineContext ctx, String stats=null)
+      protected PostProcessorReport ReportEnd(PipelineContext ctx)
       {
          if (report != null)
          {
             report.Received = cnt_received;
             report.Passed = cnt_added;
             report.Skipped = cnt_skipped;
-            report.MarkEnded(ctx, stats);
+            report.MarkEnded(ctx);
          }
          return report;
       }

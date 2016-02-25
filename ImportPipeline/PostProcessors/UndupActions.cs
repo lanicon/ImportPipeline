@@ -51,9 +51,9 @@ namespace Bitmanager.ImportPipeline
    public class UndupActions
    {
       protected readonly List<IUndupAction> actions;
-      private ImportEngine engine;
-      private SortProcessor sortProcessor;
-      private XmlNode actionsNode;
+      //private ImportEngine engine;
+      //private SortProcessor sortProcessor;
+      //private XmlNode actionsNode;
       public UndupActions(ImportEngine engine, IPostProcessor processor, XmlNode node)
       {
          XmlNodeList nodes = node.SelectNodes("action");

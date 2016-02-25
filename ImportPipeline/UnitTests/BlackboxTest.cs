@@ -40,9 +40,7 @@ namespace UnitTests
          ImportEngine eng = new ImportEngine();
          eng.Load(root + "import.xml");
          var report = eng.Import("json,jsoncmd,tika_raw,tika_sort_title,tika_undup_title");
-         Console.WriteLine("Report: {0}", report);
-         foreach (var r in report.DatasourceReports)
-            Console.WriteLine("-- " + r);
+         Console.WriteLine(report);
          Assert.AreEqual(null, report.ErrorMessage);
 
          CheckFiles("cmd_out.txt");

@@ -77,8 +77,8 @@ namespace Bitmanager.ImportPipeline
 
          if (ks.StartsWith("record:", StringComparison.OrdinalIgnoreCase))
          {
-            rest = ks.Substring(6).Trim();
-            if (String.IsNullOrEmpty(rest)) return new ValueSource_Record(ks);
+            rest = ks.Substring(7).Trim();
+            if (String.IsNullOrEmpty(rest) || rest=="*") return new ValueSource_Record(ks);
             return new ValueSource_RecordJsonExpr(ks, rest);
          }
 
@@ -190,17 +190,17 @@ namespace Bitmanager.ImportPipeline
    /// </summary>
    public class ValueSource_JsonExpr : ValueSource
    {
-      protected readonly JPath expr;
+      protected readonly JEvaluator expr;
       public ValueSource_JsonExpr(String input, String expr)
          : base(input)
       {
-         this.expr = new JPath(expr);
+         this.expr = JEvaluator.Create(expr);
       }
 
       public override Object GetValue(PipelineContext ctx, Object value)
       {
          if (value == null) return null;
-         return expr.Evaluate((JObject)value, JEvaluateFlags.NoExceptMissing);
+         return expr.ReadValue((JToken)value, JEvaluateFlags.NoExceptMissing);
       }
    }
 
@@ -209,17 +209,17 @@ namespace Bitmanager.ImportPipeline
    /// </summary>
    public class ValueSource_RecordJsonExpr : ValueSource
    {
-      protected readonly JPath expr;
+      protected readonly JEvaluator expr;
       public ValueSource_RecordJsonExpr(String input, String expr)
          : base(input)
       {
-         this.expr = new JPath(expr);
+         this.expr = JEvaluator.Create(expr);
       }
 
       public override Object GetValue(PipelineContext ctx, Object value)
       {
          value = ctx.Action.Endpoint.GetField(null);
-         return value == null ? null : expr.Evaluate((JObject)value, JEvaluateFlags.NoExceptMissing);
+         return value == null ? null : expr.ReadValue((JToken)value, JEvaluateFlags.NoExceptMissing);
       }
    }
 

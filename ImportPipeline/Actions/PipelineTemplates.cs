@@ -65,7 +65,6 @@ namespace Bitmanager.ImportPipeline
             case _ActionType.Split: return new PipelineSplitTemplate(pipeline, node);
             case _ActionType.EmitVars: return new PipelineEmitVarsTemplate(pipeline, node);
             case _ActionType.Remove: return new PipelineRemoveAction.Template(pipeline, node);
-            case _ActionType.CopyToEndpoint: return new PipelineCopyToEndpointAction.Template(pipeline, node);
          }
          act.ThrowUnexpected();
          return null;

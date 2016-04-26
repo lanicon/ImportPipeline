@@ -30,6 +30,9 @@ using System.Text.RegularExpressions;
 
 namespace Bitmanager.ImportPipeline
 {
+   /// <summary>
+   /// New field action. The old one is without a '2'...
+   /// </summary>
    public class PipelineFieldAction2 : PipelineAction
    {
       protected String toField;

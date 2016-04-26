@@ -38,22 +38,26 @@ namespace Bitmanager.ImportPipeline
    public class PipelineForwardAction : PipelineAction
    {
       private readonly String forwardTo;
+      private readonly bool clone;
 
       public PipelineForwardAction(Pipeline pipeline, XmlNode node)
          : base(pipeline, node)
       {
          forwardTo = node.ReadStr("@forward");
+         clone = node.ReadBool("@clone", false);
       }
 
       internal PipelineForwardAction(PipelineForwardAction template, String name, Regex regex)
          : base(template, name, regex)
       {
          forwardTo = optReplace(regex, name, template.forwardTo);
+         clone = template.clone;
       }
 
       public override Object HandleValue(PipelineContext ctx, String key, Object value)
       {
          value = ConvertAndCallScript(ctx, key, value);
+         if (clone) value = JsonUtils.CloneToJson(value);
          return ((ctx.ActionFlags & _ActionFlags.Skip) != 0) ? null : ctx.Pipeline.HandleValue(ctx, forwardTo, value);
       }
 

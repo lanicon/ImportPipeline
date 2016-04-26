@@ -177,19 +177,22 @@ namespace Bitmanager.Importer
             asyncAdmin.Stop();
 
             gridStatus.Rows.Clear();
-            gridStatus.Rows.Add(0 + asyncAdmin.Report.DatasourceReports.Count);
-
-            int i = 0;
-            var line = new LeveledStringBuilder(null, "    ");
-            foreach (var rep in asyncAdmin.Report.DatasourceReports)
+            if (asyncAdmin.Report.DatasourceReports.Count > 0)
             {
-               var cells = gridStatus.Rows[i].Cells;
-               cells[0].Value = rep.DatasourceName;
-               line.Buffer.Clear();
-               cells[1].Value = rep.ToString(line, false).ToString();
-               i++;
+               gridStatus.Rows.Add(0 + asyncAdmin.Report.DatasourceReports.Count);
+
+               int i = 0;
+               var line = new LeveledStringBuilder(null, "    ");
+               foreach (var rep in asyncAdmin.Report.DatasourceReports)
+               {
+                  var cells = gridStatus.Rows[i].Cells;
+                  cells[0].Value = rep.DatasourceName;
+                  line.Buffer.Clear();
+                  cells[1].Value = rep.ToString(line, false).ToString();
+                  i++;
+               }
+               gridStatus.Columns[1].Width = gridStatus.Width - gridStatus.Columns[0].Width - 10;
             }
-            gridStatus.Columns[1].Width = gridStatus.Width - gridStatus.Columns[0].Width-10;
             Utils.FreeAndNil(ref asyncAdmin);
          }
          catch

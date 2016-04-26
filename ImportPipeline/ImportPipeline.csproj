@@ -44,8 +44,9 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\_references\bmelastic100.dll</HintPath>
     </Reference>
-    <Reference Include="bmjson100">
-      <HintPath>..\..\_References\bmjson100.dll</HintPath>
+    <Reference Include="bmjson100, Version=1.0.0.19, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\_references\bmjson100.dll</HintPath>
     </Reference>
     <Reference Include="HtmlAgilityPack">
       <HintPath>..\..\_References\HtmlAgilityPack.dll</HintPath>
@@ -76,7 +77,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Actions\PipelineEmitVarsAction.cs" />
-    <Compile Include="Actions\PipelineCopyToEndpointAction.cs" />
     <Compile Include="Actions\PipelineRemoveAction.cs" />
     <Compile Include="Actions\PipelineFieldAction2.cs" />
     <Compile Include="Actions\PipelineSplitAction.cs" />

@@ -23,9 +23,9 @@ using System.Linq;
 using System.Text;
 using System.Xml;
 using Bitmanager.Core;
+using Bitmanager.Json;
 using Bitmanager.Xml;
 using Newtonsoft.Json.Linq;
-using Bitmanager.Json;
 using System.Globalization;
 using System.Web;
 using System.Reflection;
@@ -159,7 +159,9 @@ namespace Bitmanager.ImportPipeline
                 new ConverterFactory ("int64", typeof(ToInt64Converter)),
                 new ConverterFactory ("split", typeof(SplitConverter)),
                 new ConverterFactory ("htmltotext", typeof(HtmlToTextConverter)),
-                new ConverterFactory ("format", typeof(FormatConverter), false)
+                new ConverterFactory ("format", typeof(FormatConverter), false),
+                new ConverterFactory ("clone", typeof(CloneConverter)),
+                new ConverterFactory ("canonicalize", typeof(CanonicalizeConverter))
       };
 
       public static void AddDefaultConverters (Converters coll)
@@ -649,6 +651,47 @@ namespace Bitmanager.ImportPipeline
          String[] arr = v.Split(sep);
          for (int i = 0; i < arr.Length; i++) arr[i] = arr[i].Trim();
          return arr;
+      }
+   }
+
+   public class CanonicalizeConverter : Converter
+   {
+      char sep = ';';
+      public CanonicalizeConverter(XmlNode node) : base(node) { }
+
+      public override object Convert(PipelineContext ctx, object value)
+      {
+         JToken tk = value as JToken;
+         if (tk == null) return value;
+         return tk.Canonicalize();
+      }
+
+      public override Object ConvertScalar(PipelineContext ctx, Object value)
+      {
+         //Not used since we override Convert...
+         return null;
+      }
+   }
+
+   public class CloneConverter : Converter
+   {
+      char sep = ';';
+      public CloneConverter(XmlNode node) : base(node) { }
+
+      public override object Convert(PipelineContext ctx, object value)
+      {
+         JToken tk = value as JToken;
+         if (tk != null) return tk.DeepClone();
+         var c = value as ICloneable;
+         if (c != null) return c.Clone();
+
+         return value;
+      }
+
+      public override Object ConvertScalar(PipelineContext ctx, Object value)
+      {
+         //Not used since we override Convert...
+         return null;
       }
    }
 

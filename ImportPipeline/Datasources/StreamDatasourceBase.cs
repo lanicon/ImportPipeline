@@ -60,19 +60,31 @@ namespace Bitmanager.ImportPipeline
          splitUntil = node.ReadInt("@splituntil", splitUntil);
       }
 
+      protected virtual void _BeforeImport(PipelineContext ctx, IDatasourceSink sink)
+      { }
+      protected virtual void _AfterImport(PipelineContext ctx, IDatasourceSink sink)
+      { }
       public void Import(PipelineContext ctx, IDatasourceSink sink)
       {
-         foreach (var elt in streamProvider.GetElements(ctx))
+         _BeforeImport(ctx, sink);
+         try
          {
-            try
+            foreach (var elt in streamProvider.GetElements(ctx))
             {
-               ImportUrl(ctx, sink, elt);
+               try
+               {
+                  ImportUrl(ctx, sink, elt);
+               }
+               catch (Exception e)
+               {
+                  e = new BMException(e, WrapMessage(e, elt.ToString(), "{0}\r\nUrl={1}."));
+                  ctx.HandleException(e);
+               }
             }
-            catch (Exception e)
-            {
-               e = new BMException(e, WrapMessage(e, elt.ToString(), "{0}\r\nUrl={1}."));
-               ctx.HandleException(e);
-            }
+         }
+         finally
+         {
+            _AfterImport(ctx, sink);
          }
       }
 
@@ -113,9 +125,6 @@ namespace Bitmanager.ImportPipeline
          DateTime dtFile = elt.LastModified;
          ctx.SendItemStart(elt);
          //TODO if ((ctx.ActionFlags & _ActionFlags.Skip) != 0
-         sink.HandleValue(ctx, "record/lastmodutc", dtFile);
-         sink.HandleValue(ctx, "record/filename", elt.FullName);
-         sink.HandleValue(ctx, "record/virtualfilename", elt.VirtualName);
 
          //Check if we need to import this file
          if ((ctx.ImportFlags & _ImportFlags.ImportFull) == 0) //Not a full import

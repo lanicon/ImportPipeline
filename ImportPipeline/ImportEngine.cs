@@ -504,5 +504,21 @@ namespace Bitmanager.ImportPipeline
          return Objects.CreateObject<T>(replaceKnownTypes(node), parms);
       }
 
+      public static String ReadScriptNameOrBody (XmlNode x, String attr, out String body, bool mandatory=false)
+      {
+         String name = x.ReadStr(attr, null);
+         body = x.ReadStr(null, null).TrimWhiteSpaceToNull();
+         if (body!=null)
+         {
+            if (name != null)
+               throw new BMNodeException (x, "Attribute {0} is not allowed when the node has a script body.", attr.Substring(1));
+         } else
+         {
+            if (name==null && mandatory)
+               throw new BMNodeException(x, "A script needs to be specified via the {0} attribute or as a body on the node.", attr.Substring(1));
+         }
+         return name;
+
+      }
    }
 }

@@ -34,9 +34,15 @@ namespace Bitmanager.ImportPipeline
 {
    public class SortProcessor : PostProcessorBase
    {
-      private readonly JComparer sorter;
-      private readonly JComparer undupper;
+      public readonly JComparer Sorter;
+      public readonly JComparer Undupper;
       private readonly UndupActions undupActions;
+
+      private XmlNode afterSortNode;
+      private String afterSortScript;
+      private String afterSortScriptBody;
+      private String afterSortScriptBodyFunc;
+      private PipelineAction.ScriptDelegate afterSortScriptDelegate;
 
       private int numAfterSort;
 
@@ -45,16 +51,17 @@ namespace Bitmanager.ImportPipeline
       public SortProcessor(ImportEngine engine, XmlNode node): base (engine, node)
       {
          List<KeyAndType> list = KeyAndType.CreateKeyList(node.SelectMandatoryNode("sorter"), "key", false);
-         sorter = JComparer.Create(list);
+         Sorter = JComparer.Create(list);
 
+         //Interpret undupper
          XmlNode undupNode = node.SelectSingleNode("undupper");
          if (undupNode != null)
          {
-            undupper = sorter.Clone(undupNode.ReadStr("@from_sort", null));
-            if (undupper == null)
+            Undupper = Sorter.Clone(undupNode.ReadStr("@from_sort", null));
+            if (Undupper == null)
             {
                list = KeyAndType.CreateKeyList(undupNode, "key", true);
-               undupper = JComparer.Create(list);
+               Undupper = JComparer.Create(list);
             }
 
             XmlNode actionsNode = undupNode.SelectSingleNode("actions");
@@ -62,15 +69,38 @@ namespace Bitmanager.ImportPipeline
                undupActions = new UndupActions(engine, this, actionsNode);
          }
 
+         //Interpret aftersort
+         afterSortNode = node.SelectSingleNode("aftersort");
+         if (afterSortNode != null)
+            afterSortScript = ImportEngine.ReadScriptNameOrBody(afterSortNode, "@script", out afterSortScriptBody);
+
+         if (afterSortScriptBody != null)
+         {
+            var scriptHolder = engine.ScriptExpressions;
+
+            afterSortScriptBodyFunc = ScriptExpressionHolder.GenerateScriptName("postprocessor_", Name, afterSortNode);
+            scriptHolder.AddExpression(afterSortScriptBodyFunc, afterSortScriptBody);
+         }
+
       }
 
       public SortProcessor(PipelineContext ctx, SortProcessor other, IDataEndpoint epOrnextProcessor)
          : base(other, epOrnextProcessor)
       {
-         sorter = other.sorter;
-         undupper = other.undupper;
+         Sorter = other.Sorter;
+         Undupper = other.Undupper;
          if (other.undupActions != null)
             undupActions = other.undupActions.Clone (ctx);
+
+         afterSortNode = other.afterSortNode;
+         afterSortScript = other.afterSortScript;
+         afterSortScriptBody = other.afterSortScriptBody;
+         afterSortScriptBodyFunc = other.afterSortScriptBodyFunc;
+
+         if (afterSortScript != null)
+            this.afterSortScriptDelegate = (ctx.Pipeline.CreateScriptDelegate<PipelineAction.ScriptDelegate>(afterSortScript, afterSortNode));
+         else if (afterSortScriptBodyFunc != null)
+            this.afterSortScriptDelegate = (ctx.Pipeline.CreateScriptDelegate<PipelineAction.ScriptDelegate>(afterSortScriptBodyFunc, afterSortNode));
       }
 
 
@@ -83,7 +113,7 @@ namespace Bitmanager.ImportPipeline
       {
          StringBuilder sb = new StringBuilder();
          sb.AppendFormat("{0} [type={1}, clone=#{2}, sorter={3}, undup={4}]",
-            Name, GetType().Name, InstanceNo, sorter, undupper);
+            Name, GetType().Name, InstanceNo, Sorter, Undupper);
          return sb.ToString();
       }
 
@@ -117,47 +147,44 @@ namespace Bitmanager.ImportPipeline
          if (e == null) return;
          try
          {
-            //ctx.ImportLog.Log("enumeratePartial e={0}", e.GetType().Name);
-            int cnt = 0;
-            if (this.undupper != null)
+            List<JObject> list = e.GetAll();
+            int cnt = list.Count;
+            if (list.Count == 0) goto EXIT_RTN;
+            if (this.Undupper == null && this.afterSortScriptDelegate == null) goto EXPORT_ALL;
+
+            if (afterSortScriptDelegate != null)
+               list = (List<JObject>) afterSortScriptDelegate(ctx, list);
+
+            if (this.Undupper == null) goto EXPORT_ALL;
+
+            JObject prev = list[0];
+            JToken[] prevKeys = Undupper.GetKeys(prev);
+            int prevIdx = 0;
+            for (int i = 1; i < list.Count; i++)
             {
-               List<JObject> list = e.GetAll();
-               if (list.Count == 0) goto EXIT_RTN;
+               JObject cur = list[i];
+               JToken[] keys = Undupper.GetKeys(cur);
+               if (Undupper.CompareKeys(prevKeys, keys) == 0) continue;
 
-               cnt = list.Count;
-               JObject prev = list[0];
-               JToken[] prevKeys = undupper.GetKeys(prev);
-               int prevIdx = 0;
-               for (int i = 1; i < list.Count; i++)
-               {
-                  JObject cur = list[i];
-                  JToken[] keys = undupper.GetKeys(cur);
-                  if (undupper.CompareKeys(prevKeys, keys) == 0) continue;
+               if (undupActions != null)
+                  undupActions.ProcessRecords(ctx, list, prevIdx, i - prevIdx);
+               PassThrough(ctx, prev);
 
-                  if (undupActions != null)
-                     undupActions.ProcessRecords(ctx, list, prevIdx, i - prevIdx);
-                  PassThrough(ctx, prev);
-
-                  prevIdx = i;
-                  prev = cur;
-                  prevKeys = keys;
-               }
-               if (prevIdx < list.Count)
-               {
-                  if (undupActions != null)
-                     undupActions.ProcessRecords(ctx, list, prevIdx, list.Count - prevIdx);
-                  PassThrough(ctx, prev);
-               }
+               prevIdx = i;
+               prev = cur;
+               prevKeys = keys;
             }
-            else
+            if (prevIdx < list.Count)
             {
-               while (true)
-               {
-                  var obj = e.GetNext();
-                  if (obj == null) break;
-                  PassThrough(ctx, obj);
-               }
+               if (undupActions != null)
+                  undupActions.ProcessRecords(ctx, list, prevIdx, list.Count - prevIdx);
+               PassThrough(ctx, prev);
             }
+            goto EXIT_RTN;
+
+EXPORT_ALL:
+            for (int i = 0; i < list.Count; i++)
+               PassThrough(ctx, list[i]);
 
 EXIT_RTN:
             numAfterSort += cnt;
@@ -173,7 +200,7 @@ EXIT_RTN:
          if (mapper == null)
          {
             String id = String.Format("{0}#{1}", Name, InstanceNo);
-            mapper = new MemoryBasedMapperWriters(null, sorter, 1);
+            mapper = new MemoryBasedMapperWriters(null, Sorter, 1);
          }
          if (accumulator.Count > 0)
          {

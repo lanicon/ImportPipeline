@@ -112,7 +112,9 @@ namespace Bitmanager.ImportPipeline
          ScriptName = node.ReadStr("@script", null);
          ScriptBody = node.ReadStr(null, null);
          if (ScriptBody == null)
-            throw new BMNodeException(node, "@script should be specified if there is no script in the body.");
+         {
+            if (ScriptName == null) throw new BMNodeException(node, "@script should be specified if there is no script in the body.");
+         }
          else
          {
             ScriptBody = ScriptBody.TrimWhiteSpaceToNull();

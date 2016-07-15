@@ -198,7 +198,9 @@ namespace Bitmanager.ImportPipeline
             //if (htmlProcessor.IsTextMail)
             sink.HandleValue(ctx, "record/_istextmail", htmlProcessor.IsTextMail);
             sink.HandleValue(ctx, "record/_numparts", htmlProcessor.numParts);
-            sink.HandleValue(ctx, "record/_numattachments", htmlProcessor.numAttachments);
+            sink.HandleValue(ctx, "record/_numattachments", htmlProcessor.Attachments.Count);
+            foreach (var a in htmlProcessor.Attachments)
+                sink.HandleValue(ctx, "record/_attachment", a);
             sink.HandleValue(ctx, "record/_filesize", worker.FileSize);
             sink.HandleValue(ctx, "record/shortcontent", htmlProcessor.GetAbstract(abstractLength, abstractDelta));
 

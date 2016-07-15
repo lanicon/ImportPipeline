@@ -54,7 +54,7 @@ namespace Bitmanager.ImportPipeline
       }
 
       public int numParts;
-      public int numAttachments;
+      public List<String> Attachments;
       public bool IsTextMail;
       private readonly bool removeTitleNodes = false;
       private readonly bool removeMetaNodes = false;
@@ -185,8 +185,14 @@ namespace Bitmanager.ImportPipeline
       private void computeNumAttachments()
       {
          if (BodyNode == null) return;
+         Attachments = new List<String>();
          HtmlNodeCollection nodes = BodyNode.SelectNodes("//p[@class='email-attachment-name']");
-         numAttachments = nodes == null ? 0 : nodes.Count;
+         if (nodes == null) return;
+         foreach (HtmlNode x in nodes)
+         {
+            String m = x.GetAttributeValue("mime", null);
+            Attachments.Add(m + "::" + x.InnerText);
+         }
       }
 
       public String GetInnerBody()

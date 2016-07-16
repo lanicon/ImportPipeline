@@ -104,7 +104,7 @@ namespace Bitmanager.ImportPipeline
          sb.Append(ctx.GetStats());
          Stats = sb.ToString();
 
-         ErrorState = ctx.ErrorState;
+         ErrorState = ctx.ErrorState == _ErrorState.Running ? _ErrorState.OK : ctx.ErrorState;
       }
 
       public override string ToString()

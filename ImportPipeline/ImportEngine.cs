@@ -311,17 +311,9 @@ namespace Bitmanager.ImportPipeline
 
       private void fillTikaVars()
       {
-         String dir = IOUtils.FindDirectoryToRoot(Assembly.GetExecutingAssembly().Location, "TikaService", FindToTootFlags.ReturnNull);
+         String dir = IOUtils.FindDirectoryToRoot(Assembly.GetExecutingAssembly().Location, @"TikaService", FindToTootFlags.ReturnNull);
          if (String.IsNullOrEmpty(dir)) return;
          Environment.SetEnvironmentVariable("IMPORT_TIKA_SERVICE_DIR", dir);
-
-         //String jetty = findLargest(dir, "jetty-runner-*.jar");
-         //if (jetty == null) return;
-
-         //String war = findLargest(Path.Combine(dir, "target"), "tikaservice-*.war");
-         //if (war == null) return;
-
-         //Environment.SetEnvironmentVariable("IMPORT_TIKA_CMD", String.Format("\"{0}\"  \"{1}\"", jetty, war));
 
          String srv = findLargest(dir, "tikaservice-*.jar");
          if (srv == null) srv = findLargest(Path.Combine(dir, "target"), "tikaservice-*.jar");
@@ -335,10 +327,36 @@ namespace Bitmanager.ImportPipeline
          String[] files = Directory.GetFiles(dir, spec);
          foreach (var f in files)
          {
-            if (String.Compare(f, max, true) <= 0) continue;
+            if (compareWithVersion (f, max) <= 0) continue;
             max = f;
          }
          return max;
+      }
+
+      private int compareWithVersion (String f1, String f2)
+      {
+         if (f1==null || f2==null) return String.Compare(f1, f2, true);
+
+         String[] parts1 = f1.Split('.');
+         String[] parts2 = f2.Split('.');
+
+         int N = Math.Min (parts1.Length, parts2.Length);
+         for (int i=0; i<N; i++)
+         {
+            int v1, v2;
+            if (i != N-1 && int.TryParse (parts1[i], out v1) && int.TryParse (parts2[i], out v2))
+            {
+               if (v1 < v2) return -1;
+               if (v1 > v2) return 1;
+               continue;
+            }
+            int rc = String.Compare(parts1[i], parts2[i], true);
+            if (rc != 0) return rc;
+         }
+
+         if (parts1.Length > N) return 1;
+         if (parts2.Length > N) return -1;
+         return 0;
       }
 
       static bool isActive(String[] enabledDSses, DatasourceAdmin da)

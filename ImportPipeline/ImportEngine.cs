@@ -468,6 +468,7 @@ namespace Bitmanager.ImportPipeline
             }
             try
             {
+               ret.SetGlobalStatus(mainCtx);
                if (Reporter != null) Reporter.SendReport(mainCtx, ret);
             }
             catch (Exception e2)
@@ -476,7 +477,7 @@ namespace Bitmanager.ImportPipeline
                ImportLog.Log(e2);
             }
          }
-         ret.SetGlobalStatus(mainCtx);
+         //ret.SetGlobalStatus(mainCtx);
          return ret;
       }
 

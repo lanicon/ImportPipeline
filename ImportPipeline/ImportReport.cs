@@ -54,6 +54,7 @@ namespace Bitmanager.ImportPipeline
 
       public void SetGlobalStatus(PipelineContext ctx)
       {
+         errorState = ctx.ErrorState;
          ErrorMessage = ctx.LastError == null ? null : ctx.LastError.Message;
       }
 

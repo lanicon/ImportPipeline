@@ -56,7 +56,7 @@ namespace Bitmanager.ImportPipeline
          String from = node.ReadStr("@from", null);
          MailFrom = from==null ? new MailAddress(MailTo[0].Address, "Noreply") : new MailAddress(from);
 
-         MailSubject = node.ReadStr("@subject", "[Import {2}] for {1}");
+         MailSubject = node.ReadStr("@subject", "[Import {1}] {2}");
          MailServer = node.ReadStr("@server");
          int ix = MailServer.IndexOf(':');
          if (ix < 0)
@@ -108,7 +108,7 @@ namespace Bitmanager.ImportPipeline
                foreach (var x in MailTo) m.To.Add(x);
 
 
-               m.Subject = String.Format (MailSubject, fn, shortName, report.ErrorState==0 ? "Report" : report.ErrorState.ToString());
+               m.Subject = String.Format(MailSubject, fn, shortName, report.ErrorState.ToString());
                m.SubjectEncoding = Encoding.UTF8;
                m.BodyEncoding = Encoding.UTF8;
                m.Body = sb.ToString();

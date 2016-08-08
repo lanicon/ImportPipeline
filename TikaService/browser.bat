@@ -1,1 +1,0 @@
-start chrome "http://localhost:8080/html/filesystem/C:/Users/pweerd/Documents/oude root E/Snowy.eml"

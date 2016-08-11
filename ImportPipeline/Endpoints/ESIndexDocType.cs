@@ -42,6 +42,7 @@ namespace Bitmanager.ImportPipeline
       public readonly String DateFieldName;
       public readonly String AutoTimestampFieldName;
       public readonly String IdPath;
+      public readonly String RoutingPath;
       public String UrlPart { get { return Index.IndexName + "/" + TypeName; } }
       public String UrlPartForPreviousIndex { get { return Index.AliasName + "/" + TypeName; } }
 
@@ -53,19 +54,22 @@ namespace Bitmanager.ImportPipeline
          TypeName = node.ReadStr("@typename", Name);
          KeyFieldName = node.ReadStr("@keyfield", null);
          DateFieldName = node.ReadStr("@datefield", null);
-         IdPath = node.ReadStr("@idpath", null);
+         IdPath = node.ReadStr("@idfield", null);
+         if (IdPath == null) IdPath = node.ReadStr("@idpath", null);
+         RoutingPath = node.ReadStr("@routingfield", null);
          AutoTimestampFieldName = node.ReadStr("@ts", indexDefinition.AutoTimestampFieldName);
       }
 
       public JObject GetCmdForBulk(JObject obj, String verb="index")
       {
-         if (IdPath == null) return null;
-         String id = (String)obj[IdPath];
-         if (id == null) return null;
+         String id = IdPath == null ? null : (String)obj[IdPath];
+         String routing = RoutingPath == null ? null : (String)obj[RoutingPath];
+         if (id == null && routing == null) return null;
 
          JObject ret = new JObject();
          JObject x = new JObject();
-         x["_id"] = id;
+         if (id != null) x["_id"] = id;
+         if (routing != null) x["_routing"] = routing;
          ret.Add(verb, x);
          return ret;
       }

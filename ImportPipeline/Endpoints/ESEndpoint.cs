@@ -43,7 +43,7 @@ namespace Bitmanager.ImportPipeline
       public readonly int CacheSize;
       public readonly int MaxParallel;
 
-      protected readonly ClusterStatus WaitFor;
+      protected readonly ClusterStatus WaitFor, WaitForAlt;
       protected readonly bool WaitForMustExcept;
       protected readonly int WaitForTimeout;
       public readonly bool NormalCloseOnError;
@@ -64,7 +64,7 @@ namespace Bitmanager.ImportPipeline
          if (Indexes.Count == 0)
             throw new BMNodeException(node, "At least 1 index+type is required!");
 
-         WaitFor = node.ReadEnum("waitfor/@status", ClusterStatus.Green | ClusterStatus.Yellow);
+         WaitFor = ESHealthCmd.SplitRequestedClusterStatus(node.ReadStr("waitfor/@status", "Green | Yellow"), out WaitForAlt);
          WaitForTimeout = node.ReadInt("waitfor/@timeout", 30);
          WaitForMustExcept = node.ReadBool("waitfor/@except", true);
       }
@@ -147,7 +147,7 @@ namespace Bitmanager.ImportPipeline
       public bool WaitForStatus()
       {
          var cmd = Connection.CreateHealthRequest();
-         return cmd.WaitForStatus(WaitFor, WaitForTimeout*1000, WaitForMustExcept);
+         return cmd.WaitForStatus(WaitFor, WaitForAlt, WaitForTimeout*1000, WaitForMustExcept);
       }
 
       protected ESIndexDocType getDocType(String name, bool mustExcept)

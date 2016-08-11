@@ -46,7 +46,7 @@ namespace Bitmanager.ImportPipeline
       private static Type findNonExactType(Assembly a, String typeName)
       {
          String lcType = typeName.ToLowerInvariant();
-         //Logs.DebugLog.Log("Searching for '{0}'", lcType);
+         //Logs.DebugLog.Log("Searching for '{0}' in {1}", lcType, a.Location);
          try
          {
             Type[] arr = a.GetTypes();
@@ -65,8 +65,10 @@ namespace Bitmanager.ImportPipeline
             }
             return a.GetType(typeName, false, true);
          }
-         catch
+         catch(Exception err)
          {
+            Logs.ErrorLog.Log("findNonExactType: cannot enumerate types for {0}: {1}", a, err.Message);
+            Logs.ErrorLog.Log(err);
          }
          return null;
       }

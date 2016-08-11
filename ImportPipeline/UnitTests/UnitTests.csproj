@@ -77,6 +77,8 @@
     <Compile Include="ProviderTests.cs" />
     <Compile Include="FileBasedMapReduceWritersTests.cs" />
     <Compile Include="ConditionTests.cs" />
+    <Compile Include="PlaygroundTest.cs" />
+    <Compile Include="TimeBasedIdGeneratorTest.cs" />
     <Compile Include="VariableTests.cs" />
   </ItemGroup>
   <ItemGroup>

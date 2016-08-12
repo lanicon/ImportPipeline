@@ -181,7 +181,7 @@ namespace Bitmanager.ImportPipeline
          }
          switch ((++Added) % LogAdds)
          {
-            case 0: ImportLog.Log(_LogType.ltTimer, "Added {0} records", Added); break;
+            case 0: ImportLog.Log(_LogType.ltTimer, "Added {0} records (emitted: {1}, errors: {2})", Added, Emitted, Errors); break;
             case 1: if (Added != 1) break; ImportLog.Log(_LogType.ltTimerStart, "Added 1 record"); break;
          }
       }

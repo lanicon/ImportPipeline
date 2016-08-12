@@ -127,6 +127,10 @@ namespace Bitmanager.ImportPipeline
       /// </summary>
       public bool Active;
       /// <summary>
+      /// Determines wether the index is readonly
+      /// </summary>
+      public bool ReadOnly;
+      /// <summary>
       /// Logical name of the index (not the ES name, which is IndexName)
       /// </summary>
       public readonly String Name;
@@ -172,12 +176,14 @@ namespace Bitmanager.ImportPipeline
 
       public bool IsNewIndex { get; private set; }
       public bool RenameNeeded { get; private set; }
+      public bool IndexExists { get; private set; }
 
 
       private ESIndexDefinition(XmlNode node, OnLoadConfig onLoadConfig)
       {
          this.onLoadConfig = onLoadConfig == null ? _defOnLoadConfig : onLoadConfig;
          Active = node.ReadBool("@active", true);
+         ReadOnly = node.ReadBool("@readonly", false);
          Name = node.ReadStr("@name");
          IndexName = node.ReadStr("@indexname", Name);
          AliasName = IndexName;
@@ -358,6 +364,8 @@ namespace Bitmanager.ImportPipeline
          if (IndexDateTimeFormat == null || Generations == 0)
             flags &= ~ESIndexCmd._CheckIndexFlags.AppendDate;
 
+         if (ReadOnly) flags |= ESIndexCmd._CheckIndexFlags.DontCreate;
+
          DocMappings = null;
          DateTime configDate;
          JObject configJson = onLoadConfig (this, ConfigFile, out configDate);
@@ -368,22 +376,27 @@ namespace Bitmanager.ImportPipeline
          cmd.DateFormat = this.IndexDateTimeFormat;
          bool isNew;
          IndexName = cmd.CheckIndexFromFile(AliasName, configJson, configDate, flags, out isNew);//PW naar kijken!
+         IndexExists = IndexName != null;
          IsNewIndex = isNew;
          RenameNeeded = (flags & ESIndexCmd._CheckIndexFlags.AppendDate) != 0 && isNew;
 
          //Get possible mappings and determine default doctype
          conn.Logger.Log("");
          conn.Logger.Log("get mappings");
-         ESGetMappingResponse resp = cmd.GetIndexMappings(IndexName);
          DocMappings = new List<String>();
-         conn.Logger.Log("Index[0]={0}", resp[0].Name);
-         foreach (var mapping in resp[0])
+
+         if (IndexName != null) //Might be null if the index was not found (if Readonly==true)
          {
-            conn.Logger.Log("-- Mapping={0}", mapping.Name);
-            DocMappings.Add(mapping.Name);
+            ESGetMappingResponse resp = cmd.GetIndexMappings(IndexName);
+            conn.Logger.Log("Index[0]={0}", resp[0].Name);
+            foreach (var mapping in resp[0])
+            {
+               conn.Logger.Log("-- Mapping={0}", mapping.Name);
+               DocMappings.Add(mapping.Name);
+            }
          }
 
-         if (RefreshIntervalDuringImport != null)
+         if (RefreshIntervalDuringImport != null && !ReadOnly)
          {
             JObject curSettings = cmd.GetSettings();
             this.savedRefreshInterval = curSettings.ReadStr ("refresh_interval", "1s");

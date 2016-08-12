@@ -43,8 +43,9 @@ namespace Bitmanager.ImportPipeline
       public readonly String AutoTimestampFieldName;
       public readonly String IdPath;
       public readonly String RoutingPath;
-      public String UrlPart { get { return Index.IndexName + "/" + TypeName; } }
-      public String UrlPartForPreviousIndex { get { return Index.AliasName + "/" + TypeName; } }
+      public bool IndexExists { get { return Index.IndexExists; } }
+      public String UrlPart { get { return IndexExists ? Index.IndexName + "/" + TypeName : "__not_existing__"; } }
+      public String UrlPartForPreviousIndex { get { return IndexExists ? Index.AliasName + "/" + TypeName : "__not_existing__"; } }
 
       public ESIndexDocType(ESIndexDefinition indexDefinition, XmlNode node)
       {
@@ -130,6 +131,8 @@ namespace Bitmanager.ImportPipeline
 
       public JObject LoadByKey(ESConnection conn, String key)
       {
+         if (!IndexExists) goto NOT_EXIST;
+
          JObject record = null;
          ESMainResponse resp;
          if (KeyFieldName == null) goto NOT_EXIST; ;
@@ -162,6 +165,7 @@ namespace Bitmanager.ImportPipeline
 
       private bool deleteById (ESConnection conn, String key)
       {
+         if (!IndexExists) return false;
 
          String url = UrlPart + "/" + HttpUtility.UrlEncode(key);
          ESMainResponse resp = conn.Delete(url);
@@ -172,6 +176,8 @@ namespace Bitmanager.ImportPipeline
       }
       public bool DeleteByKey(ESConnection conn, String key)
       {
+         if (!IndexExists) goto NOT_EXIST;
+
          ESMainResponse resp;
          if (KeyFieldName == null) goto NOT_EXIST; ;
          Logs.DebugLog.Log("DeleteByKey ({0})", key);

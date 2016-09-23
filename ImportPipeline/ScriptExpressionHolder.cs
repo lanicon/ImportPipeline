@@ -50,6 +50,7 @@ namespace Bitmanager.ImportPipeline
          usings.Add("Bitmanager.Core", null);
          usings.Add("Bitmanager.IO", null);
          usings.Add("Bitmanager.Json", null);
+         usings.Add("Bitmanager.Elastic", null);
          usings.Add("Bitmanager.ImportPipeline", null);
          usings.Add("Bitmanager.ImportPipeline.StreamProviders", null);
          usings.Add("Newtonsoft.Json.Linq", null);

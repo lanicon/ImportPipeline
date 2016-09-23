@@ -31,13 +31,35 @@ using System.Reflection;
 
 namespace Bitmanager.ImportPipeline.StreamProviders
 {
+   /// <summary>
+   /// Provides a filestream with meta-information like a virtual root, relative name, and file-info.
+   /// The virtual root might be dynamically calculated, depending on the settings in the FileCollectionStreamProvider.
+   /// </summary>
    public class FileStreamProvider : StreamProviderBase
    {
       public FileStreamProvider(PipelineContext ctx, FileCollectionStreamProvider parent, FileCollectionStreamProvider._FileElt fileElt)
          : base(parent, parent.contextNode)
       {
          credentialsInitialized = true;
-         base.SetNames(fileElt.Name, parent.RootLen, parent.VirtualRoot);
+         int rootLen = parent.RootLen;
+         String virtualRoot = parent.VirtualRoot;
+         if (parent.VirtualRootFromFile)
+         {
+            int ix = rootLen;
+            for (; ix < fileElt.Name.Length; ix++)
+            {
+               switch (fileElt.Name[ix])
+               {
+                  default: continue;
+                  case '\\':
+                  case '/': break;
+               }
+               if (ix>rootLen) virtualRoot = fileElt.Name.Substring(rootLen, ix - rootLen);
+               rootLen = ix + 1;
+               break;
+            }
+         }
+         base.SetNames(fileElt.Name, rootLen, virtualRoot);
          base.SetMeta(fileElt.LastWriteUtc, fileElt.Size);
          base.isDir = fileElt.IsDir;
          base.attributes = fileElt.Attributes;
@@ -63,6 +85,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
       public readonly String Root, File;
       public readonly String VirtualRoot;
       public readonly int RootLen;
+      public readonly bool VirtualRootFromFile; 
       private FileTree tree;
       private PipelineContext ctx;
 
@@ -71,6 +94,11 @@ namespace Bitmanager.ImportPipeline.StreamProviders
       {
          this.ctx = ctx;
          VirtualRoot = XmlUtils.ReadStr(node, "@virtualroot", null);
+         if (VirtualRoot.Equals ("<dir>", StringComparison.OrdinalIgnoreCase))
+         {
+            VirtualRoot = null;
+            VirtualRootFromFile = true;
+         }
          Sort = node.ReadEnum("@filesort", SortMode.FileName | SortMode.Desc);
          ExportDirs = node.ReadBool("@exportdirs", false);
          IgnoreDates = node.ReadBool("@ignoredates", false);
@@ -89,6 +117,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
 
          if (file != null)
          {
+            recursive = XmlUtils.ReadBool(node, "@recursive", false);
             File = ctx.ImportEngine.Xml.CombinePath(file);
             RootLen = 1 + Path.GetDirectoryName(File).Length;
          }
@@ -203,7 +232,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          String dir = Path.GetDirectoryName(File);
 
          var dirInfo = new DirectoryInfo(dir);
-         var files = dirInfo.GetFileSystemInfos(Path.GetFileName(File));
+         var files = dirInfo.GetFileSystemInfos(Path.GetFileName(File), this.recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
 
          DateTime minUtc = getMinDate();
          DateTime maxUtc = DateTime.MaxValue;

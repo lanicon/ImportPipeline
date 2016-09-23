@@ -44,7 +44,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          roots = new List<IStreamProviderBase>();
          var nodeElt = (XmlElement)node;
          if (!tryFillFromUrlAttrib(ctx, nodeElt))
-            if (!tryFillFromFileAttrib(ctx, nodeElt))
+            if (!tryFillFromFileOrRootAttrib(ctx, nodeElt))
                if (!tryFromProviderNodes(ctx, nodeElt))
                   throw new BMNodeException(node, "Missing url/file attributes and provider-nodes.");
       }
@@ -82,10 +82,13 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          return ImportEngine.CreateObject<IStreamProviderBase> (type, ctx, providerNode, parentNode);
       }
 
-      private bool tryFillFromFileAttrib(PipelineContext ctx, XmlElement nodeElt)
+      private bool tryFillFromFileOrRootAttrib(PipelineContext ctx, XmlElement nodeElt)
       {
-         XmlNode attr = nodeElt.GetAttributeNode("file");
-         if (attr == null) return false;
+         if (null != nodeElt.GetAttributeNode("file")) goto ACCEPT;
+         if (null != nodeElt.GetAttributeNode("root")) goto ACCEPT;
+         return false;
+
+         ACCEPT:
          roots.Add(new FileCollectionStreamProvider(ctx, nodeElt, nodeElt));
          return true;
       }

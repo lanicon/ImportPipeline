@@ -30,11 +30,11 @@ using Bitmanager.IO;
 
 namespace Bitmanager.ImportPipeline.StreamProviders
 {
-   public class WebStreamProvider : StreamProviderBase
+   public class WebStreamProvider : StreamProvider
    {
       public bool KeepAlive;
-      public WebStreamProvider(PipelineContext ctx, XmlNode node, XmlNode parentNode)
-         : base(node)
+      public WebStreamProvider(PipelineContext ctx, XmlNode node, XmlNode parentNode, StreamDirectory parent)
+         : base(parent, node)
       {
          if (parentNode == null) parentNode = node;
          silent = (ctx.ImportFlags & _ImportFlags.Silent) != 0;

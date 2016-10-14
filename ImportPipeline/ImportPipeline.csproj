@@ -173,11 +173,15 @@
     <Compile Include="Datasources\TestDatasource.cs" />
     <Compile Include="Datasources\TikaWorker.cs" />
     <Compile Include="Datasources\TikaDataSource.cs" />
+    <Compile Include="StreamProviders\FileStreamDirectory.cs" />
     <Compile Include="StreamProviders\GenericStreamProvider.cs" />
+    <Compile Include="StreamProviders\StreamDirectory.cs" />
+    <Compile Include="StreamProviders\StreamDirectoryEnumerator.cs" />
     <Compile Include="StreamProviders\StreamProvider.cs" />
     <Compile Include="StreamProviders\StreamProviderBase.cs" />
     <Compile Include="StreamProviders\StreamWrapper.cs" />
     <Compile Include="StreamProviders\FileStreamProvider.cs" />
+    <Compile Include="StreamProviders\WebStreamDirectory.cs" />
     <Compile Include="StreamProviders\WebStreamProvider.cs" />
     <Compile Include="Template\DefaultFactory.cs" />
     <Compile Include="Template\TemplateEngine.cs" />

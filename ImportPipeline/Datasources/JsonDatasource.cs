@@ -44,12 +44,12 @@ namespace Bitmanager.ImportPipeline
 {
    public class JsonDatasource : Datasource
    {
-      private GenericStreamProvider streamProvider;
+      private RootStreamDirectory streamDirectory;
       private int splitUntil;
       private bool dumpReader;
       public void Init(PipelineContext ctx, XmlNode node)
       {
-         streamProvider = new GenericStreamProvider(ctx, node);
+         streamDirectory = new RootStreamDirectory(ctx, node);
          dumpReader = node.ReadBool("@debug", false);
          splitUntil = node.ReadInt("@splituntil", 1);
       }
@@ -134,7 +134,7 @@ namespace Bitmanager.ImportPipeline
       }
       public void Import(PipelineContext ctx, IDatasourceSink sink)
       {
-         foreach (var elt in streamProvider.GetElements(ctx))
+         foreach (var elt in streamDirectory.GetProviders(ctx))
          {
             try
             {

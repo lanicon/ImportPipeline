@@ -1,13 +1,13 @@
 ﻿
 test1
 Dumping roots
--- http://localhost/
+-- WebStreamDirectory [url=http://localhost/]
 Dumping leafs
 -- http://localhost/
 
 test2
 Dumping roots
--- FileCollectionStreamProvider [file=<ROOT>\*.txt]
+-- FileStreamDirectory [file=<ROOT>\*.txt]
 Dumping leafs
 -- <ROOT>\file03.txt, r=file03.txt, v=abc\file03.txt
 -- <ROOT>\file02.txt, r=file02.txt, v=abc\file02.txt
@@ -17,16 +17,16 @@ Dumping leafs
 
 test3
 Dumping roots
--- FileCollectionStreamProvider [file=<ROOT>\file01.txt]
+-- FileStreamDirectory [file=<ROOT>\file01.txt]
 Dumping leafs
 -- <ROOT>\file01.txt, r=file01.txt, v=<ROOT>\file01.txt
 
 test4
 Dumping roots
--- FileCollectionStreamProvider [file=<ROOT>\*.txt]
--- http://localhost/
--- FileCollectionStreamProvider [root=<ROOT>]
--- FileCollectionStreamProvider [root=<ROOT>\]
+-- FileStreamDirectory [file=<ROOT>\*.txt]
+-- WebStreamDirectory [url=http://localhost/]
+-- FileStreamDirectory [root=<ROOT>]
+-- FileStreamDirectory [root=<ROOT>\]
 Dumping leafs
 -- <ROOT>\file03.txt, r=file03.txt, v=<ROOT>\file03.txt
 -- <ROOT>\file02.txt, r=file02.txt, v=<ROOT>\file02.txt

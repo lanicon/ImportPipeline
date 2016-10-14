@@ -34,7 +34,7 @@ namespace Bitmanager.ImportPipeline
 {
    public abstract class StreamDatasourceBase : Datasource
    {
-      protected GenericStreamProvider streamProvider;
+      protected RootStreamDirectory streamDirectory;
       protected Encoding encoding;
       protected int splitUntil;
       protected bool logSkips;
@@ -53,7 +53,7 @@ namespace Bitmanager.ImportPipeline
       }
       public virtual void Init(PipelineContext ctx, XmlNode node, Encoding defEncoding)
       {
-         streamProvider = new GenericStreamProvider(ctx, node);
+         streamDirectory = new RootStreamDirectory(ctx, node);
          String enc = node.ReadStr("@encoding", null);
          encoding = enc == null ? defEncoding : Encoding.GetEncoding(enc);
          logSkips = node.ReadBool("@logskips", logSkips);
@@ -69,7 +69,7 @@ namespace Bitmanager.ImportPipeline
          _BeforeImport(ctx, sink);
          try
          {
-            foreach (var elt in streamProvider.GetElements(ctx))
+            foreach (var elt in streamDirectory.GetProviders(ctx))
             {
                try
                {

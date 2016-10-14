@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Licensed to De Bitmanager under one or more contributor
  * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
@@ -22,40 +22,29 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Xml;
+using Bitmanager.Core;
+using Bitmanager.IO;
+using Bitmanager.Xml;
 
-namespace Bitmanager.ImportPipeline
+namespace Bitmanager.ImportPipeline.StreamProviders
 {
-   public interface IDatasourceFeederElement
+   public class WebStreamDirectory : StreamDirectory
    {
-      XmlNode Context { get; }
-      Object Element { get; }
-   }
-   public interface IDatasourceFeeder
-   {
-      void Init(PipelineContext ctx, XmlNode node);
-      IEnumerable<IDatasourceFeederElement> GetElements(PipelineContext ctx);
-   }
+      public readonly WebStreamProvider provider;
+      public WebStreamDirectory(PipelineContext ctx, XmlElement providerNode, XmlElement parentNode): base (ctx, providerNode)
+      {
+         provider = new WebStreamProvider(ctx, providerNode, parentNode, this);
+      }
 
+      public override IEnumerator<object> GetChildren(PipelineContext ctx)
+      {
+         yield return provider;
+      }
 
-   public class FeederElementBase : IDatasourceFeederElement
-   {
-      public XmlNode Context { get; protected set; }
-      public Object Element { get; protected set; }
-      public FeederElementBase(XmlNode ctx, Object element)
-      {
-         Context = ctx;
-         Element = element;
-      }
-      protected FeederElementBase(XmlNode ctx)
-      {
-         Context = ctx;
-      }
-      protected FeederElementBase()
-      {
-      }
       public override string ToString()
       {
-         return Element.ToString();
+         return String.Format ("{0} [url={1}]", GetType().Name, provider.Uri);
       }
+
    }
 }

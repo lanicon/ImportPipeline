@@ -47,7 +47,7 @@ namespace Bitmanager.ImportPipeline
       private String processName;
       public String UriBase {get; private set;}
       public String DbgStoreDir { get; private set; }
-      private GenericStreamProvider streamProvider;
+      private RootStreamDirectory streamDirectory;
       private String pingUrl;
       private int pingTimeout;
       private int abstractLength, abstractDelta;
@@ -62,7 +62,7 @@ namespace Bitmanager.ImportPipeline
          processName = node.ReadStr("@tikaprocess");
          UriBase = node.ReadStr("@tikaurl");
          if (!UriBase.EndsWith("/")) UriBase += "/";
-         streamProvider = new GenericStreamProvider(ctx, node);
+         streamDirectory = new RootStreamDirectory(ctx, node);
          abstractLength = node.ReadInt("abstract/@maxlength", 256);
          abstractDelta = node.ReadInt("abstract/@delta", 20);
          DbgStoreDir = node.ReadStr("dbgstore", null);
@@ -93,11 +93,11 @@ namespace Bitmanager.ImportPipeline
          ensureTikaServiceStarted(ctx);
          previousRun = ctx.RunAdministrations.GetLastOKRunDateShifted(ctx.DatasourceAdmin);
          ctx.ImportLog.Log("Previous (shifted) run was {0}.", previousRun);
-         GenericStreamProvider.DumpRoots(ctx, streamProvider);
+         //GenericStreamProvider.DumpRoots(ctx, streamDirectory);
          try
          {
             if (this.mustEmitSecurity) securityCache = new SecurityCache(TikaSecurityAccount.FactoryImpl);
-            foreach (var elt in streamProvider.GetElements(ctx))
+            foreach (var elt in streamDirectory.GetProviders(ctx))
             {
                try
                {

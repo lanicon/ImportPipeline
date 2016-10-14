@@ -53,8 +53,7 @@ namespace UnitTests
                   foreach (XmlNode node in xml.SelectSingleNode("tests").ChildNodes)
                   {
                      if (node.NodeType != XmlNodeType.Element) continue;
-                     GenericStreamProvider p = new GenericStreamProvider();
-                     p.Init(ctx, node);
+                     RootStreamDirectory p = new RootStreamDirectory(ctx, node);
                      dumpProvider(w, p, ctx, node.LocalName);
                   }
 
@@ -89,15 +88,16 @@ namespace UnitTests
          if (String.IsNullOrEmpty(x)) return x;
          return x.ReplaceEx(IOUtils.DelSlash(root), @"<ROOT>", StringComparison.OrdinalIgnoreCase);
       }
-      private void dumpProvider(TextWriter w, GenericStreamProvider p, PipelineContext ctx, String what)
+      private void dumpProvider(TextWriter w, RootStreamDirectory p, PipelineContext ctx, String what)
       {
          w.WriteLine();
          w.WriteLine(what);
          w.WriteLine("Dumping roots");
-         foreach (var r in p.GetRootElements(ctx))
-            w.WriteLine("-- " + replaceRoot(r.ToString()));
+         var e = p.GetChildren(ctx);
+         while (e.MoveNext())
+            w.WriteLine("-- " + replaceRoot(e.Current.ToString()));
          w.WriteLine("Dumping leafs");
-         foreach (var r in p.GetElements(ctx))
+         foreach (var r in p.GetProviders(ctx))
             w.WriteLine("-- " + toString(r));
       }
    }

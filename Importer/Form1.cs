@@ -370,38 +370,6 @@ namespace Bitmanager.Importer
             var dc = new ToDateConverter(hlp.SelectMandatoryNode("converter"), "date");
             dc.ConvertScalar(null, str);
          }
-         //const String date = "Fri, 26 Nov 1999 10:24:41 +0200";
-         //const String date2 = "Thu Apr 26 11:38:36 +0200 2012";
-         //const String date3 = "Fri Sep 08 11:09:29 CEST 2006";
-         //const String date4 = "Mon, 9 Jan 2012 09:29:39 +0000";
-         //var pr = NodaTime.Text.OffsetDateTimePattern.Rfc3339Pattern.Parse("Fri, 26 Nov 1999 10:24:41 +0200");
-         //pr = NodaTime.Text.OffsetDateTimePattern.GeneralIsoPattern.Parse("Fri, 26 Nov 1999 10:24:41 +0200");
-         //pr = NodaTime.Text.OffsetDateTimePattern.ExtendedIsoPattern.Parse("Fri, 26 Nov 1999 10:24:41 +0200");
-         //DateTime pr2;
-         ////pr2 = DateTime.ParseExact(date2, "ddd MMM dd HH:mm:ss zzz yyyy", Invariant.Culture);
-         ////pr2 = DateTime.ParseExact(date3, "ddd MMM dd HH:mm:ss zzz  yyyy", Invariant.Culture, System.Globalization.DateTimeStyles.AllowWhiteSpaces);
-
-
-         //   var logger = Logs.DebugLog;
-         //foreach (TimeZoneInfo timeZone in TimeZoneInfo.GetSystemTimeZones())
-         //{
-         //   bool hasDST = timeZone.SupportsDaylightSavingTime;
-         //   TimeSpan offsetFromUtc = timeZone.BaseUtcOffset;
-         //   TimeZoneInfo.AdjustmentRule[] adjustRules;
-         //   string offsetString;
-
-         //   logger.Log("ID: {0}", timeZone.Id);
-         //   logger.Log("   Display Name: {0, 40}", timeZone.DisplayName);
-         //   logger.Log("   Standard Name: {0, 39}", timeZone.StandardName);
-         //   //sw.Write("   Daylight Name: {0, 39}", timeZone.DaylightName);
-         //   //sw.Write(hasDST ? "   ***Has " : "   ***Does Not Have ");
-         //   //sw.WriteLine("Daylight Saving Time***");
-         //   offsetString = String.Format("{0} hours, {1} minutes", offsetFromUtc.Hours, offsetFromUtc.Minutes);
-         //   logger.Log("   Offset from UTC: {0, 40}", offsetString);
-         //}
-
-         //tryJson(); return; //PW moet weg
-
       }
 
       private void checkBox1_CheckedChanged(object sender, EventArgs e)

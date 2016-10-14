@@ -31,13 +31,13 @@ using System.Globalization;
 using Bitmanager.Elastic;
 using Bitmanager.IO;
 using System.IO.Compression;
+using Bitmanager.ImportPipeline.StreamProviders;
 
 namespace Bitmanager.ImportPipeline
 {
-   public class CsvDatasource: Datasource
+   public class CsvDatasource : StreamDatasourceBase
    {
       enum _HeaderOptions { False, True, UseForFieldNames };
-      private IDatasourceFeeder feeder;
       List<String> initialFieldNames;
       //DSString file;
       //int[] sortValuesToKeep;
@@ -50,16 +50,19 @@ namespace Bitmanager.ImportPipeline
       CsvLenientMode lenient;
       CsvTrimOptions trim;
 
-      public void Init(PipelineContext ctx, XmlNode node)
+      public CsvDatasource() : base(false, false)
+      { }
+
+      public override void Init(PipelineContext ctx, XmlNode node)
       {
-         feeder = ctx.CreateFeeder(node, typeof (FileNameFeeder));
-         //DS file = ctx.ImportEngine.Xml.CombinePath(node.ReadStr("@file"));
+         base.Init(ctx, node);
          headerOptions = node.ReadEnum("@headers", _HeaderOptions.False);
          String fieldNames = node.ReadStr("@fieldnames", null);
          initialFieldNames = createInitialFieldNames(fieldNames);
          if (initialFieldNames != null && headerOptions == _HeaderOptions.UseForFieldNames)
             throw new BMNodeException(node, "Cannot specify both  fieldnames and headers=UseForFieldNames.");
 
+         //PW moeten op contextnode
          lenient = node.ReadEnum("@lenient", CsvLenientMode.False);
          trim = node.ReadEnum("@trim", CsvTrimOptions.None);
          escChar = node.ReadStr("@escape", null);
@@ -114,25 +117,6 @@ namespace Bitmanager.ImportPipeline
          throw new BMNodeException (node, "Invalid character({0}) at expression {1}. Must be: single char, \\uXXXX, 0xXX", v, attr);
       }
 
-      public void Import(PipelineContext ctx, IDatasourceSink sink)
-      {
-         ctx.Emitted = 0;
-         foreach (var elt in feeder.GetElements(ctx))
-         {
-            try
-            {
-               String file = elt.Element.ToString();
-               ctx.ImportLog.Log("-- Importing {0}...", file);
-               if (sortKey < 0) processFile(ctx, file, sink);
-               else processSortedFile(ctx, file, sink);
-            }
-            catch (Exception e)
-            {
-               throw new BMException(e, e.Message + "\r\nFile=" + elt.Element + ".");
-            }
-         }
-      }
-
       private Stream createInputStream (String fn)
       {
          FileStream fs = new FileStream(fn, FileMode.Open, FileAccess.Read, FileShare.Read, 16 * 1024, false);
@@ -148,36 +132,39 @@ namespace Bitmanager.ImportPipeline
       NO_ZIP:
          return fs;
       }
-      protected void processFile(PipelineContext ctx, String fileName, IDatasourceSink sink)
-      {
-         List<String> keys;
-         ctx.SendItemStart(fileName);
 
-         using (Stream strm = createInputStream(fileName))
+
+      protected override void ImportStream(PipelineContext ctx, IDatasourceSink sink, IStreamProvider elt, Stream strm)
+      {
+         if (sortKey < 0)
          {
-            CsvReader csvRdr = createReader(strm);
-            optReadHeader(csvRdr);
-            keys = createKeysForEmit();
-            int startAt = this.startAt;
-            while (csvRdr.NextRecord())
-            {
-               if (startAt>0 && startAt > csvRdr.Line) continue;
-               ctx.IncrementEmitted();
-               sink.HandleValue(ctx, "record/_start", null);
-               var fields = csvRdr.Fields;
-               int fieldCount = fields.Count;
-               //ctx.DebugLog.Log("Record {0}. FC={1}", line, fieldCount); 
-               generateMissingKeysForEmit(keys, fieldCount);
-               for (int i = 0; i < fieldCount; i++)
-               {
-                  sink.HandleValue(ctx, keys[i], fields[i]);
-               }
-               sink.HandleValue(ctx, "record", null);
-            }
-            if (csvRdr.NumInvalidRecords>0)
-               ctx.ImportLog.Log(_LogType.ltWarning, "Invalid records detected: {0}", csvRdr.NumInvalidRecords);
+            ImportSortedStream(ctx, sink, elt, strm);
+            return;
          }
-         ctx.SendItemStop();
+
+         List<String> keys;
+
+         CsvReader csvRdr = createReader(strm);
+         optReadHeader(csvRdr);
+         keys = createKeysForEmit();
+         int startAt = this.startAt;
+         while (csvRdr.NextRecord())
+         {
+            if (startAt>0 && startAt > csvRdr.Line) continue;
+            ctx.IncrementEmitted();
+            sink.HandleValue(ctx, "record/_start", null);
+            var fields = csvRdr.Fields;
+            int fieldCount = fields.Count;
+            //ctx.DebugLog.Log("Record {0}. FC={1}", line, fieldCount); 
+            generateMissingKeysForEmit(keys, fieldCount);
+            for (int i = 0; i < fieldCount; i++)
+            {
+               sink.HandleValue(ctx, keys[i], fields[i]);
+            }
+            sink.HandleValue(ctx, "record", null);
+         }
+         if (csvRdr.NumInvalidRecords>0)
+            ctx.ImportLog.Log(_LogType.ltWarning, "Invalid records detected: {0}", csvRdr.NumInvalidRecords);
       }
 
       private void optReadHeader(CsvReader rdr)
@@ -212,28 +199,25 @@ namespace Bitmanager.ImportPipeline
          //Logs.ErrorLog.Log("Multiline={0}, quote={1} ({2}), esc={3} ({4}), startat={5}", true, csvRdr.QuoteChar, (int)csvRdr.QuoteOrd, csvRdr.EscapeOrd, (int)csvRdr.SepOrd, startAt);
          return rdr;
       }
-      protected void processSortedFile(PipelineContext ctx, String fileName, IDatasourceSink sink)
+      protected void ImportSortedStream(PipelineContext ctx, IDatasourceSink sink, IStreamProvider elt, Stream strm)
       {
          List<String[]> rows = new List<string[]>();
 
          int maxFieldCount = 0;
-         using (FileStream strm = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
+         CsvReader csvRdr = createReader(strm);
+         optReadHeader(csvRdr);
+         int startAt = this.startAt;
+         while (csvRdr.NextRecord())
          {
-            CsvReader csvRdr = createReader(strm);
-            optReadHeader(csvRdr);
-            int startAt = this.startAt;
-            while (csvRdr.NextRecord())
-            {
-               if (startAt>0 && startAt > csvRdr.Line) continue;
-               var fields = csvRdr.Fields;
-               int fieldCount = fields.Count;
-               if (fieldCount > maxFieldCount) maxFieldCount = fieldCount;
-               String[] arr = new String[fieldCount+1];
+            if (startAt>0 && startAt > csvRdr.Line) continue;
+            var fields = csvRdr.Fields;
+            int fieldCount = fields.Count;
+            if (fieldCount > maxFieldCount) maxFieldCount = fieldCount;
+            String[] arr = new String[fieldCount+1];
 
-               for (int i = 0; i < fieldCount; i++) arr[i+1] = fields[i];
-               if (fieldCount > sortKey) arr[0] = arr[sortKey+1];
-               rows.Add (arr);
-            }
+            for (int i = 0; i < fieldCount; i++) arr[i+1] = fields[i];
+            if (fieldCount > sortKey) arr[0] = arr[sortKey+1];
+            rows.Add (arr);
          }
 
          ctx.DebugLog.Log("First 10 sortkeys:");
@@ -257,7 +241,6 @@ namespace Bitmanager.ImportPipeline
          generateMissingKeysForEmit(keys, maxFieldCount);
 
          //Emit sorted records
-         ctx.SendItemStart (fileName);
          for (int r = 0; r < rows.Count; r++)
          {
             ctx.IncrementEmitted();
@@ -270,7 +253,6 @@ namespace Bitmanager.ImportPipeline
             }
             sink.HandleValue(ctx, "record", null);
          }
-         ctx.SendItemStop(fileName);
       }
 
       private static List<String> createInitialFieldNames(String fields)

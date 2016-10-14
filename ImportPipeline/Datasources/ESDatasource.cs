@@ -28,13 +28,14 @@ using Bitmanager.Json;
 using Newtonsoft.Json.Linq;
 using System.Xml;
 using System.Net;
+using Bitmanager.ImportPipeline.StreamProviders;
 
 
 namespace Bitmanager.ImportPipeline
 {
    public class ESDatasource : Datasource
    {
-      private IDatasourceFeeder feeder;
+      protected RootStreamDirectory streamDirectory;
       private String timeout;
       private String requestBody;
       private int timeoutInMs;
@@ -45,7 +46,7 @@ namespace Bitmanager.ImportPipeline
 
       public void Init(PipelineContext ctx, XmlNode node)
       {
-         feeder = ctx.CreateFeeder(node, typeof (UrlFeeder));
+         streamDirectory = new RootStreamDirectory(ctx, node);
          int size = node.ReadInt("@buffersize", 0);
          numRecords = size > 0 ? size : node.ReadInt("@buffersize", ESRecordEnum.DEF_BUFFER_SIZE);
          timeout = node.ReadStr("@timeout", ESRecordEnum.DEF_TIMEOUT);
@@ -58,7 +59,7 @@ namespace Bitmanager.ImportPipeline
 
       public void Import(PipelineContext ctx, IDatasourceSink sink)
       {
-         foreach (var elt in feeder.GetElements(ctx))
+         foreach (var elt in this.streamDirectory.GetProviders(ctx))
          {
             try
             {
@@ -66,17 +67,17 @@ namespace Bitmanager.ImportPipeline
             }
             catch (Exception e)
             {
-               throw new BMException(e, e.Message + "\r\nUrl=" + elt.Element + ".");
+               throw new BMException(e, e.Message + "\r\nUrl=" + elt.Uri + ".");
             }
          }
       }
 
       class ContextCallback
       {
-         IDatasourceFeederElement elt;
+         IStreamProvider elt;
          PipelineContext ctx;
          ESDatasource ds;
-         public ContextCallback(PipelineContext ctx, ESDatasource ds, IDatasourceFeederElement elt)
+         public ContextCallback(PipelineContext ctx, ESDatasource ds, IStreamProvider elt)
          {
             this.elt = elt;
             this.ctx = ctx;
@@ -85,27 +86,26 @@ namespace Bitmanager.ImportPipeline
 
          public void OnPrepareRequest(ESConnection conn, HttpWebRequest req)
          {
-            UrlFeederElement ufe = elt as UrlFeederElement;
+            WebStreamProvider ufe = elt as WebStreamProvider;
             if (ufe == null) return;
-
-            ufe.OptSetCredentials(ctx, req);
+            ufe.PrepareRequest(req);
          }
       }
 
-      private void importUrl(PipelineContext ctx, IDatasourceSink sink, IDatasourceFeederElement elt)
+      private void importUrl(PipelineContext ctx, IDatasourceSink sink, IStreamProvider elt)
       {
-         int maxParallel = elt.Context.ReadInt ("@maxparallel", this.maxParallel);
-         int splitUntil = elt.Context.ReadInt("@splituntil", this.splitUntil);
+         int maxParallel = elt.ContextNode.ReadInt ("@maxparallel", this.maxParallel);
+         int splitUntil = elt.ContextNode.ReadInt("@splituntil", this.splitUntil);
          if (splitUntil < 0) splitUntil = int.MaxValue;
-         bool scan = elt.Context.ReadBool("@scan", this.scan);
+         bool scan = elt.ContextNode.ReadBool("@scan", this.scan);
 
          //StringDict attribs = getAttributes(elt.Context);
          //var fullElt = (FileNameFeederElement)elt;
          String url = elt.ToString();
          ctx.SendItemStart(elt);
-         String command = elt.Context.ReadStr("@command", null);
-         String index = command != null ? null : elt.Context.ReadStr("@index"); //mutual exclusive with command
-         String reqBody = elt.Context.ReadStr("request", this.requestBody);
+         String command = elt.ContextNode.ReadStr("@command", null);
+         String index = command != null ? null : elt.ContextNode.ReadStr("@index"); //mutual exclusive with command
+         String reqBody = elt.ContextNode.ReadStr("request", this.requestBody);
          JObject req = null;
          if (reqBody != null)
             req = JObject.Parse(reqBody);

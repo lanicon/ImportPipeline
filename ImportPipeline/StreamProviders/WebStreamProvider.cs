@@ -27,12 +27,16 @@ using System.Xml;
 using Bitmanager.Xml;
 using Bitmanager.Core;
 using Bitmanager.IO;
+using Bitmanager.Importer;
 
 namespace Bitmanager.ImportPipeline.StreamProviders
 {
    public class WebStreamProvider : StreamProvider
    {
+      public String User;
+      public String Password;
       public bool KeepAlive;
+
       public WebStreamProvider(PipelineContext ctx, XmlNode node, XmlNode parentNode, StreamDirectory parent)
          : base(parent, node)
       {
@@ -42,19 +46,23 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          String url = node.ReadStr("@url");
          uri = root == null ? new Uri(url) : new Uri(new Uri(root), url);
          fullName = uri.ToString();
-         KeepAlive = node.ReadBool("@keepalive", parentNode.ReadBool("@keepalive", true));
+         KeepAlive = node.ReadBool(1,"@keepalive", true);
       }
 
       protected virtual void onPrepareRequest(HttpWebRequest req)
       {
-
+         PrepareRequest(req);
       }
+      public virtual void PrepareRequest(HttpWebRequest req)
+      {
+         req.KeepAlive = KeepAlive;
+         req.Credentials = Credentials;
+      }
+
       public override Stream CreateStream()
       {
          HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create(uri);
-         req.KeepAlive = KeepAlive;
-         req.Credentials = Credentials;
-         onPrepareRequest(req);
+         PrepareRequest(req);
          //if (Timeout > 0 || Timeout == -1)
          //{
          //   req.Timeout = Timeout;

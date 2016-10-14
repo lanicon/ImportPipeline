@@ -107,8 +107,6 @@
     <Compile Include="Converters\ComplexConverters.cs" />
     <Compile Include="AsyncEndpointRequestQueue.cs" />
     <Compile Include="Converters\HtmlToTextConverter.cs" />
-    <Compile Include="Converters\Selector.cs" />
-    <Compile Include="Datasources\ESDatasourceOrg.cs" />
     <Compile Include="Datasources\ExcelDatasource.cs" />
     <Compile Include="Datasources\FileNameDatasource.cs" />
     <Compile Include="Datasources\CdoDatasource.cs" />
@@ -147,10 +145,8 @@
     <Compile Include="Converters\Converters.cs" />
     <Compile Include="Datasources\CsvDatasource.cs" />
     <Compile Include="Datasources\Datasource.cs" />
-    <Compile Include="DatasourceContentProvider.cs" />
     <Compile Include="Endpoints\EndPoints.cs" />
     <Compile Include="Endpoints\ESEndpoint.cs" />
-    <Compile Include="FileNameFeeder.cs" />
     <Compile Include="ImportEngine.cs" />
     <Compile Include="ConsoleRunner.cs" />
     <Compile Include="ProcessHostSettings.cs" />
@@ -174,11 +170,9 @@
     <Compile Include="Datasources\TikaWorker.cs" />
     <Compile Include="Datasources\TikaDataSource.cs" />
     <Compile Include="StreamProviders\FileStreamDirectory.cs" />
-    <Compile Include="StreamProviders\GenericStreamProvider.cs" />
     <Compile Include="StreamProviders\StreamDirectory.cs" />
     <Compile Include="StreamProviders\StreamDirectoryEnumerator.cs" />
     <Compile Include="StreamProviders\StreamProvider.cs" />
-    <Compile Include="StreamProviders\StreamProviderBase.cs" />
     <Compile Include="StreamProviders\StreamWrapper.cs" />
     <Compile Include="StreamProviders\FileStreamProvider.cs" />
     <Compile Include="StreamProviders\WebStreamDirectory.cs" />
@@ -189,7 +183,6 @@
     <Compile Include="Template\TemplateFactory.cs" />
     <Compile Include="Template\Variables.cs" />
     <Compile Include="TimeBasedIdGenerator.cs" />
-    <Compile Include="UrlProvider.cs" />
     <Compile Include="ValueFilter.cs" />
     <Compile Include="Datasources\XmlDatasource.cs" />
   </ItemGroup>

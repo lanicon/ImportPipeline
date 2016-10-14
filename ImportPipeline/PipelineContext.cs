@@ -193,25 +193,6 @@ namespace Bitmanager.ImportPipeline
             ImportLog.Log(_LogType.ltTimerStop, "Added {0} records", Added); 
       }
 
-      public IDatasourceFeeder CreateFeeder(XmlNode node, String expr, Type defaultFeederType=null)
-      {
-         String feederType = defaultFeederType == null ? node.ReadStr(expr) : node.ReadStr (expr, defaultFeederType.FullName);
-         IDatasourceFeeder feeder = ImportEngine.CreateObject<IDatasourceFeeder>(feederType);
-         feeder.Init(this, node);
-         return feeder;
-      }
-
-      public IDatasourceFeeder CreateFeeder(XmlNode node, Type defaultFeederType = null)
-      {
-         String type = node.ReadStr("@provider", null);
-         if (type == null)
-         {
-            XmlNode child = node.SelectSingleNode("provider");
-            if (child != null) return CreateFeeder(child, "@type");
-         }
-         return CreateFeeder(node, "@provider", defaultFeederType);
-      }
-
       public String GetStats()
       {
          return String.Format("Added={0}, Emitted={3}, Errors={4}, Deleted={1}, Skipped={2}", Added, Deleted, Skipped, Emitted, Errors);

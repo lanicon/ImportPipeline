@@ -99,8 +99,6 @@ namespace Bitmanager.ImportPipeline
          if (splitUntil < 0) splitUntil = int.MaxValue;
          bool scan = elt.ContextNode.ReadBool("@scan", this.scan);
 
-         //StringDict attribs = getAttributes(elt.Context);
-         //var fullElt = (FileNameFeederElement)elt;
          String url = elt.ToString();
          ctx.SendItemStart(elt);
          String command = elt.ContextNode.ReadStr("@command", null);

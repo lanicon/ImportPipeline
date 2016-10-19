@@ -70,6 +70,7 @@ namespace Bitmanager.ImportPipeline
       public PipelineAction Action;
       public String SkipUntilKey;
 
+      public DateTime NewLastUpdated;
       public int Added, Deleted, Skipped, Emitted, Errors;
       public int LogAdds;
       public int MaxAdds;
@@ -83,6 +84,7 @@ namespace Bitmanager.ImportPipeline
 
       public PipelineContext(ImportEngine eng, DatasourceAdmin ds, DatasourceReport report)
       {
+         NewLastUpdated = eng.StartTimeUtc;
          ImportEngine = eng;
          DatasourceAdmin = ds;
          DatasourceReport = report;
@@ -107,6 +109,7 @@ namespace Bitmanager.ImportPipeline
          ErrorLog = eng.ErrorLog;
          MissedLog = eng.MissedLog;
          ImportFlags = eng.ImportFlags;
+         NewLastUpdated = eng.StartTimeUtc;
       }
 
       internal PipelineAction SetAction(PipelineAction act)

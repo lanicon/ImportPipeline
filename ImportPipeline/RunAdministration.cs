@@ -38,7 +38,7 @@ namespace Bitmanager.ImportPipeline
 
       public RunAdministration(PipelineContext ctx)
       {
-         RunDateUtc = ctx.ImportEngine.StartTimeUtc;
+         RunDateUtc = ctx.NewLastUpdated;
          DataSource = ctx.DatasourceAdmin.Name;
          State = ctx.ErrorState;
          Added = ctx.Added;

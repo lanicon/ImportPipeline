@@ -33,8 +33,6 @@ namespace Bitmanager.ImportPipeline.StreamProviders
 {
    public class WebStreamProvider : StreamProvider
    {
-      public String User;
-      public String Password;
       public bool KeepAlive;
 
       public WebStreamProvider(PipelineContext ctx, XmlNode node, XmlNode parentNode, StreamDirectory parent)
@@ -46,7 +44,13 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          String url = node.ReadStr("@url");
          uri = root == null ? new Uri(url) : new Uri(new Uri(root), url);
          fullName = uri.ToString();
-         KeepAlive = node.ReadBool(1,"@keepalive", true);
+         KeepAlive = node.ReadBool(1, "@keepalive", true);
+      }
+      public WebStreamProvider(PipelineContext ctx, StreamProvider other, String url)
+         : base(other)
+      {
+         uri = new Uri(url);
+         fullName = uri.ToString();
       }
 
       protected virtual void onPrepareRequest(HttpWebRequest req)

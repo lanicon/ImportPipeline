@@ -85,6 +85,25 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          lastModUtc = DateTime.MinValue;
          size = -1;
       }
+      public StreamProvider(StreamProvider other)
+      {
+         parent = other.parent;
+         contextNode = other.contextNode;
+         fullName = other.fullName;
+         virtualName = other.virtualName;
+         virtualRoot = other.virtualRoot;
+         relativeName = other.relativeName;
+         uri = other.uri;
+         credentialCache = other.credentialCache;
+         protocol = other.protocol;
+         lastModUtc = other.lastModUtc;
+         attributes = other.attributes;
+         size = other.size;
+         credentialsNeeded = other.credentialsNeeded;
+         credentialsInitialized = other.credentialsInitialized;
+         silent = other.silent;
+         isDir = other.isDir;
+      }
 
 
       protected static String ToForwardSlash(String x)

@@ -79,6 +79,8 @@ namespace Bitmanager.ImportPipeline
       {
          StringDict attribs = getAttributes(elt.ContextNode);
          ctx.SendItemStart(elt);
+         if ((ctx.ActionFlags & _ActionFlags.Skip) != 0)
+            return;
 
          ExistState existState = ExistState.NotExist;
          if ((ctx.ImportFlags & _ImportFlags.ImportFull) == 0) //Not a full import

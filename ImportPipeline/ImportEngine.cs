@@ -298,6 +298,8 @@ namespace Bitmanager.ImportPipeline
                ScriptHost.AddFile(fn);
             }
             ScriptHost.AddReference(Assembly.GetExecutingAssembly());
+            ScriptHost.AddReference(typeof(Bitmanager.Json.JsonExt));
+            ScriptHost.AddReference(typeof(Bitmanager.Elastic.ESConnection));
             ScriptHost.Compile();
          }
 

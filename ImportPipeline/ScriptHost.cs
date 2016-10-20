@@ -157,7 +157,7 @@ namespace Bitmanager.ImportPipeline
          _refs.OptAdd(fname, null);
          _refs.OptAdd(name, null);
       }
-      public void AddReferenceFromType(Type t)
+      public void AddReference(Type t)
       {
          AddReference(t.Assembly);
       }

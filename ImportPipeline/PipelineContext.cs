@@ -70,7 +70,7 @@ namespace Bitmanager.ImportPipeline
       public PipelineAction Action;
       public String SkipUntilKey;
 
-      public DateTime NewLastUpdated;
+      public DateTime NewLastUpdated; 
       public int Added, Deleted, Skipped, Emitted, Errors;
       public int LogAdds;
       public int MaxAdds;

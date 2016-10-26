@@ -30,6 +30,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
 {
    public class StreamDirectoryEnumerator : IEnumerator<IStreamProvider>
    {
+      protected Logger logger;
       protected readonly StreamDirectory parent;
       protected readonly PipelineContext ctx;
       protected readonly StackDirElt topStackElement;
@@ -42,6 +43,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          this.parent = parent;
          stack = new List<StackElt>();
          stack.Add(topStackElement = topElt);
+         logger = ctx.ImportLog.Clone (parent.GetType().Name);
       }
 
       public StreamDirectoryEnumerator(PipelineContext ctx, StreamDirectory parent, IEnumerator<object> e)
@@ -70,32 +72,43 @@ namespace Bitmanager.ImportPipeline.StreamProviders
 
       public bool MoveNext()
       {
+         const bool debug=false;
+         if (debug) logger.Log("MoveNext()");
          while (true)
          {
+            if (debug) logger.Log("-- stackkount={0}", stack.Count);
             if (stack.Count == 0) return false;
             Object next = stack[0].GetNext();
+            if (debug) logger.Log("-- next={0}", next);
             if (next == null)
             {
+               if (debug) logger.Log("-- parent.forcedNext={0}", parent.forcedNext);
                if (parent.forcedNext != null)
                {
-                  int pos = 0;
+                  int pos = 1;
                   while (parent.forcedNext.Count > 0)
                   {
                      Object queuedElt = parent.forcedNext.Dequeue();
+                     if (debug) logger.Log("-- queuedElt={0}", queuedElt);
                      var tmp = queuedElt as IStreamProvider;
                      var stackElt = (tmp != null) ? (StackElt)new StackProviderElt(tmp) : new StackDirElt(ctx, (StreamDirectory)queuedElt);
 
+                     if (debug) logger.Log("-- insertat={0}", pos);
                      stack.Insert(pos, stackElt);
                      pos++;
                   }
                }
+               if (debug) logger.Log("-- remove={0}", 0);
                stack.RemoveAt(0);
                continue;
             }
 
             this.cur = next as IStreamProvider;
+            if (debug) logger.Log("-- nextasprov={0}", this.cur);
+
             if (this.cur != null) return true;
 
+            if (debug) logger.Log("-- insertdir={0}", next);
             stack.Insert(0, new StackDirElt(ctx, (StreamDirectory)next));
          }
       }
@@ -115,12 +128,12 @@ namespace Bitmanager.ImportPipeline.StreamProviders
       protected class StackDirElt : StackElt
       {
          public readonly StreamDirectory Directory;
-         public readonly IEnumerator<Object> Enumerator;
+         public readonly System.Collections.IEnumerator Enumerator;
 
          public StackDirElt(PipelineContext ctx, StreamDirectory d)
          {
             Directory = d;
-            Enumerator = d.GetChildren(ctx);
+            Enumerator = d.GetProviders(ctx).GetEnumerator();
          }
          public StackDirElt(StreamDirectory d, IEnumerator<Object> e)
          {

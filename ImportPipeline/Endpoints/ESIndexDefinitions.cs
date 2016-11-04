@@ -371,9 +371,8 @@ namespace Bitmanager.ImportPipeline
          JObject configJson = onLoadConfig (this, ConfigFile, out configDate);
          patchConfig(configJson);
 
-         ESIndexCmd cmd = conn.CreateIndexRequest();
+         ESIndexCmd cmd = createIndexCmd(conn);
          cmd.OnCreate = overrideShardsOnCreate;
-         cmd.DateFormat = this.IndexDateTimeFormat;
          bool isNew;
          IndexName = cmd.CheckIndexFromFile(AliasName, configJson, configDate, flags, out isNew);//PW naar kijken!
          IndexExists = IndexName != null;
@@ -409,17 +408,20 @@ namespace Bitmanager.ImportPipeline
          return isNew;
       }
 
-
+      private ESIndexCmd createIndexCmd (ESConnection conn)
+      {
+         return new ESIndexCmd(conn, this.IndexDateTimeFormat);
+      }
       public void Flush(ESConnection conn)
       {
          if (!IsOpen) return;
-         ESIndexCmd cmd = conn.CreateIndexRequest();
+         ESIndexCmd cmd = createIndexCmd(conn);
          cmd.Flush(IndexName);
       }
       public void PrepareClose(ESConnection conn)
       {
          if (!IsOpen) return;
-         ESIndexCmd cmd = conn.CreateIndexRequest();
+         ESIndexCmd cmd = createIndexCmd(conn);
          if (savedRefreshInterval != null)
          {
             JObject curSettings = new JObject();
@@ -434,7 +436,7 @@ namespace Bitmanager.ImportPipeline
       {
          if (OptimizeToSegments <= 0) return;
          if (!IsOpen) return;
-         ESIndexCmd cmd = conn.CreateIndexRequest();
+         ESIndexCmd cmd = createIndexCmd(conn);
          cmd.Optimize(IndexName, OptimizeToSegments, OptimizeWait);
       }
       public void OptionalRename(ESConnection conn)
@@ -445,7 +447,7 @@ namespace Bitmanager.ImportPipeline
 
          Logger logger = conn.Logger.Clone(GetType().Name); 
          logger.Log("Optional rename name={0}, alias={1}, gen={2}", IndexName, AliasName, Generations);
-         ESIndexCmd cmd = conn.CreateIndexRequest();
+         ESIndexCmd cmd = createIndexCmd(conn);
 
          String existingIndexName;
          cmd.GetIndexMappingsAndRealName(AliasName, out existingIndexName);

@@ -131,15 +131,18 @@ namespace Bitmanager.ImportPipeline
                   ctx.IncrementEmitted();
                   sink.HandleValue(ctx, "record/_sort", doc.Sort);
                   sink.HandleValue(ctx, "record/_type", doc.Type);
-                  foreach (var kvp in doc)
+                  if (splitUntil != 0)
                   {
-                     String pfx = "record/" + kvp.Key;
-                     if (splitUntil <= 1)
+                     foreach (var kvp in doc)
                      {
-                        sink.HandleValue(ctx, pfx, kvp.Value);
-                        continue;
+                        String pfx = "record/" + kvp.Key;
+                        if (splitUntil == 1)
+                        {
+                           sink.HandleValue(ctx, pfx, kvp.Value);
+                           continue;
+                        }
+                        Pipeline.EmitToken(ctx, sink, kvp.Value, pfx, splitUntil - 1);
                      }
-                     Pipeline.EmitToken(ctx, sink, kvp.Value, pfx, splitUntil - 1);
                   }
                   sink.HandleValue(ctx, "record", doc);
                }

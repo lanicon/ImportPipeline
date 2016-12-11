@@ -55,6 +55,7 @@ namespace Bitmanager.Importer
          this.label1 = new System.Windows.Forms.Label();
          this.label2 = new System.Windows.Forms.Label();
          this.grpFlags = new System.Windows.Forms.GroupBox();
+         this.checkBox3 = new System.Windows.Forms.CheckBox();
          this.checkBox5 = new System.Windows.Forms.CheckBox();
          this.checkBox4 = new System.Windows.Forms.CheckBox();
          this.checkBox2 = new System.Windows.Forms.CheckBox();
@@ -85,7 +86,8 @@ namespace Bitmanager.Importer
          this.gridStatus = new System.Windows.Forms.DataGridView();
          this.Datasource = new System.Windows.Forms.DataGridViewTextBoxColumn();
          this.Message = new System.Windows.Forms.DataGridViewTextBoxColumn();
-         this.checkBox3 = new System.Windows.Forms.CheckBox();
+         this.txtSwitches = new System.Windows.Forms.TextBox();
+         this.label5 = new System.Windows.Forms.Label();
          this.grpFlags.SuspendLayout();
          ((System.ComponentModel.ISupportInitialize)(this.gridStatus)).BeginInit();
          this.SuspendLayout();
@@ -163,6 +165,16 @@ namespace Bitmanager.Importer
          this.grpFlags.TabIndex = 7;
          this.grpFlags.TabStop = false;
          this.grpFlags.Text = "Flags";
+         // 
+         // checkBox3
+         // 
+         this.checkBox3.AutoSize = true;
+         this.checkBox3.Location = new System.Drawing.Point(16, 252);
+         this.checkBox3.Name = "checkBox3";
+         this.checkBox3.Size = new System.Drawing.Size(100, 19);
+         this.checkBox3.TabIndex = 20;
+         this.checkBox3.Text = "NoMailReport";
+         this.checkBox3.UseVisualStyleBackColor = true;
          // 
          // checkBox5
          // 
@@ -432,12 +444,12 @@ namespace Bitmanager.Importer
             this.Message});
          this.gridStatus.EditMode = System.Windows.Forms.DataGridViewEditMode.EditProgrammatically;
          this.gridStatus.GridColor = System.Drawing.SystemColors.Control;
-         this.gridStatus.Location = new System.Drawing.Point(29, 420);
+         this.gridStatus.Location = new System.Drawing.Point(30, 453);
          this.gridStatus.MultiSelect = false;
          this.gridStatus.Name = "gridStatus";
          this.gridStatus.ReadOnly = true;
          this.gridStatus.RowHeadersVisible = false;
-         this.gridStatus.Size = new System.Drawing.Size(1095, 126);
+         this.gridStatus.Size = new System.Drawing.Size(1095, 139);
          this.gridStatus.TabIndex = 28;
          // 
          // Datasource
@@ -456,15 +468,21 @@ namespace Bitmanager.Importer
          this.Message.ReadOnly = true;
          this.Message.Width = 5;
          // 
-         // checkBox3
+         // txtSwitches
          // 
-         this.checkBox3.AutoSize = true;
-         this.checkBox3.Location = new System.Drawing.Point(16, 252);
-         this.checkBox3.Name = "checkBox3";
-         this.checkBox3.Size = new System.Drawing.Size(100, 19);
-         this.checkBox3.TabIndex = 20;
-         this.checkBox3.Text = "NoMailReport";
-         this.checkBox3.UseVisualStyleBackColor = true;
+         this.txtSwitches.Location = new System.Drawing.Point(310, 409);
+         this.txtSwitches.Name = "txtSwitches";
+         this.txtSwitches.Size = new System.Drawing.Size(370, 23);
+         this.txtSwitches.TabIndex = 29;
+         // 
+         // label5
+         // 
+         this.label5.AutoSize = true;
+         this.label5.Location = new System.Drawing.Point(233, 412);
+         this.label5.Name = "label5";
+         this.label5.Size = new System.Drawing.Size(49, 15);
+         this.label5.TabIndex = 30;
+         this.label5.Text = "Swiches";
          // 
          // Form1
          // 
@@ -472,7 +490,9 @@ namespace Bitmanager.Importer
          this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
          this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
          this.CancelButton = this.btnCancel;
-         this.ClientSize = new System.Drawing.Size(1154, 550);
+         this.ClientSize = new System.Drawing.Size(1154, 604);
+         this.Controls.Add(this.label5);
+         this.Controls.Add(this.txtSwitches);
          this.Controls.Add(this.gridStatus);
          this.Controls.Add(this.cbPipeLines);
          this.Controls.Add(this.cbEndpoints);
@@ -550,6 +570,8 @@ namespace Bitmanager.Importer
       private System.Windows.Forms.DataGridViewTextBoxColumn Datasource;
       private System.Windows.Forms.DataGridViewTextBoxColumn Message;
       private System.Windows.Forms.CheckBox checkBox3;
+      private System.Windows.Forms.TextBox txtSwitches;
+      private System.Windows.Forms.Label label5;
    }
 }
 

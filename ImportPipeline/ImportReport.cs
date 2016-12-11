@@ -35,6 +35,8 @@ namespace Bitmanager.ImportPipeline
    {
       public List<DatasourceReport> DatasourceReports;
       public String ErrorMessage;
+      public String UnknownSwitches;
+      public String MentionedSwitches;
       private _ErrorState errorState;
 
       public ImportReport()
@@ -56,6 +58,8 @@ namespace Bitmanager.ImportPipeline
       {
          errorState = ctx.ErrorState;
          ErrorMessage = ctx.LastError == null ? null : ctx.LastError.Message;
+         MentionedSwitches = ctx.Switches.GeAskedSwitches();
+         UnknownSwitches = ctx.Switches.GeUnknownSwitches();
       }
 
       public override string ToString()
@@ -63,8 +67,22 @@ namespace Bitmanager.ImportPipeline
          var sb = new LeveledStringBuilder("-- ", "   ");
          foreach (var ds in DatasourceReports)
             ds.ToString(sb.OptAppendLine());
+
+         if (UnknownSwitches != null)
+         {
+            sb.Append("Unknown switches: ");
+            sb.Append(UnknownSwitches);
+            sb.AppendLine();
+         }
+         if (MentionedSwitches != null)
+         {
+            sb.Append("Unknown switches: ");
+            sb.Append(MentionedSwitches);
+            sb.AppendLine();
+         }
          return sb.ToString();
       }
+
    }
 
    /// <summary>

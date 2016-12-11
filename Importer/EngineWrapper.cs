@@ -30,12 +30,13 @@ namespace Bitmanager.Importer
 {
    public class EngineWrapper : MarshalByRefObject
    {
-      public ImportReport Run(_ImportFlags flags, String xml, String[] activeDS, int maxAdds, int maxEmits)
+      public ImportReport Run(_ImportFlags flags, String switches, String xml, String[] activeDS, int maxAdds, int maxEmits)
       {
          try
          {
             using (ImportEngine engine = new ImportEngine())
             {
+               engine.Switches = switches;
                engine.ImportFlags = flags;
                engine.Load(xml);
                engine.MaxAdds = maxAdds;
@@ -55,11 +56,11 @@ namespace Bitmanager.Importer
    {
       public ImportReport Report;
       AppDomain domain;
-      Func<_ImportFlags, String, String[], int, int, ImportReport> action;
+      Func<_ImportFlags, String, String, String[], int, int, ImportReport> action;
       IAsyncResult asyncResult;
       bool started; 
 
-      public void Start(_ImportFlags flags, String xml, String[] activeDS, int maxRecords, int maxEmits)
+      public void Start(_ImportFlags flags, String switches, String xml, String[] activeDS, int maxRecords, int maxEmits)
       {
          domain = AppDomain.CreateDomain("import");
          Type type = typeof(EngineWrapper);
@@ -67,7 +68,7 @@ namespace Bitmanager.Importer
          EngineWrapper wrapper = (EngineWrapper)domain.CreateInstanceAndUnwrap(type.Assembly.FullName, type.FullName, false, BindingFlags.CreateInstance, null, null, Invariant.Culture, null);
          action = wrapper.Run;
 
-         asyncResult = action.BeginInvoke(flags, xml, activeDS, maxRecords, maxEmits, null, null);
+         asyncResult = action.BeginInvoke(flags,switches,  xml, activeDS, maxRecords, maxEmits, null, null);
          started = true;
          return;
       }

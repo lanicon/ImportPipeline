@@ -79,6 +79,7 @@
     <Compile Include="ConditionTests.cs" />
     <Compile Include="PlaygroundTest.cs" />
     <Compile Include="TimeBasedIdGeneratorTest.cs" />
+    <Compile Include="SwitchesTest.cs" />
     <Compile Include="VariableTests.cs" />
   </ItemGroup>
   <ItemGroup>

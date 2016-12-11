@@ -46,12 +46,12 @@ namespace Bitmanager.ImportPipeline
    {
       private RootStreamDirectory streamDirectory;
       private int splitUntil;
-      private bool dumpReader;
+      private bool objectPerLine;
       public void Init(PipelineContext ctx, XmlNode node)
       {
          streamDirectory = new RootStreamDirectory(ctx, node);
-         dumpReader = node.ReadBool("@debug", false);
          splitUntil = node.ReadInt("@splituntil", 1);
+         objectPerLine = node.ReadBool("@objectperline", false);
       }
 
 
@@ -77,7 +77,9 @@ namespace Bitmanager.ImportPipeline
       }
       private void importUrl(PipelineContext ctx, IDatasourceSink sink, IStreamProvider elt)
       {
-         StringDict attribs = getAttributes(elt.ContextNode);
+         int splitUntil = elt.ContextNode.ReadInt("@splituntil", this.splitUntil);
+         bool objectPerLine = elt.ContextNode.ReadBool("@objectperline", this.objectPerLine);
+
          ctx.SendItemStart(elt);
          if ((ctx.ActionFlags & _ActionFlags.Skip) != 0)
             return;
@@ -102,22 +104,45 @@ namespace Bitmanager.ImportPipeline
          try
          {
             fs = elt.CreateStream();
-            JsonTextReader rdr = new JsonTextReader  (new StreamReader (fs, true));
-            JToken jt = JObject.ReadFrom(rdr);
-            rdr.Close();
-            fs.Close();
-
-            if (jt.Type != JTokenType.Array)
-            {
-               Pipeline.EmitToken(ctx, sink, jt, "record", splitUntil);
-               ctx.IncrementEmitted();
-            }
+            if (!this.objectPerLine)
+               importRecord(ctx, sink, fs, splitUntil);
             else
             {
-               foreach (var item in (JArray)jt)
+               byte[] buf = new byte[4096];
+               int offset = 0;
+               MemoryStream tmp = new MemoryStream();
+               while (true)
                {
-                  Pipeline.EmitToken(ctx, sink, item, "record", splitUntil);
-                  ctx.IncrementEmitted();
+                  int len = offset + fs.Read (buf, offset, buf.Length-offset);
+                  if (len == offset) break;
+                  int i = offset;
+                  for (; i<len; i++)
+                  {
+                     if (buf[i] == '\n') break;
+                  }
+
+                  tmp.Write(buf, offset, i - offset);
+                  if (i==offset)
+                  {
+                     offset = 0;
+                     continue;
+                  }
+
+
+                  if (tmp.Position > 0)
+                  {
+                     tmp.Position = 0;
+                     importRecord(ctx, sink, tmp, splitUntil);
+                     tmp.Position = 0;
+                  }
+                  if (i+1 < offset)
+                     tmp.Write(buf, i+1, len-i-1);
+               }
+               if (offset > 0) tmp.Write(buf, 0, offset);
+               if (tmp.Position > 0)
+               {
+                  tmp.Position = 0;
+                  importRecord(ctx, sink, tmp, splitUntil);
                }
             }
             ctx.OptSendItemStop();
@@ -125,6 +150,28 @@ namespace Bitmanager.ImportPipeline
          catch (Exception e)
          {
             ctx.HandleException(e);
+         }
+      }
+
+      private void importRecord (PipelineContext ctx, IDatasourceSink sink, Stream strm, int splitUntil)
+      {
+         JsonTextReader rdr = new JsonTextReader  (new StreamReader (strm, true));
+         JToken jt = JObject.ReadFrom(rdr);
+         rdr.Close();
+         strm.Close();
+
+         if (jt.Type != JTokenType.Array)
+         {
+            Pipeline.EmitToken(ctx, sink, jt, "record", splitUntil);
+            ctx.IncrementEmitted();
+         }
+         else
+         {
+            foreach (var item in (JArray)jt)
+            {
+               Pipeline.EmitToken(ctx, sink, item, "record", splitUntil);
+               ctx.IncrementEmitted();
+            }
          }
       }
 

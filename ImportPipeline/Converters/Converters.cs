@@ -143,6 +143,7 @@ namespace Bitmanager.ImportPipeline
                 new ConverterFactory ("htmldecode", typeof(HtmlDecodeConverter)),
                 new ConverterFactory ("urlencode", typeof(UrlEncodeConverter)),
                 new ConverterFactory ("urldecode", typeof(UrlDecodeConverter)),
+                new ConverterFactory ("jsondecode", typeof(JsonDecodeConverter)),
                 new ConverterFactory ("dateonly", typeof(ToDateConverter)),
                 new ConverterFactory ("datetime", typeof(ToDateConverter)),
                 new ConverterFactory ("date", typeof(ToDateConverter)),
@@ -613,6 +614,17 @@ namespace Bitmanager.ImportPipeline
       {
          String v = value as String;
          return v == null ? value : HttpUtility.HtmlDecode(v);
+      }
+   }
+
+   public class JsonDecodeConverter : Converter
+   {
+      public JsonDecodeConverter(XmlNode node) : base(node) { }
+
+      public override Object ConvertScalar(PipelineContext ctx, Object value)
+      {
+         String v = value as String;
+         return v == null ? value : JToken.Parse(StringUtils.UnEscapeJavascript(v));
       }
    }
 

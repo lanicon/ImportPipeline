@@ -111,7 +111,7 @@ namespace Bitmanager.ImportPipeline
          try
          {
             Uri uri = new Uri (url);
-            ESConnection conn = new ESConnection (url);
+            ESConnection conn = ESHelper.CreateConnection(ctx, url);
             ContextCallback cb = new ContextCallback(ctx, this, elt);
             conn.Timeout = timeoutInMs; //Same timeout as what we send to ES
             conn.OnPrepareRequest = cb.OnPrepareRequest;   

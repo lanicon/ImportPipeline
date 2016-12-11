@@ -55,6 +55,7 @@ namespace Bitmanager.ImportPipeline
    public class PipelineContext
    {
       public readonly ImportEngine ImportEngine;
+      public readonly Switches Switches;
       public readonly Pipeline Pipeline;
       public readonly DatasourceAdmin DatasourceAdmin;
       public readonly DatasourceReport DatasourceReport;
@@ -82,8 +83,10 @@ namespace Bitmanager.ImportPipeline
       private bool itemStartPending;
       private Object valueForItemStart;
 
-      public PipelineContext(ImportEngine eng, DatasourceAdmin ds, DatasourceReport report)
+      public PipelineContext(PipelineContext ctx, DatasourceAdmin ds, DatasourceReport report)
       {
+         var eng = ctx.ImportEngine;
+         Switches = ctx.Switches;
          NewLastUpdated = eng.StartTimeUtc;
          ImportEngine = eng;
          DatasourceAdmin = ds;
@@ -101,6 +104,7 @@ namespace Bitmanager.ImportPipeline
             MaxEmits = MaxAdds;
          ImportLog.Log("Current maxAdds={0}, maxEmits={1}", MaxAdds, MaxEmits);
       }
+
       public PipelineContext(ImportEngine eng)
       {
          ImportEngine = eng;
@@ -110,6 +114,7 @@ namespace Bitmanager.ImportPipeline
          MissedLog = eng.MissedLog;
          ImportFlags = eng.ImportFlags;
          NewLastUpdated = eng.StartTimeUtc;
+         Switches = new Switches(eng.SwitchesFromXml + " " + eng.Switches); //Switches are overriding
       }
 
       internal PipelineAction SetAction(PipelineAction act)

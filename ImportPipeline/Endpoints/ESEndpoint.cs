@@ -72,12 +72,14 @@ namespace Bitmanager.ImportPipeline
       protected override void Open(PipelineContext ctx)
       {
          base.Open(ctx);
+         ESHelper.SetLogging(ctx, Connection);
          ctx.ImportLog.Log("ESEndpoint '{0}' [cache={1}, maxparallel={2}, readonly={3}, url={4}]", Name, CacheSize, MaxParallel, ReadOnly, Connection.BaseUri);
       }
 
       internal void OpenIndex(PipelineContext ctx, ESIndexDefinition index)
       {
          if (index.IsOpen) return;
+         ESHelper.SetLogging(ctx, Connection);
          ESIndexCmd._CheckIndexFlags flags = ESIndexCmd._CheckIndexFlags.AppendDate;
          if (ReadOnly) flags |= ESIndexCmd._CheckIndexFlags.DontCreate;
          if ((ctx.ImportFlags & _ImportFlags.ImportFull) != 0) flags |= ESIndexCmd._CheckIndexFlags.ForceCreate;

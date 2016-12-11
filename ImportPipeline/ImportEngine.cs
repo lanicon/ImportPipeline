@@ -76,6 +76,8 @@ namespace Bitmanager.ImportPipeline
       public _ImportFlags ImportFlags { get; set; }
       public String OverrideEndpoint { get; set; }
       public String OverridePipeline { get; set; }
+      public String Switches { get; set; }
+      public String SwitchesFromXml { get; private set; }
       private String binDir;
       private MailReporter Reporter;
 
@@ -213,6 +215,7 @@ namespace Bitmanager.ImportPipeline
 
          LogAdds = xml.ReadInt("@logadds", LogAdds);
          MaxAdds = xml.ReadInt("@maxadds", MaxAdds);
+         SwitchesFromXml = xml.ReadStr("@switches", null);
          ImportLog.Log("Loading import xml: flags={0}, logadds={1}, maxadds={2}, file={3}.", ImportFlags, LogAdds, MaxAdds, xml.FileName);
 
          binDir = Xml.CombinePath(Xml.ReadStr ("@bindir", "bin"));
@@ -418,7 +421,7 @@ namespace Bitmanager.ImportPipeline
 
                var report = new DatasourceReport(admin);
                ret.Add(report);
-               PipelineContext ctx = new PipelineContext(this, admin, report);
+               PipelineContext ctx = new PipelineContext(mainCtx, admin, report);
                var pipeline = admin.Pipeline;
 
                try
@@ -480,6 +483,8 @@ namespace Bitmanager.ImportPipeline
             }
          }
          //ret.SetGlobalStatus(mainCtx);
+         ImportLog.Log("Unknown switches: [{0}]", ret.UnknownSwitches);
+         ImportLog.Log("Mentioned switches: [{0}]", ret.MentionedSwitches);
          return ret;
       }
 

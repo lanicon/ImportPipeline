@@ -177,22 +177,20 @@ namespace Bitmanager.Importer
             asyncAdmin.Stop();
 
             gridStatus.Rows.Clear();
+            gridStatus.Rows.Add(2 + asyncAdmin.Report.DatasourceReports.Count);
+            int i = 0;
             if (asyncAdmin.Report.DatasourceReports.Count > 0)
             {
-               gridStatus.Rows.Add(0 + asyncAdmin.Report.DatasourceReports.Count);
-
-               int i = 0;
                var line = new LeveledStringBuilder(null, "    ");
                foreach (var rep in asyncAdmin.Report.DatasourceReports)
                {
-                  var cells = gridStatus.Rows[i].Cells;
-                  cells[0].Value = rep.DatasourceName;
                   line.Buffer.Clear();
-                  cells[1].Value = rep.ToString(line, false).ToString();
-                  i++;
+                  addRow(gridStatus.Rows[i++], rep.DatasourceName, rep.ToString(line, false).ToString());
                }
-               gridStatus.Columns[1].Width = gridStatus.Width - gridStatus.Columns[0].Width - 10;
             }
+            addRow(gridStatus.Rows[i++], "Unknown switches", asyncAdmin.Report.UnknownSwitches);
+            addRow(gridStatus.Rows[i++], "Mentioned switches", asyncAdmin.Report.MentionedSwitches);
+            gridStatus.Columns[1].Width = gridStatus.Width - gridStatus.Columns[0].Width - 10;
             Utils.FreeAndNil(ref asyncAdmin);
          }
          catch
@@ -200,6 +198,13 @@ namespace Bitmanager.Importer
             Utils.FreeAndNil(ref asyncAdmin);
             throw;
          }
+      }
+
+      private static void addRow (DataGridViewRow row, String k, String v)
+      {
+         var cells = row.Cells;
+         cells[0].Value = k;
+         cells[1].Value = v;
       }
 
       private void import2()
@@ -221,7 +226,7 @@ namespace Bitmanager.Importer
          }
 
          AsyncAdmin asyncAdmin = new AsyncAdmin();
-         asyncAdmin.Start(uiToFlags(), comboBox1.Text, activeDSses, Invariant.ToInt32(txtMaxRecords.Text, -1), Invariant.ToInt32(txtMaxEmits.Text, -1));
+         asyncAdmin.Start(uiToFlags(), txtSwitches.Text, comboBox1.Text, activeDSses, Invariant.ToInt32(txtMaxRecords.Text, -1), Invariant.ToInt32(txtMaxEmits.Text, -1));
          this.asyncAdmin = asyncAdmin;
 
          timer1.Enabled = true;
@@ -380,12 +385,6 @@ namespace Bitmanager.Importer
          textBox1.Visible = cb.Checked;
          textBox2.Visible = cb.Checked;
       }
-
-      //private void cbEndpoints_SelectedValueChanged(object sender, EventArgs e)
-      //{
-      //   //ComboBox cb = (ComboBox)sender;
-      //   //if (cb.SelectedItem > 0)
-      //}
 
       private void comboBox1_TextUpdate(object sender, EventArgs e)
       {

@@ -117,6 +117,7 @@
     <Compile Include="Endpoints\TextEndpoint.cs" />
     <Compile Include="Endpoints\ESIndexDefinitions.cs" />
     <Compile Include="Endpoints\ESIndexDocType.cs" />
+    <Compile Include="ESHelper.cs" />
     <Compile Include="Html\HtmlProcessor.cs" />
     <Compile Include="ImportReport.cs" />
     <Compile Include="Datasources\JsonDatasource.cs" />
@@ -178,6 +179,7 @@
     <Compile Include="StreamProviders\FileStreamProvider.cs" />
     <Compile Include="StreamProviders\WebStreamDirectory.cs" />
     <Compile Include="StreamProviders\WebStreamProvider.cs" />
+    <Compile Include="Switches.cs" />
     <Compile Include="Template\DefaultFactory.cs" />
     <Compile Include="Template\TemplateEngine.cs" />
     <Compile Include="Template\TemplateExtensions.cs" />

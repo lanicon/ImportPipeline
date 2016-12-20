@@ -41,8 +41,6 @@ namespace Bitmanager.ImportPipeline
       public readonly String KeyFieldName;
       public readonly String DateFieldName;
       public readonly String AutoTimestampFieldName;
-      public readonly String IdPath;
-      public readonly String RoutingPath;
       public bool IndexExists { get { return Index.IndexExists; } }
       public String UrlPart { get { return IndexExists ? Index.IndexName + "/" + TypeName : "__not_existing__"; } }
       public String UrlPartForPreviousIndex { get { return IndexExists ? Index.AliasName + "/" + TypeName : "__not_existing__"; } }
@@ -55,31 +53,62 @@ namespace Bitmanager.ImportPipeline
          TypeName = node.ReadStr("@typename", Name);
          KeyFieldName = node.ReadStr("@keyfield", null);
          DateFieldName = node.ReadStr("@datefield", null);
-         IdPath = node.ReadStr("@idfield", null);
-         if (IdPath == null) IdPath = node.ReadStr("@idpath", null);
-         RoutingPath = node.ReadStr("@routingfield", null);
+         shouldNull(node, "@idfield", "_id");
+         shouldNull(node, "@routingfield", "_routing");
          AutoTimestampFieldName = node.ReadStr("@ts", indexDefinition.AutoTimestampFieldName);
       }
 
+      private static void shouldNull (XmlNode node, String key, String alt)
+      {
+         if (node.ReadStr(key, null) == null) return;
+         throw new BMNodeException (node, "Attribute [{0}] is no longer supported. Please use [{1}] field in the record.", key, alt);
+      }
       public JObject GetCmdForBulk(JObject obj, String verb="index")
       {
-         String id = IdPath == null ? null : (String)obj[IdPath];
-         String routing = RoutingPath == null ? null : (String)obj[RoutingPath];
-         if (id == null && routing == null) return null;
-
          JObject ret = new JObject();
          JObject x = new JObject();
-         if (id != null) x["_id"] = id;
-         if (routing != null) x["_routing"] = routing;
+         moveTo(obj, "_id", x);
+         moveTo(obj, "_type", x);
+         moveTo(obj, "_routing", x);
+         moveTo(obj, "_pipeline", x);
+         moveTo(obj, "_index", x);
          ret.Add(verb, x);
          return ret;
       }
 
       public String GetUrlForAdd(JObject obj)
       {
-         if (IdPath == null) return UrlPart;
-         String id = (String)obj[IdPath];
-         return id == null ? UrlPart : UrlPart + "/" + HttpUtility.UrlEncode(id);
+         StringBuilder sb = new StringBuilder();
+         sb.Append(UrlPart);
+         moveTo(obj, "_id", sb, '/');
+         char sep = moveTo(obj, "_type", sb, '?');
+         sep = moveTo(obj, "_routing", sb, sep);
+         sep = moveTo(obj, "_pipeline", sb, sep);
+         sep = moveTo(obj, "_index", sb, sep);
+         return sb.ToString();
+      }
+
+
+      private static void moveTo(JObject obj, String key, JObject dst)
+      {
+         JToken v = obj[key];
+         if (v != null)
+         {
+            obj.Remove(key);
+            dst[key] = v;
+         }
+      }
+      private static char moveTo(JObject obj, String key, StringBuilder dst, char sep)
+      {
+         JToken v = obj[key];
+         if (v != null)
+         {
+            obj.Remove(key);
+            dst.Append(sep);
+            dst.Append(v.ToString());
+            return '&';
+         }
+         return sep;
       }
 
       public ExistState Exists(ESConnection conn, String key, DateTime? timeStamp = null)

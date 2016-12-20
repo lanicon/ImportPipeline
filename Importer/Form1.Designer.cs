@@ -68,7 +68,6 @@ namespace Bitmanager.Importer
          this.button3 = new System.Windows.Forms.Button();
          this.button4 = new System.Windows.Forms.Button();
          this.button5 = new System.Windows.Forms.Button();
-         this.button6 = new System.Windows.Forms.Button();
          this.timer1 = new System.Windows.Forms.Timer(this.components);
          this.btnCancel = new System.Windows.Forms.Button();
          this.label3 = new System.Windows.Forms.Label();
@@ -88,6 +87,7 @@ namespace Bitmanager.Importer
          this.Message = new System.Windows.Forms.DataGridViewTextBoxColumn();
          this.txtSwitches = new System.Windows.Forms.TextBox();
          this.label5 = new System.Windows.Forms.Label();
+         this.btnOpen = new System.Windows.Forms.Button();
          this.grpFlags.SuspendLayout();
          ((System.ComponentModel.ISupportInitialize)(this.gridStatus)).BeginInit();
          this.SuspendLayout();
@@ -101,7 +101,6 @@ namespace Bitmanager.Importer
          this.comboBox1.Size = new System.Drawing.Size(587, 23);
          this.comboBox1.TabIndex = 0;
          this.comboBox1.SelectedIndexChanged += new System.EventHandler(this.comboBox1_SelectedIndexChanged);
-         this.comboBox1.TextUpdate += new System.EventHandler(this.comboBox1_TextUpdate);
          // 
          // btnImport
          // 
@@ -296,16 +295,6 @@ namespace Bitmanager.Importer
          this.button5.UseVisualStyleBackColor = true;
          this.button5.Click += new System.EventHandler(this.button5_Click);
          // 
-         // button6
-         // 
-         this.button6.Location = new System.Drawing.Point(623, 52);
-         this.button6.Name = "button6";
-         this.button6.Size = new System.Drawing.Size(29, 23);
-         this.button6.TabIndex = 11;
-         this.button6.Text = "...";
-         this.button6.UseVisualStyleBackColor = true;
-         this.button6.Click += new System.EventHandler(this.button6_Click);
-         // 
          // timer1
          // 
          this.timer1.Interval = 500;
@@ -484,6 +473,16 @@ namespace Bitmanager.Importer
          this.label5.TabIndex = 30;
          this.label5.Text = "Swiches";
          // 
+         // btnOpen
+         // 
+         this.btnOpen.Location = new System.Drawing.Point(621, 50);
+         this.btnOpen.Name = "btnOpen";
+         this.btnOpen.Size = new System.Drawing.Size(31, 23);
+         this.btnOpen.TabIndex = 31;
+         this.btnOpen.Text = "...";
+         this.btnOpen.UseVisualStyleBackColor = true;
+         this.btnOpen.Click += new System.EventHandler(this.btnOpen_Click);
+         // 
          // Form1
          // 
          this.AcceptButton = this.btnImport;
@@ -491,6 +490,7 @@ namespace Bitmanager.Importer
          this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
          this.CancelButton = this.btnCancel;
          this.ClientSize = new System.Drawing.Size(1154, 604);
+         this.Controls.Add(this.btnOpen);
          this.Controls.Add(this.label5);
          this.Controls.Add(this.txtSwitches);
          this.Controls.Add(this.gridStatus);
@@ -507,7 +507,6 @@ namespace Bitmanager.Importer
          this.Controls.Add(this.txtMaxRecords);
          this.Controls.Add(this.label3);
          this.Controls.Add(this.btnCancel);
-         this.Controls.Add(this.button6);
          this.Controls.Add(this.button5);
          this.Controls.Add(this.button4);
          this.Controls.Add(this.button3);
@@ -545,7 +544,6 @@ namespace Bitmanager.Importer
       private System.Windows.Forms.CheckBox CbFullImport;
       private System.Windows.Forms.Button button4;
       private System.Windows.Forms.Button button5;
-      private System.Windows.Forms.Button button6;
       private System.Windows.Forms.Timer timer1;
       private System.Windows.Forms.Button btnCancel;
       private System.Windows.Forms.CheckBox cbIgnoreErrors;
@@ -572,6 +570,7 @@ namespace Bitmanager.Importer
       private System.Windows.Forms.CheckBox checkBox3;
       private System.Windows.Forms.TextBox txtSwitches;
       private System.Windows.Forms.Label label5;
+      private System.Windows.Forms.Button btnOpen;
    }
 }
 

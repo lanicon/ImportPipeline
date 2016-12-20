@@ -74,12 +74,7 @@ namespace Bitmanager.Importer
       private Logger importLog = Logs.CreateLogger("import", "importer");
       private Logger errorLog = Logs.CreateLogger("error", "importer");
 
-      private static void optAddItemToCombo (ComboBox cb, StringDict set, String f)
-      {
-         if (set.ContainsKey(f)) return;
-         cb.Items.Add(f);
-         set.Add(f, null);
-      }
+      private AutoCompleter ac;
       private void Form1_Load(object sender, EventArgs e)
       {
          try
@@ -89,21 +84,33 @@ namespace Bitmanager.Importer
             trySetIcon();
             String dir = Assembly.GetExecutingAssembly().Location;
 
-            StringDict set = new StringDict();
-            foreach (var f in History.LoadHistory(HISTORY_KEY)) optAddItemToCombo (comboBox1, set, f);
-
+            StringDict dirs = new StringDict();
             dir = IOUtils.FindDirectoryToRoot(Path.GetDirectoryName(dir), "ImportDirs");
-            if (dir != null)
+            if (dir != null) dirs.Add(dir, null);
+
+            StringDict files = new StringDict();
+            foreach (var f in History.LoadHistory(HISTORY_KEY))
+            {
+               files[f] = null;
+               dir = Path.GetDirectoryName(Path.GetDirectoryName(f));
+               if (!String.IsNullOrEmpty(dir))
+                  dirs[dir] = null;
+            }
+
+            foreach (var kvp in dirs)
             {
                FileTree tree = new FileTree();
                tree.AddFileFilter(@"\\import\.xml$", true);
-               tree.ReadFiles(dir);
+               tree.ReadFiles(kvp.Key);
                if (tree.Files.Count != 0)
                {
                   tree.Files.Sort();
-                  foreach (var relfile in tree.Files) optAddItemToCombo(comboBox1, set, tree.GetFullName(relfile));
+                  foreach (var relfile in tree.Files) 
+                     files[tree.GetFullName(relfile)] = null;
                }
             }
+
+            ac = new DirectoryAutocompleter(comboBox1, files.Select(kvp => kvp.Key).ToList());
             if (comboBox1.Items.Count > 0)
                comboBox1.SelectedIndex = 0;
          }
@@ -210,8 +217,7 @@ namespace Bitmanager.Importer
       private void import2()
       {
          if (comboBox1.SelectedIndex < 0) throw new BMException("No entry selected.");
-
-         History.SaveHistory(comboBox1, HISTORY_KEY);
+         ac.PushSelectedItem (HISTORY_KEY);
          String[] activeDSses = null;
          var items = dsList.Items;
          if (items.Count > 0)
@@ -270,6 +276,7 @@ namespace Bitmanager.Importer
 
       private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
       {
+         importLog.Log ("selindexchanged");
          dsList.Items.Clear();
          using (ImportEngine engine = new ImportEngine())
          {
@@ -351,15 +358,6 @@ namespace Bitmanager.Importer
             Verb = "open"
          });
 
-      }
-
-      private void button6_Click(object sender, EventArgs e)
-      {
-         if (openFileDialog1.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
-
-         int idx = comboBox1.Items.Count;
-         comboBox1.Items.Add(openFileDialog1.FileName);
-         comboBox1.SelectedIndex = idx;
       }
 
       private void button1_Click_1(object sender, EventArgs e)
@@ -450,5 +448,44 @@ namespace Bitmanager.Importer
          e.ItemHeight = (int)sf.Height + htex;
          e.ItemWidth = Width;
       }
+
+      private void btnOpen_Click(object sender, EventArgs e)
+      {
+         if (openFileDialog1.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+         int pos = ac.AddItem(openFileDialog1.FileName);
+
+         comboBox1.SelectedIndex = pos;
+         ac.PushSelectedItem();
+      }
+   }
+
+   class DirectoryAutocompleter: AutoCompleter
+   {
+      public DirectoryAutocompleter(ComboBox cb, List<String> list)
+         : base(cb, list, AutoCompleter.DirNameConverter)
+      {
+      }
+
+      protected override void Push(List<Autocompleter_Elt> list, int ix)
+      {
+         Autocompleter_Elt x = list[ix];
+         String argDir = Path.GetDirectoryName(x.ToString());
+
+         int j;
+         for (j = 0; j < list.Count; j++)
+         {
+            if (argDir == Path.GetDirectoryName(list[j].ToString())) break;
+         }
+
+         if (j < ix)
+         {
+            var tmp = list[j];
+            list[j] = list[ix];
+            list[ix] = tmp;
+            ix = j;
+         }
+         base.Push(list, ix);
+      }
+
    }
 }

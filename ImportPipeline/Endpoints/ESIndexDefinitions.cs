@@ -269,12 +269,12 @@ namespace Bitmanager.ImportPipeline
       }
 
 
-      private static void addIfNotFound(JObject config, String name, String type, bool index = false, String analyzer = null)
+      private static void addIfNotFound(JObject config, String name, String type, JToken mustIndex, String analyzer = null)
       {
          if (config[name] != null) return;
          JObject x = new JObject();
          x["type"] = type;
-         if (!index) x["index"] = "no";
+         x["index"] = mustIndex;
          if (analyzer != null) x["analyzer"] = analyzer;
          config[name] = x;
       }
@@ -306,9 +306,23 @@ namespace Bitmanager.ImportPipeline
          return true;
       }
 
-      private void patchConfig(JObject config)
+      private void patchConfig(ESConnection conn, JObject config)
       {
          if (config == null) return;
+
+         bool v5 = conn.Version.FormattedVersion.Major >= 5;
+         JToken FALSE, TRUE;
+         String stringType;
+         if (v5)
+         {
+            FALSE = false;
+            TRUE = true;
+            stringType = "text";
+         } else {
+            FALSE = "no";
+            TRUE = "yes";
+            stringType = "string";
+         }
 
          const String ERRORS = "errors_";
          const String ADMIN = "admin_";
@@ -334,22 +348,22 @@ namespace Bitmanager.ImportPipeline
             switch (kvp.Key)
             {
                case ERRORS:
-                  addIfNotFound(props, "err_ds", "string");
-                  addIfNotFound(props, "err_date", "date", true);
-                  addIfNotFound(props, "err_key", "string");
-                  addIfNotFound(props, "err_text", "string");
-                  addIfNotFound(props, "err_stack", "string");
+                  addIfNotFound(props, "err_ds", stringType, FALSE);
+                  addIfNotFound(props, "err_date", "date", TRUE);
+                  addIfNotFound(props, "err_key", stringType, FALSE);
+                  addIfNotFound(props, "err_text", stringType, FALSE);
+                  addIfNotFound(props, "err_stack", stringType, FALSE);
                   continue;
                case ADMIN:
-                  addIfNotFound(props, "adm_ds", "string");
+                  addIfNotFound(props, "adm_ds", stringType, FALSE);
                   addIfNotFound(props, "adm_date", "date", true);
-                  addIfNotFound(props, "adm_flags", "string");
-                  addIfNotFound(props, "adm_state", "string");
-                  addIfNotFound(props, "adm_added", "long");
-                  addIfNotFound(props, "adm_deleted", "long");
-                  addIfNotFound(props, "adm_emitted", "long");
-                  addIfNotFound(props, "adm_errors", "long");
-                  addIfNotFound(props, "adm_skipped", "long");
+                  addIfNotFound(props, "adm_flags", stringType, FALSE);
+                  addIfNotFound(props, "adm_state", stringType, FALSE);
+                  addIfNotFound(props, "adm_added", "long", FALSE);
+                  addIfNotFound(props, "adm_deleted", "long", FALSE);
+                  addIfNotFound(props, "adm_emitted", "long", FALSE);
+                  addIfNotFound(props, "adm_errors", "long", FALSE);
+                  addIfNotFound(props, "adm_skipped", "long", FALSE);
                   continue;
             }
          }
@@ -369,7 +383,7 @@ namespace Bitmanager.ImportPipeline
          DocMappings = null;
          DateTime configDate;
          JObject configJson = onLoadConfig (this, ConfigFile, out configDate);
-         patchConfig(configJson);
+         patchConfig(conn, configJson);
 
          ESIndexCmd cmd = createIndexCmd(conn);
          cmd.OnCreate = overrideShardsOnCreate;

@@ -215,7 +215,7 @@ namespace Bitmanager.ImportPipeline
       }
       private static Needed checkNeeded (String code, int offs, int len)
       {
-         Logs.ErrorLog.Log("CHECKNEEDED ({0}) len={1}", code.Substring(offs, len), len);
+         //Logs.ErrorLog.Log("CHECKNEEDED ({0}) len={1}", code.Substring(offs, len), len);
          switch (len)
          {
             case 6:

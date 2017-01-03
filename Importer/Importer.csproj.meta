@@ -16,7 +16,7 @@
       <var name="$$title$$" value="$$id$$ (SHA:$$GIT$$)" />
    </assemblyinfo>
    <pre>
-      <asminfo update="true" increment="false"  />
+      <asminfo update="false" increment="false"  />
    </pre>
    <post>
       <exec cmd='copy /y $$exedir$$\importer.exe $$exedir$$\importer64.exe'/>

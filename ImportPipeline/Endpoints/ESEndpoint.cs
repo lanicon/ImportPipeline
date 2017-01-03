@@ -33,6 +33,7 @@ using System.IO;
 using Bitmanager.IO;
 using Bitmanager.ImportPipeline.Template;
 using System.Web;
+using Newtonsoft.Json;
 
 namespace Bitmanager.ImportPipeline
 {
@@ -283,7 +284,7 @@ namespace Bitmanager.ImportPipeline
          {
             if (asyncQ == null)
             {
-               Connection.Post(DocType.GetUrlForAdd(accumulator), accumulator).ThrowIfError();
+               Connection.Post(DocType.GetUrlForAdd(accumulator), accumulator, _recordSerializer).ThrowIfError();
             }
             else
                asyncQ.PushAndOptionalPop(new AsyncRequestElement(accumulator, asyncAdd));
@@ -301,12 +302,13 @@ namespace Bitmanager.ImportPipeline
          DocType.DeleteByKey(Connection, recordKey);
       }
 
+      private static Action<JsonWriter, JObject> _recordSerializer=ESObjectSerializeHelper.SerializeAndIgnoreMetaProperties;
       private void asyncAdd(AsyncRequestElement ctx)
       {
          JObject accu = ctx.Context as JObject;
          if (accu != null)
          {
-            Connection.Post(DocType.GetUrlForAdd(accu), accu).ThrowIfError();
+            Connection.Post(DocType.GetUrlForAdd(accu), accu, _recordSerializer).ThrowIfError();
             return;
          }
          flushCache((List<ESBulkEntry>)ctx.Context);

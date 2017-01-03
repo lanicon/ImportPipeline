@@ -7,7 +7,7 @@
       <var name="$$description$$" value="De Bitmanager ImportPipeline" />
       <var name="$$product$$" value="ImportPipeline" />
       <var name="$$copyright$$" value="Copyright © $$YYYY$$, $$COMPANY$$" />
-      <var name="$$version$$" value="1.0.0.$$REVNO$$" />
+      <var name="$$version$$" value="1.0.$$YYYY$$.$$MM$$$$DD$$" />
       <var name="$$fileversion$$" value="$$version$$" />
    </variables>
 
@@ -15,7 +15,7 @@
       <var name="$$title$$" value="$$id$$ (SHA:$$GIT$$)" />
    </assemblyinfo>
    <pre>
-      <asminfo2 update="true" increment="true"  />
+      <asminfo2 update="false" increment="false"  />
    </pre>
 </root>
   

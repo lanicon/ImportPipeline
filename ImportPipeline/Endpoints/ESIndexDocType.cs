@@ -67,11 +67,11 @@ namespace Bitmanager.ImportPipeline
       {
          JObject ret = new JObject();
          JObject x = new JObject();
-         moveTo(obj, "_id", x);
-         moveTo(obj, "_type", x);
-         moveTo(obj, "_routing", x);
-         moveTo(obj, "_pipeline", x);
-         moveTo(obj, "_index", x);
+         copyTo(obj, "_id", x);
+         copyTo(obj, "_type", x);
+         copyTo(obj, "_routing", x);
+         copyTo(obj, "_pipeline", x);
+         copyTo(obj, "_index", x);
          ret.Add(verb, x);
          return ret;
       }
@@ -80,32 +80,27 @@ namespace Bitmanager.ImportPipeline
       {
          StringBuilder sb = new StringBuilder();
          sb.Append(UrlPart);
-         moveTo(obj, "_id", sb, '/');
-         char sep = moveTo(obj, "_type", sb, '?');
-         sep = moveTo(obj, "_routing", sb, sep);
-         sep = moveTo(obj, "_pipeline", sb, sep);
-         sep = moveTo(obj, "_index", sb, sep);
+         copyTo(obj, "_id", sb, '/');
+         char sep = copyTo(obj, "_type", sb, '?');
+         sep = copyTo(obj, "_routing", sb, sep);
+         sep = copyTo(obj, "_pipeline", sb, sep);
+         sep = copyTo(obj, "_index", sb, sep);
          return sb.ToString();
       }
 
 
-      private static void moveTo(JObject obj, String key, JObject dst)
+      private static void copyTo(JObject obj, String key, JObject dst)
       {
          JToken v = obj[key];
-         if (v != null)
-         {
-            obj.Remove(key);
-            dst[key] = v;
-         }
+         if (v != null) dst[key] = v;
       }
-      private static char moveTo(JObject obj, String key, StringBuilder dst, char sep)
+      private static char copyTo(JObject obj, String key, StringBuilder dst, char sep)
       {
          JToken v = obj[key];
          if (v != null)
          {
-            obj.Remove(key);
             dst.Append(sep);
-            dst.Append(v.ToString());
+            dst.Append(HttpUtility.UrlEncode(v.ToString()));
             return '&';
          }
          return sep;

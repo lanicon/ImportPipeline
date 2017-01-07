@@ -44,8 +44,8 @@ namespace Bitmanager.ImportPipeline
       private CsvWriter csvWtr;
       private StringDict<int> lenientIndexes;
 
-      char delimChar, quoteChar, commentChar;
-      bool trim, lenient;
+      private readonly char delimChar, quoteChar, commentChar;
+      private readonly bool trim, lenient, selectiveExport;
 
       public CsvEndpoint(ImportEngine engine, XmlNode node)
          : base(engine, node, ActiveMode.Lazy | ActiveMode.Local)
@@ -63,11 +63,21 @@ namespace Bitmanager.ImportPipeline
          commentChar = CsvDatasource.readChar(node, "@comment", '#');
 
          //Predefine field orders if requested (implies linient mode)
-         String[] fieldOrder = node.ReadStr("@fieldorder", null).SplitStandard();
-         if (fieldOrder != null)
+         String fields = node.ReadStr("@fields", null);
+         String fieldsOrder = node.ReadStr("@fieldorder", null);
+         if (fields != null && fieldsOrder != null)
+            throw new BMNodeException(node, "Attributes [fields] and [fieldorder] cannot be specified together.");
+
+         String[] order;
+         if (fields != null) order = fields.SplitStandard();
+         else if (fieldsOrder != null) order = fieldsOrder.SplitStandard();
+         else order = null;
+
+         if (order != null)
          {
             lenient = true;
-            foreach (var fld in fieldOrder) keyToIndex(fld);
+            foreach (var fld in order) keyToIndex(fld);
+            selectiveExport = fields != null;
          }
       }
 
@@ -109,7 +119,7 @@ namespace Bitmanager.ImportPipeline
          if (lenientIndexes == null) return null;
          StringBuilder sb = new StringBuilder();
          List<KeyValuePair<String, int>> list = new List<KeyValuePair<string,int>>();
-         foreach (var kvp in lenientIndexes) list.Add(kvp);
+         foreach (var kvp in lenientIndexes) if (kvp.Value >= 0) list.Add(kvp);
          list.Sort((x, y) => Comparer<int>.Default.Compare(x.Value, y.Value));
 
          for (int i = 0; i < list.Count; i++)
@@ -127,7 +137,13 @@ namespace Bitmanager.ImportPipeline
          {
             if (lenientIndexes == null) lenientIndexes = new StringDict<int>(false);
             if (lenientIndexes.TryGetValue(key, out ret)) return ret;
-            ret = lenientIndexes.Count;
+
+            ret = -1;
+            if (!selectiveExport)
+            {
+               foreach (var kvp in lenientIndexes) if (kvp.Value > ret) ret = kvp.Value;
+               ret++;
+            }
             lenientIndexes.Add(key, ret);
             return ret;
          }
@@ -148,6 +164,7 @@ namespace Bitmanager.ImportPipeline
          foreach (var kvp in accu)
          {
             int ix = keyToIndex(kvp.Key);
+            if (ix < 0) continue;
             JToken v = kvp.Value;
             if (v == null) continue;
 

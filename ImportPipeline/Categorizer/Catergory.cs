@@ -34,10 +34,12 @@ namespace Bitmanager.ImportPipeline
       public Category[] SubCats;
       public readonly ICategorySelector Selector;
       public readonly String Field;
+      public readonly bool FieldIsEvent;
       public Category(XmlNode node)
       {
          Selector = CategorySelector.CreateSelectors(node);
          Field = node.ReadStr ("@dstfield");
+         FieldIsEvent = Field.Contains('/');
 
          XmlNodeList subNodes = node.SelectNodes(node.Name);
          if (subNodes.Count > 0)
@@ -81,7 +83,13 @@ namespace Bitmanager.ImportPipeline
          if (!Selector.IsSelected(rec)) return false;
 
          if (SubCats != null) HandleSubcats(ctx, ep, rec);
-         if (Value != null) ep.SetField(Field, Value, FieldFlags.Append, ";");
+         if (Value != null)
+         {
+            if (FieldIsEvent)
+               ctx.Pipeline.HandleValue(ctx, Field, Value);
+            else
+               ep.SetField(Field, Value, FieldFlags.Append, ";");
+         }
          return true;
       }
    }
@@ -101,7 +109,10 @@ namespace Bitmanager.ImportPipeline
          if (!Selector.IsSelected(rec)) return false;
 
          if (SubCats != null) HandleSubcats(ctx, ep, rec);
-         if (Value != 0) ep.SetField(Field, Value, FieldFlags.ToArray);
+         if (FieldIsEvent)
+            ctx.Pipeline.HandleValue(ctx, Field, Value);
+         else
+            ep.SetField(Field, Value, FieldFlags.ToArray);
          return true;
       }
    }
@@ -121,7 +132,10 @@ namespace Bitmanager.ImportPipeline
          if (!Selector.IsSelected(rec)) return false;
 
          if (SubCats != null) HandleSubcats(ctx, ep, rec);
-         ep.SetField(Field, Value, FieldFlags.OverWrite);
+         if (FieldIsEvent)
+            ctx.Pipeline.HandleValue(ctx, Field, Value);
+         else
+            ep.SetField(Field, Value, FieldFlags.OverWrite);
          return true;
       }
    }

@@ -37,11 +37,10 @@ namespace Bitmanager.ImportPipeline
 {
    public class CsvDatasource : StreamDatasourceBase
    {
+      private const int SORTKEY_REVERSE = 0x40000000;
       enum _HeaderOptions { False, True, UseForFieldNames };
       List<String> initialFieldNames;
-      //DSString file;
-      //int[] sortValuesToKeep;
-      int sortKey;
+      int oneBasedSortKey;
       int startAt;
 
       String escChar;
@@ -73,21 +72,29 @@ namespace Bitmanager.ImportPipeline
          startAt = node.ReadInt("@startat", -1);
 
          String sort = node.ReadStr("@sort", null);
-         sortKey = -1;
          if (sort != null)
-         {
-            sortKey = interpretField(sort);
-         }
+            oneBasedSortKey = interpretSortField(sort);
       }
 
-      private static int interpretField(String x)
+
+      private static int interpretSortField(String sortSpec)
       {
-         switch (x[0])
+         int key = 0;
+         int reverse = 0;
+         foreach (var xx in sortSpec.SplitStandard())
          {
-            case 'f':
-            case 'F': x = x.Substring(1); break;
+            String x = xx.ToLowerInvariant();
+            if (x=="reverse")
+            {
+               reverse = SORTKEY_REVERSE;
+               continue;
+            }
+            if (x[0]=='f') x = x.Substring(1);
+            int k = Invariant.ToInt32(x);
+            if (key != 0) throw new BMException("Only 1 sortkey is allowed.");
+            key = k + 1;
          }
-         return Invariant.ToInt32(x);
+         return key | reverse;
       }
 
       internal static char readChar(XmlNode node, String attr, char def)
@@ -136,7 +143,7 @@ namespace Bitmanager.ImportPipeline
 
       protected override void ImportStream(PipelineContext ctx, IDatasourceSink sink, IStreamProvider elt, Stream strm)
       {
-         if (sortKey < 0)
+         if (oneBasedSortKey != 0)
          {
             ImportSortedStream(ctx, sink, elt, strm);
             return;
@@ -207,6 +214,7 @@ namespace Bitmanager.ImportPipeline
          CsvReader csvRdr = createReader(strm);
          optReadHeader(csvRdr);
          int startAt = this.startAt;
+         int zeroBasedSortKey = (oneBasedSortKey & ~SORTKEY_REVERSE) - 1;
          while (csvRdr.NextRecord())
          {
             if (startAt>0 && startAt > csvRdr.Line) continue;
@@ -216,7 +224,7 @@ namespace Bitmanager.ImportPipeline
             String[] arr = new String[fieldCount+1];
 
             for (int i = 0; i < fieldCount; i++) arr[i+1] = fields[i];
-            if (fieldCount > sortKey) arr[0] = arr[sortKey+1];
+            if (fieldCount > zeroBasedSortKey) arr[0] = arr[zeroBasedSortKey + 1];
             rows.Add (arr);
          }
 
@@ -225,10 +233,11 @@ namespace Bitmanager.ImportPipeline
          if (N > 10) N = 10;
          for (int i = 0; i < N; i++)
          {
-            ctx.DebugLog.Log("-- [{0}]: '{1}'", i, rows[i][0]);
+             ctx.DebugLog.Log("-- [{0}]: '{1}'", i, rows[i][0]);
          }
 
-         rows.Sort (cbSortString);
+         if (zeroBasedSortKey >= 0)
+             rows.Sort (cbSortString);
 
          ctx.DebugLog.Log("First 10 sortkeys after sort:");
          for (int i = 0; i < N; i++)
@@ -240,18 +249,38 @@ namespace Bitmanager.ImportPipeline
          List<String> keys = createKeysForEmit();
          generateMissingKeysForEmit(keys, maxFieldCount);
 
-         //Emit sorted records
-         for (int r = 0; r < rows.Count; r++)
+         if ((oneBasedSortKey & SORTKEY_REVERSE) == 0) //Normal order
          {
-            ctx.IncrementEmitted();
-            String[] arr = rows[r];
-            rows[r] = null; //Let this element be GC-ed
-            sink.HandleValue(ctx, "record/_start", null);
-            for (int i = 1; i < arr.Length; i++) //arr[0] is the sortkey
+            //Emit sorted records
+            for (int r = 0; r < rows.Count; r++)
             {
-               sink.HandleValue(ctx, keys[i-1], arr[i]);
+               ctx.IncrementEmitted();
+               String[] arr = rows[r];
+               rows[r] = null; //Let this element be GC-ed
+               sink.HandleValue(ctx, "record/_start", null);
+               for (int i = 1; i < arr.Length; i++) //arr[0] is the sortkey
+               {
+                  sink.HandleValue(ctx, keys[i - 1], arr[i]);
+               }
+               sink.HandleValue(ctx, "record", null);
             }
-            sink.HandleValue(ctx, "record", null);
+         }
+         else 
+         {
+            //Emit reverse sorted records
+            for (int r = rows.Count-1; r >= 0; r--)
+            {
+               ctx.IncrementEmitted();
+               String[] arr = rows[r];
+               rows[r] = null; //Let this element be GC-ed
+               sink.HandleValue(ctx, "record/_start", null);
+               for (int i = 1; i < arr.Length; i++) //arr[0] is the sortkey
+               {
+                  sink.HandleValue(ctx, keys[i - 1], arr[i]);
+               }
+               sink.HandleValue(ctx, "record", null);
+            }
+
          }
       }
 

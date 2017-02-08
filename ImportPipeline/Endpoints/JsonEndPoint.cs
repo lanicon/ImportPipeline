@@ -35,11 +35,12 @@ namespace Bitmanager.ImportPipeline
 {
    public class JsonEndpoint : Endpoint
    {
-      public readonly int CacheSize;
+      public enum _Flags { Formatted, Array}
       public readonly String LineSeparator;
       public readonly String FileName;
       public readonly Newtonsoft.Json.Formatting Formatting;
-
+      public readonly bool Array;
+      public readonly String Root;
 
       private FileStream fs;
       private StreamWriter wtr;
@@ -49,8 +50,12 @@ namespace Bitmanager.ImportPipeline
          : base(engine, node)
       {
          FileName = engine.Xml.CombinePath(node.ReadStr("@file"));
-         LineSeparator = node.ReadStr("@linesep", "\r\n");
+         LineSeparator = node.ReadStrRaw("@linesep", _XmlRawMode.Trim | _XmlRawMode.DefaultOnNull, "\r\n");
          Formatting = node.ReadBool("@formatted", false) ? Newtonsoft.Json.Formatting.Indented : Newtonsoft.Json.Formatting.None;
+         Root = node.ReadStr("@root", null);
+         Array = node.ReadBool("@array", Root != null);
+         if (Root != null && !Array)
+            throw new BMNodeException(node, "Cannot have array=[false] when root=[{0}].", Root);
       }
 
       protected override void Open(PipelineContext ctx)
@@ -60,12 +65,35 @@ namespace Bitmanager.ImportPipeline
          jsonWtr = new Newtonsoft.Json.JsonTextWriter(wtr);
          jsonWtr.Culture = Invariant.Culture;
          jsonWtr.Formatting = Formatting;
+         if (Root != null)
+         {
+            jsonWtr.WriteStartObject();
+            jsonWtr.WriteStartArray(Root);
+         } else if (Array)
+            jsonWtr.WriteStartArray();
+         if (Array || Root != null)
+            writeLineSep(true);
       }
+
+      protected void writeLineSep(bool addBlank=false)
+      {
+         if (Formatting == Newtonsoft.Json.Formatting.None && !String.IsNullOrEmpty(LineSeparator))
+         {
+            jsonWtr.WriteRaw(LineSeparator);
+            if (addBlank) jsonWtr.WriteRaw(" ");
+         }
+      }
+
       protected override void Close(PipelineContext ctx)
       {
          logCloseAndCheckForNormalClose(ctx);
          if (jsonWtr != null)
          {
+            if (Array)
+               jsonWtr.WriteEndArray();
+            if (Root != null)
+               jsonWtr.WriteEndObject();
+
             jsonWtr.Flush();
             jsonWtr = null;
          }
@@ -87,10 +115,10 @@ namespace Bitmanager.ImportPipeline
       }
 
 
-      internal void WriteAccumulator(JObject accu)
+      public virtual void WriteAccumulator(JObject accu)
       {
          accu.WriteTo (jsonWtr);
-         jsonWtr.WriteRaw(LineSeparator);
+         writeLineSep();
       }
    }
 

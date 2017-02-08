@@ -41,10 +41,10 @@ namespace Bitmanager.ImportPipeline
       String selectedSheets;
       Regex selectedSheetsExpr;
       List<String> eventKeys;
-      int startAt;
+      int startAt, headersAt;
       public ExcelDatasource() : base(true, false) { }
 
-      private List<String> prepareEventKeys(String name, int cnt)
+      private List<String> prepareEventKeys(String name, int cnt, List<String> headers)
       {
          if (eventKeys == null)
             eventKeys = new List<string>(cnt + 1);
@@ -56,10 +56,14 @@ namespace Bitmanager.ImportPipeline
          pfx = pfx.ToLowerInvariant();
          if (eventKeys.Count == 0)
             eventKeys.Add(pfx);
-         pfx += "/f";
+         pfx += '/'; 
+         String pfx_f = pfx+'f'; 
          for (int i = eventKeys.Count; i <= cnt; i++)
          {
-            eventKeys.Add (pfx + Invariant.ToString (i-1));
+            String h = i<headers.Count ? headers[i] : null;
+            if (h!=null) h = h.ToLowerInvariant().TrimToNull();
+            String key = h==null ? pfx_f + Invariant.ToString (i-1) : pfx + h;
+            eventKeys.Add (key);
          }
          return eventKeys;
       }
@@ -67,6 +71,9 @@ namespace Bitmanager.ImportPipeline
       {
          base.Init(ctx, node, defEncoding);
          startAt = node.ReadInt("@startat", 0);
+         headersAt = node.ReadInt("@headersat", -1);
+         if (headersAt > startAt)
+            throw new BMNodeException(node, "HeadersAt ({0}) should be < startat ({1}).", headersAt, startAt);
          prefix = node.ReadStr("@prefix", null);
          selectedSheets = node.ReadStr("@sheets", null);
          if (selectedSheets != null)
@@ -104,6 +111,26 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
+      private static String _toString (Object o)
+      {
+         if (o == null) return null;
+
+         StringBuilder sb = new StringBuilder();
+         bool needSep = false;
+         foreach (var c in o.ToString())
+         {
+            if (char.IsLetterOrDigit(c))
+            {
+               if (needSep) sb.Append('_');
+               needSep = false;
+               sb.Append(c);
+               continue;
+            }
+
+            if (sb.Length > 0) needSep = true;
+         }
+         return sb.ToString();
+      }
       private void importSheet(PipelineContext ctx, IDatasourceSink sink, IStreamProvider elt, Worksheet sheet)
       {
          Range used = sheet.UsedRange;
@@ -117,7 +144,24 @@ namespace Bitmanager.ImportPipeline
          int hi1 = c.GetUpperBound(0);
          int lo2 = c.GetLowerBound(1);
          int hi2 = c.GetUpperBound(1);
-         var keys = prepareEventKeys(sheet.Name, hi2 + 1);
+
+         List<String> headers = new List<string>();
+         if (headersAt >= 0)
+         {
+            int headersRow = lo1 + headersAt;
+            if (headersRow <= hi1)
+            {
+               int h = 0;
+               for (int j = lo2; j <= hi2; j++)
+               {
+                  for (; h < j; h++) headers.Add(null);
+                  headers.Add(_toString (c[headersRow, j]));
+                  h++;
+               }
+            }
+         }
+
+         var keys = prepareEventKeys(sheet.Name, hi2 + 1, headers);
          for (int i = lo1 + startAt; i <= hi1; i++)
          {
             for (int j = lo2; j <= hi2; j++)

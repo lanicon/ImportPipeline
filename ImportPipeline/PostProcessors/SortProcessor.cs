@@ -32,17 +32,49 @@ using System.Xml;
 
 namespace Bitmanager.ImportPipeline
 {
+   public class DelayedScriptHolder
+   {
+      public readonly XmlNode Node;
+      public readonly String ScriptName;
+      public readonly bool IsExpression;
+      private PipelineAction.ScriptDelegate scriptDelegate;
+
+      public DelayedScriptHolder (ImportEngine engine, XmlNode node, String name)
+      {
+         this.Node = node;
+         String body = null;
+         if (node != null)
+            ScriptName = ImportEngine.ReadScriptNameOrBody(node, "@script", out body);
+
+         if (body != null)
+         {
+            ScriptName = ScriptExpressionHolder.GenerateScriptName("postprocessor_", name, node);
+            IsExpression = true;
+            engine.ScriptExpressions.AddExpression(ScriptName, body);
+         }
+      }
+
+      public Object Execute (PipelineContext ctx, Object value)
+      {
+         if (scriptDelegate == null) 
+            scriptDelegate = (ctx.Pipeline.CreateScriptDelegate<PipelineAction.ScriptDelegate>(ScriptName, Node));
+         return scriptDelegate(ctx, value);
+      }
+      public PipelineAction.ScriptDelegate GetDelegate (PipelineContext ctx)
+      {
+         if (scriptDelegate != null) return scriptDelegate; 
+         return scriptDelegate = (ctx.Pipeline.CreateScriptDelegate<PipelineAction.ScriptDelegate>(ScriptName, Node));
+
+      }
+   }
+
    public class SortProcessor : PostProcessorBase
    {
       public readonly JComparer Sorter;
       public readonly JComparer Undupper;
       private readonly UndupActions undupActions;
 
-      private XmlNode afterSortNode;
-      private String afterSortScript;
-      private String afterSortScriptBody;
-      private String afterSortScriptBodyFunc;
-      private PipelineAction.ScriptDelegate afterSortScriptDelegate;
+      private DelayedScriptHolder beforeSort, afterSort; 
 
       private int numAfterSort;
 
@@ -69,19 +101,11 @@ namespace Bitmanager.ImportPipeline
                undupActions = new UndupActions(engine, this, actionsNode);
          }
 
-         //Interpret aftersort
-         afterSortNode = node.SelectSingleNode("aftersort");
-         if (afterSortNode != null)
-            afterSortScript = ImportEngine.ReadScriptNameOrBody(afterSortNode, "@script", out afterSortScriptBody);
-
-         if (afterSortScriptBody != null)
-         {
-            var scriptHolder = engine.ScriptExpressions;
-
-            afterSortScriptBodyFunc = ScriptExpressionHolder.GenerateScriptName("postprocessor_", Name, afterSortNode);
-            scriptHolder.AddExpression(afterSortScriptBodyFunc, afterSortScriptBody);
-         }
-
+         //Interpret sort scripts
+         beforeSort = new DelayedScriptHolder(engine, node.SelectSingleNode("beforesort"), Name);
+         if (beforeSort.ScriptName == null) beforeSort = null;
+         afterSort = new DelayedScriptHolder(engine, node.SelectSingleNode("aftersort"), Name);
+         if (afterSort.ScriptName == null) afterSort = null;
       }
 
       public SortProcessor(PipelineContext ctx, SortProcessor other, IDataEndpoint epOrnextProcessor)
@@ -92,15 +116,8 @@ namespace Bitmanager.ImportPipeline
          if (other.undupActions != null)
             undupActions = other.undupActions.Clone (ctx);
 
-         afterSortNode = other.afterSortNode;
-         afterSortScript = other.afterSortScript;
-         afterSortScriptBody = other.afterSortScriptBody;
-         afterSortScriptBodyFunc = other.afterSortScriptBodyFunc;
-
-         if (afterSortScript != null)
-            this.afterSortScriptDelegate = (ctx.Pipeline.CreateScriptDelegate<PipelineAction.ScriptDelegate>(afterSortScript, afterSortNode));
-         else if (afterSortScriptBodyFunc != null)
-            this.afterSortScriptDelegate = (ctx.Pipeline.CreateScriptDelegate<PipelineAction.ScriptDelegate>(afterSortScriptBodyFunc, afterSortNode));
+         afterSort = other.afterSort;
+         beforeSort = other.beforeSort;
       }
 
 
@@ -149,11 +166,15 @@ namespace Bitmanager.ImportPipeline
          {
             List<JObject> list = e.GetAll();
             int cnt = list.Count;
-            if (list.Count == 0) goto EXIT_RTN;
-            if (this.Undupper == null && this.afterSortScriptDelegate == null) goto EXPORT_ALL;
+            if (cnt == 0) goto EXIT_RTN;
+            if (beforeSort != null)
+               list = (List<JObject>) beforeSort.Execute(ctx, list);
+            list.Sort(this.Sorter);
 
-            if (afterSortScriptDelegate != null)
-               list = (List<JObject>) afterSortScriptDelegate(ctx, list);
+            if (this.Undupper == null && this.afterSort == null) goto EXPORT_ALL;
+
+            if (afterSort != null)
+               list = (List<JObject>)afterSort.Execute(ctx, list);
 
             if (this.Undupper == null) goto EXPORT_ALL;
 
@@ -200,7 +221,7 @@ EXIT_RTN:
          if (mapper == null)
          {
             String id = String.Format("{0}#{1}", Name, InstanceNo);
-            mapper = new MemoryBasedMapperWriters(null, Sorter, 1);
+            mapper = new MemoryBasedMapperWriters(null, null, 1);
          }
          if (accumulator.Count > 0)
          {

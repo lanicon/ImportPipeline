@@ -74,6 +74,9 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          if (providerNode.GetAttributeNode("url") != null)
             return new WebStreamDirectory(ctx, providerNode, parentNode);
 
+         if (providerNode.GetAttributeNode("cmd") != null)
+            return new ShellStreamDirectory(ctx, providerNode, parentNode);
+
          if (mustExcept) XmlUtils.ThrowMissingException(providerNode, "@type, @file, @root or @url");
          return null;
       }

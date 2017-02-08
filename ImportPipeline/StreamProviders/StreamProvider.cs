@@ -62,6 +62,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
       protected String fullName, virtualName, virtualRoot, relativeName;
       protected Uri uri;
       protected CredentialCache credentialCache;
+      protected NetworkCredential credential;
       protected StreamProtocol protocol;
       protected DateTime lastModUtc;
       protected FileAttributes attributes;
@@ -184,8 +185,8 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          }
 
          CredentialCache credsCache = new CredentialCache();
-         NetworkCredential myCred = new NetworkCredential(user, password);
-         credsCache.Add(uri, "Basic", myCred);
+         credential = new NetworkCredential(user, password);
+         credsCache.Add(uri, "Basic", credential);
          return credsCache;
       }
 
@@ -202,6 +203,17 @@ namespace Bitmanager.ImportPipeline.StreamProviders
 
             credentialsInitialized = true;
             return credentialCache = InitCredentials();
+         }
+      }
+      public NetworkCredential Credential
+      {
+         get
+         {
+            if (credentialsInitialized) return this.credential;
+
+            credentialsInitialized = true;
+            InitCredentials();
+            return this.credential;
          }
       }
 

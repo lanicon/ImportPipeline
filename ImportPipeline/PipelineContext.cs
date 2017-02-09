@@ -65,7 +65,7 @@ namespace Bitmanager.ImportPipeline
       public readonly Logger MissedLog;
       public IPostProcessor PostProcessor;
       public IAdminEndpoint AdminEndpoint;
-      public List<RunAdministration> RunAdministrations;
+      public RunAdministrations RunAdministrations;
       public MaxAddsExceededException Exceeded { get; private set; }
       public Exception LastError { get; internal set; }
       public PipelineAction Action;

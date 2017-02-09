@@ -370,7 +370,7 @@ namespace Bitmanager.ImportPipeline
 
 
       #region IAdminEndpoint
-      public void SaveAdministration(PipelineContext ctx, List<RunAdministration> admins)
+      public void SaveAdministration(PipelineContext ctx, RunAdministrations admins)
       {
          if (admins == null || admins.Count == 0) return;
          String urlPart = DocType.UrlPart + "/";
@@ -381,10 +381,10 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
-      public List<RunAdministration> LoadAdministration(PipelineContext ctx)
+      public RunAdministrations LoadAdministration(PipelineContext ctx)
       {
          JObject cmdObj = JObject.Parse("{ 'sort': [{'adm_date': 'desc'}]}");
-         List<RunAdministration> ret = new List<RunAdministration>();
+         var ret = new RunAdministrations();
 
          try
          {
@@ -395,13 +395,13 @@ namespace Bitmanager.ImportPipeline
                return ret;
             }
 
-            var e = new ESRecordEnum(Connection, url, cmdObj, 100, "5m", false);
+            var e = new ESRecordEnum(Connection, url, cmdObj, ret.Capacity, "5m", false);
             foreach (var doc in e)
             {
                RunAdministration ra;
                try
                {
-                  ra = new RunAdministration(doc); 
+                  ra = new RunAdministration(doc._Source); 
                }
                catch (Exception err)
                {
@@ -414,7 +414,7 @@ namespace Bitmanager.ImportPipeline
                ret.Add(ra);
                if (ret.Count >= 500) break;
             }
-            return ret;
+            return ret.Dump ("loaded");
          }
          catch (Exception err)
          {

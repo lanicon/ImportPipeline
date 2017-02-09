@@ -321,7 +321,7 @@ namespace Bitmanager.ImportPipeline
          if (ctx.AdminEndpoint != null)
          {
             var list = ctx.RunAdministrations;
-            if (list == null) list = new List<RunAdministration>();
+            if (list == null) list = new RunAdministrations();
             list.Add (new RunAdministration(ctx));
             ctx.AdminEndpoint.SaveAdministration(ctx, list);
          }

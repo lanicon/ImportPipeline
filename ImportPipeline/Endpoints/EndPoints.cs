@@ -321,8 +321,8 @@ namespace Bitmanager.ImportPipeline
 
    public interface IAdminEndpoint
    {
-      void SaveAdministration(PipelineContext ctx, List<RunAdministration> admins);
-      List<RunAdministration> LoadAdministration(PipelineContext ctx);
+      void SaveAdministration(PipelineContext ctx, RunAdministrations runAdmins);
+      RunAdministrations LoadAdministration(PipelineContext ctx);
    }
 
    public interface IErrorEndpoint

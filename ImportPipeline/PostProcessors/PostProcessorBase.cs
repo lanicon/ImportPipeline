@@ -142,11 +142,6 @@ namespace Bitmanager.ImportPipeline
          return nextEndpoint.LoadRecord(ctx, key);
       }
 
-      public override IAdminEndpoint GetAdminEndpoint(PipelineContext ctx)
-      {
-         IEndpointResolver epr = nextEndpoint as IEndpointResolver;
-         return epr == null ? null : epr.GetAdminEndpoint(ctx);
-      }
       #endregion
 
       protected PostProcessorReport ReportStart(PipelineContext ctx)

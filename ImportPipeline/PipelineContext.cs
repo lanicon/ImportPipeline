@@ -64,8 +64,7 @@ namespace Bitmanager.ImportPipeline
       public readonly Logger ErrorLog;
       public readonly Logger MissedLog;
       public IPostProcessor PostProcessor;
-      public IAdminEndpoint AdminEndpoint;
-      public RunAdministrations RunAdministrations;
+      public readonly RunAdministrations RunAdministrations;
       public MaxAddsExceededException Exceeded { get; private set; }
       public Exception LastError { get; internal set; }
       public PipelineAction Action;
@@ -89,6 +88,7 @@ namespace Bitmanager.ImportPipeline
          Switches = ctx.Switches;
          NewLastUpdated = eng.StartTimeUtc;
          ImportEngine = eng;
+         RunAdministrations = eng.RunAdministrations;
          DatasourceAdmin = ds;
          DatasourceReport = report;
          Pipeline = ds.Pipeline;
@@ -114,6 +114,7 @@ namespace Bitmanager.ImportPipeline
          MissedLog = eng.MissedLog;
          ImportFlags = eng.ImportFlags;
          NewLastUpdated = eng.StartTimeUtc;
+         RunAdministrations = eng.RunAdministrations;
          Switches = new Switches(eng.SwitchesFromXml + " " + eng.Switches); //Switches are overriding
       }
 

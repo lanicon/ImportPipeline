@@ -80,6 +80,7 @@
     <Compile Include="PlaygroundTest.cs" />
     <Compile Include="TimeBasedIdGeneratorTest.cs" />
     <Compile Include="SwitchesTest.cs" />
+    <Compile Include="RunAdminTest.cs" />
     <Compile Include="VariableTests.cs" />
   </ItemGroup>
   <ItemGroup>

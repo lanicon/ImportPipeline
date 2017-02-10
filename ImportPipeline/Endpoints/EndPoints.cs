@@ -258,16 +258,37 @@ namespace Bitmanager.ImportPipeline
 
       private Endpoint _Open(PipelineContext ctx)
       {
-         ctx.ImportEngine.ImportLog.Log ("Opening endpoint '{0}'...", Name);
+         ctx.ImportLog.Log ("Opening endpoint '{0}'...", Name);
          Open(ctx);
          opened = true;
+
+         if (ctx.RunAdministrations.Count == 0)
+         {
+            var ep = GetAdminEndpoint(ctx);
+            if (ep != null)
+            {
+               int oldCount = ctx.RunAdministrations.Count;
+               ctx.RunAdministrations.Merge(ep.LoadAdministration(ctx));
+               if (ctx.RunAdministrations.Count != oldCount)
+                  ctx.ImportLog.Log("-- merged {0} run-administrations from endpoint. Now contains {1} runs.", ctx.RunAdministrations.Count - oldCount, ctx.RunAdministrations.Count);
+            }
+         } 
          return this;
       }
       internal Endpoint _Close(PipelineContext ctx)
       {
          if (!opened) return this;
-         ctx.ImportEngine.ImportLog.Log("Closing endpoint '{0}'...", Name);
-         Close(ctx);
+         ctx.ImportLog.Log("Closing endpoint '{0}'...", Name);
+
+         IAdminEndpoint admin = GetAdminEndpoint(ctx);
+         try
+         {
+            if (admin != null) admin.SaveAdministration(ctx, ctx.RunAdministrations);
+         } 
+         finally
+         {
+            Close(ctx);
+         }
          return this;
       }
       internal IDataEndpoint _CreateDataEndpoint(PipelineContext ctx, string name, bool mustExcept = true)
@@ -384,12 +405,7 @@ namespace Bitmanager.ImportPipeline
       void Delete(PipelineContext ctx, String recordKey);
    }
 
-   public interface IEndpointResolver
-   {
-      IAdminEndpoint GetAdminEndpoint(PipelineContext ctx);
-   }
-
-   public class JsonEndpointBase: IDataEndpoint, IEndpointResolver
+   public class JsonEndpointBase: IDataEndpoint
    {
       protected JObject accumulator;
       protected Endpoint.DebugFlags flags;
@@ -598,18 +614,11 @@ namespace Bitmanager.ImportPipeline
       {
       }
 
-      #region IEndpointResolver
-      public virtual IAdminEndpoint GetAdminEndpoint(PipelineContext ctx)
-      {
-         return null;
-      }
-      #endregion
-
    }
 
 
 
-   public class JsonEndpointBase<T> : JsonEndpointBase, IEndpointResolver where T : Endpoint
+   public class JsonEndpointBase<T> : JsonEndpointBase where T : Endpoint
    {
       public readonly T Endpoint;
 
@@ -618,13 +627,6 @@ namespace Bitmanager.ImportPipeline
          Endpoint = endpoint;
          flags = endpoint == null ? 0 : endpoint.Flags;
       }
-
-      #region IEndpointResolver
-      public override IAdminEndpoint GetAdminEndpoint(PipelineContext ctx)
-      {
-         return Endpoint==null ? null : Endpoint.GetAdminEndpoint(ctx);
-      }
-      #endregion
    }
 
 }

@@ -78,6 +78,9 @@ namespace Bitmanager.ImportPipeline
       public String OverridePipeline { get; set; }
       public String Switches { get; set; }
       public String SwitchesFromXml { get; private set; }
+      public RunAdminSettings RunAdminSettings { get; private set; }
+      public RunAdministrations RunAdministrations { get; private set; }
+
       private String binDir;
       private MailReporter Reporter;
 
@@ -235,8 +238,11 @@ namespace Bitmanager.ImportPipeline
             Reporter = null;
          else
             Reporter = new MailReporter(x);
-         ImportLog.Log("loaded reporter: {0}", Reporter); 
+         ImportLog.Log("loaded reporter: {0}", Reporter);
 
+
+         RunAdminSettings = new RunAdminSettings(Xml.SelectSingleNode("runadmin"));
+         ImportLog.Log("loaded runadmin settings: {0}", RunAdminSettings); 
 
          //Load the supplied script
          ImportLog.Log(_LogType.ltTimerStart, "loading: scripts"); 
@@ -384,6 +390,7 @@ namespace Bitmanager.ImportPipeline
       public ImportReport Import(String[] enabledDSses = null)
       {
          var ret = new ImportReport();
+         RunAdministrations = RunAdminSettings.Load();
          StartTimeUtc = DateTime.UtcNow;
 
          ImportLog.Log();
@@ -445,6 +452,7 @@ namespace Bitmanager.ImportPipeline
             ImportLog.Log(_LogType.ltProgress, "Import ended");
             ProcessHostCollection.StopAll();
             Endpoints.Close(mainCtx);
+            RunAdminSettings.Save(RunAdministrations);
          }
          catch (Exception err2)
          {

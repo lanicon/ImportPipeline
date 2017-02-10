@@ -66,10 +66,10 @@ namespace Bitmanager.ImportPipeline
 
       public RunAdministration(JObject obj)
       {
-         RunDateUtc = obj.ReadDate (ADM_DATE);
+         RunDateUtc = obj.ReadDate(ADM_DATE);
          DataSource = obj.ReadStr(ADM_DS);
-         ImportFlags = Invariant.ToEnum(obj.ReadStr(ADM_FLAGS), (_ImportFlags)0);
          State = Invariant.ToEnum(obj.ReadStr(ADM_STATE), _ErrorState.Error);
+         ImportFlags = Invariant.ToEnum(obj.ReadStr(ADM_FLAGS), (_ImportFlags)0);
          Added = obj.ReadInt(ADM_ADDED);
          Deleted = obj.ReadInt(ADM_DELETED);
          Skipped = obj.ReadInt(ADM_SKIPPED);
@@ -77,13 +77,22 @@ namespace Bitmanager.ImportPipeline
          Errors = obj.ReadInt(ADM_ERRORS);
       }
 
+      //Mainly for testing
+      public RunAdministration(String ds, DateTime dt, _ImportFlags flags, int added=0)
+      {
+         RunDateUtc = dt.ToUniversalTime();
+         DataSource = ds;
+         ImportFlags = flags;
+         Added = added;
+      }
+
       public JObject ToJson()
       {
          JObject ret = new JObject();
-         ret[ADM_DATE] = RunDateUtc;
          ret[ADM_DS] = DataSource;
-         ret[ADM_STATE] = State.ToString();
+         ret[ADM_DATE] = RunDateUtc;
          ret[ADM_FLAGS] = ImportFlags==0 ? String.Empty : ImportFlags.ToString();
+         ret[ADM_STATE] = State.ToString();
          ret[ADM_ADDED] = Added;
          ret[ADM_DELETED] = Deleted;
          ret[ADM_SKIPPED] = Skipped;

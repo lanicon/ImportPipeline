@@ -30,16 +30,24 @@ using System.Text;
 
 namespace Bitmanager.ImportPipeline
 {
-
    public class RunAdministrations : IEnumerable<RunAdministration>
    {
-      protected List<RunAdministration> list;
+      public const int DEF_CAPACITY = 50;
+      private List<RunAdministration> list;
+      public readonly String FileName;
       public readonly int Capacity;
 
-      public RunAdministrations(int capacity = 100)
+      public RunAdministrations(int capacity = DEF_CAPACITY)
       {
          list = new List<RunAdministration>();
          this.Capacity = capacity;
+      }
+      public RunAdministrations(String fn, int capacity = DEF_CAPACITY)
+      {
+         list = new List<RunAdministration>();
+         this.Capacity = capacity;
+         this.FileName = fn;
+         if (fn != null) Load(fn);
       }
 
       public int Count
@@ -55,6 +63,27 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
+      public void Merge (RunAdministrations other)
+      {
+         Dump("before dst");
+         other.Dump("before src");
+         if (other == null || other.list.Count == 0) return;
+
+         if (list.Count == 0)
+         {
+            list.AddRange(other.list);
+            return;
+         }
+
+         foreach (var a in other.list) 
+            Add(a);
+         Dump("after merge");
+      }
+
+      public void Load()
+      {
+         if (FileName != null) Load(FileName);
+      }
       public void Load(String fn)
       {
          using (var fs = IOUtils.CreateInputStream(fn))
@@ -65,21 +94,31 @@ namespace Bitmanager.ImportPipeline
       public void Load(JObject root)
       {
          var arr = root.ReadArr("runs");
-         var newList = new List<RunAdministration>(arr.Count);
          for (int i = 0; i < arr.Count; i++)
          {
-            newList.Add(new RunAdministration((JObject)arr[i]));
+            Add(new RunAdministration((JObject)arr[i]));
          }
-         newList.Sort(cbSortDate_Source);
-         list = _shrink(newList, Capacity);
       }
 
+      public void Save()
+      {
+         if (FileName != null) Save(FileName);
+      }
       public void Save(String fn)
       {
          using (var fs = IOUtils.CreateOutputStream(fn))
          {
-            var wtr = fs.CreateJsonWriter(Newtonsoft.Json.Formatting.Indented);
-            ToJson().WriteTo(wtr);
+            var wtr = fs.CreateJsonWriter(Newtonsoft.Json.Formatting.None);
+            wtr.WriteStartObject();
+            wtr.WriteStartArray("runs");
+            wtr.WriteRaw("\r\n ");
+            foreach (var a in list)
+            {
+               a.ToJson().WriteTo(wtr);
+               wtr.WriteRaw("\r\n");
+            }
+            wtr.WriteEndArray();
+            wtr.WriteEndObject();
             wtr.Flush();
          }
 
@@ -99,30 +138,94 @@ namespace Bitmanager.ImportPipeline
 
       public void Add(RunAdministration item)
       {
-         list.Add(item);
+         int i=0;
+         int rc = -1;
+         for (; i<list.Count; i++)
+         {
+            rc = StringComparer.OrdinalIgnoreCase.Compare (item.DataSource, list[i].DataSource);
+            if (rc <= 0) break;
+         }
+         
+         int j;
+         for (j = i; j < list.Count; j++)
+         {
+            rc = StringComparer.OrdinalIgnoreCase.Compare(item.DataSource, list[j].DataSource);
+            if (rc != 0) break;
+            if (item.RunDateUtc == list[j].RunDateUtc) goto EXIT_RTN;
+            if (item.RunDateUtc > list[j].RunDateUtc) break;
+         }
+
+         int k;
+         for (k = j; k < list.Count; k++)
+         {
+            rc = StringComparer.OrdinalIgnoreCase.Compare(item.DataSource, list[k].DataSource);
+            if (rc != 0) break;
+         }
+
+         /* State:
+          *   i= start of ds
+          *   j= where to insert
+          *   k= end of ds
+          */
+         if (k - i < this.Capacity)
+            goto INSERT_J;
+
+         //We are over capacity
+
+         //Process incr imports
+         if ((item.ImportFlags & _ImportFlags.ImportFull) == 0)
+         {
+            if (j == k)
+               goto EXIT_RTN;
+
+            //Try to remove an incr behind the insertion point
+            for (int x = k - 1; x >= j; x--)
+            {
+               if ((list[x].ImportFlags & _ImportFlags.ImportFull) == 0)
+               {
+                  k = x;
+                  goto REMOVE_K_INSERT_J;
+               }
+            }
+
+            //We should ignore this one
+            goto EXIT_RTN;
+         }
+
+         //Process a full import admin
+
+         //Try to remove the last incr
+         for (int x = k - 1; x > i; x--)
+         {
+            if ((list[x].ImportFlags & _ImportFlags.ImportFull) == 0)
+            {
+               k = x;
+               goto REMOVE_K_INSERT_J;
+            }
+         }
+
+         //We should ignore this one
+         goto EXIT_RTN;
+
+      REMOVE_K_INSERT_J: 
+         if (k==j)
+         {
+            list[j] = item;
+            goto EXIT_RTN;
+         }
+      if (k < j) j--;
+         list.RemoveAt(k);
+
+      INSERT_J: 
+         list.Insert(j, item);
+
+      EXIT_RTN:
+         return;
       }
 
       public void Clear()
       {
          list.Clear();
-      }
-
-      public RunAdministrations Sort()
-      {
-         list.Sort(cbSortDate_Source);
-         return this;
-      }
-
-      public RunAdministrations ShrinkToCapacity(int capacity = -1)
-      {
-         _shrink(list, capacity < 0 ? this.Capacity : capacity);
-         return this;
-      }
-
-      private static List<RunAdministration> _shrink(List<RunAdministration> list, int capacity)
-      {
-         if (list.Count > capacity) list.RemoveRange(capacity, list.Count - capacity);
-         return list;
       }
 
       public int IndexOf(RunAdministration item)
@@ -178,14 +281,6 @@ namespace Bitmanager.ImportPipeline
       {
          return list.GetEnumerator();
       }
-
-      private static int cbSortDate_Source(RunAdministration a, RunAdministration b)
-      {
-         int rc = Comparer<DateTime>.Default.Compare(b.RunDateUtc, a.RunDateUtc);
-         if (rc != 0) return rc;
-         return StringComparer.OrdinalIgnoreCase.Compare(a.DataSource, b.DataSource);
-      }
    }
-
 
 }

@@ -86,6 +86,16 @@ namespace Bitmanager.ImportPipeline
          if ((ctx.ImportFlags & _ImportFlags.ImportFull) != 0) flags |= ESIndexCmd._CheckIndexFlags.ForceCreate;
          index.Create (Connection, flags);
          WaitForStatus();
+
+         var adminEp = this.GetAdminEndpoint(ctx);
+         if (adminEp != null)
+         {
+            int oldCount = ctx.RunAdministrations.Count;
+            ctx.RunAdministrations.Merge(adminEp.LoadAdministration(ctx));
+            if (ctx.RunAdministrations.Count != oldCount)
+               ctx.ImportLog.Log("-- merged {0} run-administrations from endpoint {1}. Now contains {2} runs.", ctx.RunAdministrations.Count - oldCount, this.Name, ctx.RunAdministrations.Count);
+
+         }
       }
 
       private JObject _loadConfig(ESIndexDefinition index, String fn, out DateTime fileUtcDate)

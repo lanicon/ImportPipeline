@@ -261,19 +261,7 @@ namespace Bitmanager.ImportPipeline
          if (endPointCache != null)
             foreach (var kvp in this.endPointCache) {
                kvp.Value.Endpoint.Start(ctx);
-               var resolver = kvp.Value.Endpoint as IEndpointResolver;
-               if (ctx.AdminEndpoint==null && resolver != null) ctx.AdminEndpoint = resolver.GetAdminEndpoint(ctx);
             }
-
-         if (ctx.AdminEndpoint == null)
-         {
-            ctx.ImportLog.Log(_LogType.ltWarning, "Did not find an admin enpoint. This doesn't need to be an error.");
-            ctx.RunAdministrations = null;
-         }
-         else
-         {
-            ctx.RunAdministrations = ctx.AdminEndpoint.LoadAdministration(ctx);
-         }
 
          started = true;
       }
@@ -318,13 +306,7 @@ namespace Bitmanager.ImportPipeline
 
 
          //Optional save the administration records 
-         if (ctx.AdminEndpoint != null)
-         {
-            var list = ctx.RunAdministrations;
-            if (list == null) list = new RunAdministrations();
-            list.Add (new RunAdministration(ctx));
-            ctx.AdminEndpoint.SaveAdministration(ctx, list);
-         }
+         ctx.RunAdministrations.Add(new RunAdministration(ctx));
 
          started = false;
          if (endPointCache != null)

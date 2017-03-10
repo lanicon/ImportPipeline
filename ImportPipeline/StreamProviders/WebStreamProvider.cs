@@ -41,7 +41,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          if (parentNode == null) parentNode = node;
          silent = (ctx.ImportFlags & _ImportFlags.Silent) != 0;
          String root = parentNode.ReadStr("@root", null);
-         String url = node.ReadStr("@url");
+         String url = node.LocalName == "url" ? node.ReadStr(null) : node.ReadStr("@url");
          uri = root == null ? new Uri(url) : new Uri(new Uri(root), url);
          fullName = uri.ToString();
          KeepAlive = node.ReadBool(1, "@keepalive", true);

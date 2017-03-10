@@ -30,20 +30,29 @@ namespace Bitmanager.ImportPipeline.StreamProviders
 {
    public class WebStreamDirectory : StreamDirectory
    {
-      public readonly WebStreamProvider provider;
+      public readonly List<WebStreamProvider> providers;
       public WebStreamDirectory(PipelineContext ctx, XmlElement providerNode, XmlElement parentNode): base (ctx, providerNode)
       {
-         provider = new WebStreamProvider(ctx, providerNode, parentNode, this);
+         providers = new List<WebStreamProvider>();
+         if (providerNode.HasAttribute("url"))
+            providers.Add(new WebStreamProvider(ctx, providerNode, parentNode, this));
+         else
+         {
+            foreach (XmlNode x in providerNode.SelectMandatoryNodes("url"))
+            {
+               providers.Add(new WebStreamProvider(ctx, x, providerNode, this));
+            }
+         }
       }
 
       public override IEnumerator<object> GetChildren(PipelineContext ctx)
       {
-         yield return provider;
+         foreach (var p in providers) yield return p;
       }
 
       public override string ToString()
       {
-         return String.Format ("{0} [url={1}]", GetType().Name, provider.Uri);
+         return String.Format ("{0} [first url={1}]", GetType().Name, providers[0].Uri);
       }
 
    }

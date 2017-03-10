@@ -178,11 +178,13 @@
     <Compile Include="Datasources\TikaWorker.cs" />
     <Compile Include="Datasources\TikaDataSource.cs" />
     <Compile Include="StreamProviders\FileStreamDirectory.cs" />
+    <Compile Include="StreamProviders\OutputStreamProvider.cs" />
     <Compile Include="StreamProviders\ShellStreamProvider.cs" />
     <Compile Include="StreamProviders\SshCommandRaw.cs" />
     <Compile Include="StreamProviders\SSHStreamDirectory.cs" />
     <Compile Include="StreamProviders\StreamDirectory.cs" />
     <Compile Include="StreamProviders\StreamDirectoryEnumerator.cs" />
+    <Compile Include="StreamProviders\StreamProviderBase.cs" />
     <Compile Include="StreamProviders\StreamProvider.cs" />
     <Compile Include="StreamProviders\StreamWrapper.cs" />
     <Compile Include="StreamProviders\FileStreamProvider.cs" />

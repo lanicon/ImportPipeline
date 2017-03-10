@@ -30,6 +30,7 @@ using System.IO;
 using System.Globalization;
 using Bitmanager.Elastic;
 using Newtonsoft.Json;
+using Bitmanager.ImportPipeline.StreamProviders;
 
 namespace Bitmanager.ImportPipeline
 {
@@ -41,8 +42,9 @@ namespace Bitmanager.ImportPipeline
       public readonly Newtonsoft.Json.Formatting Formatting;
       public readonly bool Array;
       public readonly String Root;
+      public readonly IOutputStreamProvider OutputProvider;
 
-      private FileStream fs;
+      private Stream fs;
       private StreamWriter wtr;
       private JsonWriter jsonWtr;
 
@@ -50,6 +52,7 @@ namespace Bitmanager.ImportPipeline
          : base(engine, node)
       {
          FileName = engine.Xml.CombinePath(node.ReadStr("@file"));
+         //pwOutputProvider = OutputStreamProviderBase.Create(null, node);
          LineSeparator = node.ReadStrRaw("@linesep", _XmlRawMode.Trim | _XmlRawMode.DefaultOnNull, "\r\n");
          Formatting = node.ReadBool("@formatted", false) ? Newtonsoft.Json.Formatting.Indented : Newtonsoft.Json.Formatting.None;
          Root = node.ReadStr("@root", null);
@@ -60,6 +63,7 @@ namespace Bitmanager.ImportPipeline
 
       protected override void Open(PipelineContext ctx)
       {
+         //pwfs = OutputProvider.CreateStream();
          fs = new FileStream(FileName, FileMode.Create, FileAccess.Write, FileShare.Read);
          wtr = new StreamWriter(fs, Encoding.UTF8, 32*1024);
          jsonWtr = new Newtonsoft.Json.JsonTextWriter(wtr);

@@ -63,48 +63,12 @@ namespace Bitmanager.ImportPipeline
          if (node.ReadStr(key, null) == null) return;
          throw new BMNodeException (node, "Attribute [{0}] is no longer supported. Please use [{1}] field in the record.", key, alt);
       }
-      public JObject GetCmdForBulk(JObject obj, String verb="index")
-      {
-         JObject ret = new JObject();
-         JObject x = new JObject();
-         copyTo(obj, "_id", x);
-         copyTo(obj, "_type", x);
-         copyTo(obj, "_routing", x);
-         copyTo(obj, "_pipeline", x);
-         copyTo(obj, "_index", x);
-         ret.Add(verb, x);
-         return ret;
-      }
 
       public String GetUrlForAdd(JObject obj)
       {
-         StringBuilder sb = new StringBuilder();
-         sb.Append(UrlPart);
-         copyTo(obj, "_id", sb, '/');
-         char sep = copyTo(obj, "_type", sb, '?');
-         sep = copyTo(obj, "_routing", sb, sep);
-         sep = copyTo(obj, "_pipeline", sb, sep);
-         sep = copyTo(obj, "_index", sb, sep);
-         return sb.ToString();
+         return ESBulkSerializeHelper.CopyMetaFromDataToUrl(IndexExists ? Index.IndexName : "__not_existing__", TypeName, obj);
       }
 
-
-      private static void copyTo(JObject obj, String key, JObject dst)
-      {
-         JToken v = obj[key];
-         if (v != null) dst[key] = v;
-      }
-      private static char copyTo(JObject obj, String key, StringBuilder dst, char sep)
-      {
-         JToken v = obj[key];
-         if (v != null)
-         {
-            dst.Append(sep);
-            dst.Append(HttpUtility.UrlEncode(v.ToString()));
-            return '&';
-         }
-         return sep;
-      }
 
       public ExistState Exists(ESConnection conn, String key, DateTime? timeStamp = null)
       {

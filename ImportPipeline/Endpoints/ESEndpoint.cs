@@ -301,7 +301,7 @@ namespace Bitmanager.ImportPipeline
          }
          else
          {
-            cache.Add(new ESBulkEntry(DocType.GetCmdForBulk(accumulator), accumulator));
+            cache.Add(new ESBulkEntry(accumulator));
             if (cache.Count >= cacheSize) FlushCache();
          }
          Clear();
@@ -312,7 +312,8 @@ namespace Bitmanager.ImportPipeline
          DocType.DeleteByKey(Connection, recordKey);
       }
 
-      private static Action<JsonWriter, JObject> _recordSerializer=ESObjectSerializeHelper.SerializeAndIgnoreMetaProperties;
+      //PW nakijken
+      private static Action<JsonWriter, JObject> _recordSerializer=ESBulkSerializeHelper.SerializeDataAndIgnoreMetaProperties;
       private void asyncAdd(AsyncRequestElement ctx)
       {
          JObject accu = ctx.Context as JObject;

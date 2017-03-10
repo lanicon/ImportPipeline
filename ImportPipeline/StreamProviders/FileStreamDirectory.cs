@@ -45,13 +45,10 @@ namespace Bitmanager.ImportPipeline.StreamProviders
       public readonly int RootLen;
       public readonly bool VirtualRootFromFile;
       private FileTree tree;
-      private PipelineContext ctx;
-
 
       public FileStreamDirectory(PipelineContext ctx, XmlElement node, XmlElement parentNode)
          : base(ctx, node)
       {
-         this.ctx = ctx;
          VirtualRoot = XmlUtils.ReadStr(node, "@virtualroot", null);
          if ("<dir>".Equals(VirtualRoot, StringComparison.OrdinalIgnoreCase))
          {
@@ -129,7 +126,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
             yield return new FileStreamProvider(ctx, this, elt);
       }
 
-      private DateTime getMinDate()
+      private DateTime getMinDate(PipelineContext ctx)
       {
          if (IgnoreDates || ctx == null || (ctx.ImportFlags & _ImportFlags.FullImport) != 0 || ctx.RunAdministrations == null) return DateTime.MinValue;
          DateTime ret = ctx.RunAdministrations.GetLastOKRunDateShifted(ctx.DatasourceAdmin);
@@ -163,7 +160,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          var list = new List<_FileElt>();
          if (tree != null)
          {
-            tree.MinUtcDate = getMinDate();
+            tree.MinUtcDate = getMinDate(ctx);
             tree.UserTag = list;  //We fill list instead of tree.Files...
             tree.ReadFiles(Root, recursive ? _ReadFileFlags.rfSubdirs : 0);
             if (ExportDirs)
@@ -192,7 +189,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          var dirInfo = new DirectoryInfo(dir);
          var files = dirInfo.GetFileSystemInfos(Path.GetFileName(File), this.recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
 
-         DateTime minUtc = getMinDate();
+         DateTime minUtc = getMinDate(ctx);
          DateTime maxUtc = DateTime.MaxValue;
          foreach (var info in files)
          {

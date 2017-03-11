@@ -32,35 +32,45 @@ using System.Xml;
 
 namespace Bitmanager.ImportPipeline
 {
-   public class RunAdminSettings
+   public class RunAdministrationSettings
    {
+      public const int DEF_CAPACITY = 100;
       public readonly String FileName;
+      public readonly ImportEngine Engine;
       public readonly int Capacity;
+      public readonly int Dump;
 
-      public RunAdminSettings (XmlNode node)
+      public RunAdministrationSettings(ImportEngine engine, XmlNode node)
       {
-         if (node==null)
+         Engine = engine;
+         if (node == null)
          {
             FileName = null;
-            Capacity = 0;
+            Capacity = DEF_CAPACITY;
          }
          else
          {
             FileName = node.ReadPath("@file", null);
-            Capacity = node.ReadInt("@capacity", 100);
+            Capacity = node.ReadInt("@capacity", DEF_CAPACITY);
+            Dump = node.ReadInt("@dump", 0);
          }
+      }
+      public RunAdministrationSettings(ImportEngine engine, String fn, int cap, int dump)
+      {
+         Engine = engine;
+         FileName = fn;
+         Capacity = cap;
+         Dump = dump;
       }
 
       public RunAdministrations Load()
       {
-         if (FileName == null || !File.Exists(FileName))
-            return new RunAdministrations();
-         return new RunAdministrations(FileName, Capacity);
+         return new RunAdministrations(this);
       }
 
       public void Save(RunAdministrations a)
       {
-         if (FileName != null && a != null) a.Save (FileName);
+         a.Save ();
       }
    }
 }

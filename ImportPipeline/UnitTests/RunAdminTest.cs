@@ -12,13 +12,18 @@ namespace UnitTests
       [TestMethod]
       public void TestMethod1()
       {
+         var eng = new ImportEngine();
+
          var fn = IOUtils.FindFileToRoot(Assembly.GetExecutingAssembly().Location+"\\..", "runadmin.txt", FindToTootFlags.ReturnOriginal);
-         var runs = new RunAdministrations();
+         Console.WriteLine("Loading from {0}", fn);
+         var settings = new RunAdministrationSettings(eng, fn, 50, -1);
+         var runs = new RunAdministrations(settings);
          runs.Load(fn);
          runs.Save(fn + ".new");
          Assert.AreEqual(17, runs.Count);
 
-         runs = new RunAdministrations(3);
+         settings = new RunAdministrationSettings(eng, null, 3, -1);
+         runs = new RunAdministrations(settings);
          var run = addRun(runs, "a", -2);
          run = addRun(runs, "b", -2);
          run = addRun(runs, "a", -4);

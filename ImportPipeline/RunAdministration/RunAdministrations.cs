@@ -32,22 +32,14 @@ namespace Bitmanager.ImportPipeline
 {
    public class RunAdministrations : IEnumerable<RunAdministration>
    {
-      public const int DEF_CAPACITY = 50;
       private List<RunAdministration> list;
-      public readonly String FileName;
-      public readonly int Capacity;
+      public readonly RunAdministrationSettings Settings;
 
-      public RunAdministrations(int capacity = DEF_CAPACITY)
+      public RunAdministrations(RunAdministrationSettings settings)
       {
+         this.Settings = settings;
          list = new List<RunAdministration>();
-         this.Capacity = capacity;
-      }
-      public RunAdministrations(String fn, int capacity = DEF_CAPACITY)
-      {
-         list = new List<RunAdministration>();
-         this.Capacity = capacity;
-         this.FileName = fn;
-         if (fn != null) Load(fn);
+         Load();
       }
 
       public int Count
@@ -82,7 +74,8 @@ namespace Bitmanager.ImportPipeline
 
       public void Load()
       {
-         if (FileName != null) Load(FileName);
+         if (Settings.FileName != null) Load(Settings.FileName);
+         OptDump("Load");
       }
       public void Load(String fn)
       {
@@ -100,9 +93,32 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
+      public RunAdministrations OptDump(String reason)
+      {
+         if (Settings.Dump != 0) Dump(reason);
+         return this;
+      }
+
+      public RunAdministrations Dump(String reason)
+      {
+         Logger lg = Settings.Engine.ImportLog;
+         int N = Settings.Dump;
+         if (N <= 0) N = list.Count;
+         else N = Math.Min(N, list.Count);
+
+         lg.Log("Dumping top {0} of {1} import admins: {2}", N, list.Count, reason);
+         for (int i=0; i<N; i++)
+         {
+            var x = list[i].ToJson();
+            lg.Log("-- {0}", x.ToString(Newtonsoft.Json.Formatting.None));
+         }
+         return this;
+      }
+
       public void Save()
       {
-         if (FileName != null) Save(FileName);
+         OptDump("Save");
+         if (Settings.FileName != null) Save(Settings.FileName);
       }
       public void Save(String fn)
       {
@@ -167,7 +183,7 @@ namespace Bitmanager.ImportPipeline
           *   j= where to insert
           *   k= end of ds
           */
-         if (k - i < this.Capacity)
+         if (k - i < Settings.Capacity)
             goto INSERT_J;
 
          //We are over capacity

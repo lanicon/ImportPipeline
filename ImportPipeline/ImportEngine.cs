@@ -78,7 +78,7 @@ namespace Bitmanager.ImportPipeline
       public String OverridePipeline { get; set; }
       public String Switches { get; set; }
       public String SwitchesFromXml { get; private set; }
-      public RunAdminSettings RunAdminSettings { get; private set; }
+      public RunAdministrationSettings RunAdminSettings { get; private set; }
       public RunAdministrations RunAdministrations { get; private set; }
 
       private String binDir;
@@ -241,7 +241,7 @@ namespace Bitmanager.ImportPipeline
          ImportLog.Log("loaded reporter: {0}", Reporter);
 
 
-         RunAdminSettings = new RunAdminSettings(Xml.SelectSingleNode("runadmin"));
+         RunAdminSettings = new RunAdministrationSettings(this, Xml.SelectSingleNode("runadmin"));
          ImportLog.Log("loaded runadmin settings: {0}", RunAdminSettings); 
 
          //Load the supplied script

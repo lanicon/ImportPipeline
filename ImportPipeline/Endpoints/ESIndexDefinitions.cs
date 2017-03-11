@@ -320,7 +320,7 @@ namespace Bitmanager.ImportPipeline
             stringType = "text";
          } else {
             FALSE = "no";
-            TRUE = "yes";
+            TRUE = "not_analyzed";
             stringType = "string";
          }
 
@@ -356,7 +356,7 @@ namespace Bitmanager.ImportPipeline
                   continue;
                case ADMIN:
                   addIfNotFound(props, "adm_ds", stringType, FALSE);
-                  addIfNotFound(props, "adm_date", "date", true);
+                  addIfNotFound(props, "adm_date", "date", TRUE);
                   addIfNotFound(props, "adm_flags", stringType, FALSE);
                   addIfNotFound(props, "adm_state", stringType, FALSE);
                   addIfNotFound(props, "adm_added", "long", FALSE);

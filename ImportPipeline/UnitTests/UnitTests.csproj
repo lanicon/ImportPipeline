@@ -81,6 +81,7 @@
     <Compile Include="TimeBasedIdGeneratorTest.cs" />
     <Compile Include="SwitchesTest.cs" />
     <Compile Include="RunAdminTest.cs" />
+    <Compile Include="ProcessPipeStreamTest.cs" />
     <Compile Include="VariableTests.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -171,7 +171,7 @@ namespace Bitmanager.ImportPipeline
          }
       }
 
-      protected override Stream _CreateStream(IStreamProvider elt)
+      protected override Stream _CreateStream(PipelineContext ctx, IStreamProvider elt)
       {
          return null;
       }

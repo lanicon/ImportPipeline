@@ -91,7 +91,7 @@ namespace Bitmanager.ImportPipeline
       public static String WrapMessage(Exception ex, String sub, String fmt)
       {
          String msg = ex.Message;
-         if (msg.IndexOf(sub) >= 0) return msg;
+         if (sub==null || msg.IndexOf(sub) >= 0) return msg;
          return String.Format(fmt, msg, sub);
       }
 
@@ -133,7 +133,7 @@ namespace Bitmanager.ImportPipeline
          }
          if (ctx.SkipUntilKey == "record") goto SKIPPED;
 
-         using (Stream fs = _CreateStream (elt))
+         using (Stream fs = _CreateStream (ctx, elt))
          {
             ImportStream(ctx, sink, elt, fs);
          }
@@ -146,9 +146,9 @@ namespace Bitmanager.ImportPipeline
          if (logSkips) ctx.DebugLog.Log("Skipped: {0}. Date={1}", elt.FullName, elt.LastModified);
       }
 
-      protected virtual Stream _CreateStream (IStreamProvider elt)
+      protected virtual Stream _CreateStream(PipelineContext ctx, IStreamProvider elt)
       {
-         return elt.CreateStream();
+         return elt.CreateStream(ctx);
       }
    }
 }

@@ -103,7 +103,7 @@ namespace Bitmanager.ImportPipeline
          Stream fs = null;
          try
          {
-            fs = elt.CreateStream();
+            fs = elt.CreateStream(ctx);
             if (!this.objectPerLine)
                importRecord(ctx, sink, fs, splitUntil);
             else

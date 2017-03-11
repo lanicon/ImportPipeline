@@ -63,7 +63,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          req.Credentials = Credentials;
       }
 
-      public override Stream CreateStream()
+      public override Stream CreateStream(PipelineContext ctx)
       {
          HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create(uri);
          PrepareRequest(req);

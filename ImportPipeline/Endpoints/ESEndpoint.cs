@@ -395,7 +395,7 @@ namespace Bitmanager.ImportPipeline
       public RunAdministrations LoadAdministration(PipelineContext ctx)
       {
          JObject cmdObj = JObject.Parse("{ 'sort': [{'adm_date': 'desc'}]}");
-         var ret = new RunAdministrations();
+         var ret = new RunAdministrations(ctx.ImportEngine.RunAdminSettings);
 
          try
          {
@@ -406,7 +406,7 @@ namespace Bitmanager.ImportPipeline
                return ret;
             }
 
-            var e = new ESRecordEnum(Connection, url, cmdObj, ret.Capacity, "5m", false);
+            var e = new ESRecordEnum(Connection, url, cmdObj, ret.Settings.Capacity, "5m", false);
             foreach (var doc in e)
             {
                RunAdministration ra;

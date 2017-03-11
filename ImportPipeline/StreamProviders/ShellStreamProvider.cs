@@ -8,6 +8,7 @@ using Bitmanager.IO;
 using Bitmanager.Xml;
 using System.IO;
 using System.Diagnostics;
+using System.Threading;
 
 namespace Bitmanager.ImportPipeline.StreamProviders
 {
@@ -36,17 +37,27 @@ namespace Bitmanager.ImportPipeline.StreamProviders
 
    public class ShellStreamProvider : StreamProvider
    {
+      protected readonly ImportEngine engine;
       public bool KeepAlive;
       public String Command;
       public String Arguments;
       ProcessResultTypes resultTypes;
       public int[] NullStreamErrorCodes;
       public int[] AcceptedStreamErrorCodes;
+
+      private ProcessHelper processHelper;
+      private IAsyncResult dlgAsyncTerminatorResult;
+      private Action<Stream> dlgOnClose;
+      private Action dlgAsyncTerminator;
+      private Exception processError;
       public bool ViaShell;
+      bool buffered;
+      bool stderrToStdout;
 
       public ShellStreamProvider(PipelineContext ctx, XmlNode node, XmlNode parentNode, StreamDirectory parent)
          : base(parent, node)
       {
+         engine = ctx.ImportEngine;
          if (parentNode == null) parentNode = node;
          silent = (ctx.ImportFlags & _ImportFlags.Silent) != 0;
 
@@ -57,43 +68,111 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          resultTypes.Add(node.ReadStr("@ignore_errors", null), 1);
          resultTypes.Add(node.ReadStr("@ok_errors", null), 0);
 
+         buffered = node.ReadBool("@buffered", true);
+         stderrToStdout = node.ReadBool("@stderr_to_stdout", false);
 
          Command = node.ReadStr("@cmd");
          Arguments = node.ReadStr("@args", null);
          ViaShell = node.ReadBool("@viashell", false);
          if (ViaShell && Arguments != null) throw new BMNodeException(node, "Attributes @args cannot be specified when @viashell=true.");
-         CreateStream();
       }
-      //public ShellStreamProvider(PipelineContext ctx, StreamProvider other, String url)
-      //   : base(other)
-      //{
-      //   uri = new Uri(url);
-      //   fullName = uri.ToString();
-      //}
 
-
-      public override Stream CreateStream()
+      private void onClose (Stream x)
       {
-         using (var p = new ProcessHelper(this.Command, this.Arguments, ViaShell))
+         Utils.FreeAndNil(ref processHelper);
+         if (processError != null)
          {
-            Stream x, y;
-            p.SetStreams(x = new MemoryStream(), y = new MemoryStream(), true);
-            int rc = p.Run();
-
-            switch (resultTypes.HowToHandle(rc, 1))
-            {
-               case 0: break; //OK
-               case 1: //Ignore
-                  x = new MemoryStream();
-                  break;
-               default:
-                  p.ThrowError();
-                  break;
-            }
-            return x;
+            throw new BMException(processError, processError.Message);
          }
       }
 
+      private void asyncTerminator ()
+      {
+         if (processHelper == null) return;
+         try
+         {
+            int rc = processHelper.WaitForExitAndFinalize();
+
+            switch (resultTypes.HowToHandle(rc, 1))
+            {
+               case 0:  //OK
+               case 1: //Ignore
+                  break;
+               default:
+                  processHelper.ThrowError();
+                  break;
+            }
+         }
+         catch (Exception e)
+         {
+            processError = e;
+         }
+      }
+
+
+      public override Stream CreateStream(PipelineContext ctx)
+      {
+         String workdir = ctx.ImportEngine.Xml.BaseDir;
+         if (buffered)
+         {
+            using (var p=new ProcessHelper(this.Command, this.Arguments, ViaShell, workdir)) {
+               Stream x, y;
+               p.SetStreams(x = new MemoryStream(), y = new MemoryStream(), stderrToStdout);
+               int rc = p.Run();
+
+               switch (resultTypes.HowToHandle(rc, 1))
+               {
+                  case 0: break; //OK
+                  case 1: //Ignore
+                     x = new MemoryStream();
+                     break;
+                  default:
+                     p.ThrowError();
+                     break;
+               }
+               return x;
+            }
+         }
+
+         //Not buffered, but use the stream directly
+         processHelper = new ProcessHelper(this.Command, this.Arguments, ViaShell, workdir);
+         try
+         {
+            Stream x, y;
+            processHelper.SetStreams(x = new ProcessPipeStream(onClose), y = new MemoryStream(), true);
+            processHelper.Start();
+            dlgAsyncTerminator = asyncTerminator;
+            dlgAsyncTerminatorResult = dlgAsyncTerminator.BeginInvoke(null, null);
+            return x;
+         }
+         catch (Exception e)
+         {
+            processHelper.Dispose();
+            processHelper = null;
+            throw;
+         }
+      }
+
+      class MemoryStreamWrapper: MemoryStream
+      {
+         Action<Stream> onClose;
+
+         public MemoryStreamWrapper (Action<Stream> onClose)
+         {
+            this.onClose = onClose;
+         }
+
+         public override void Close()
+         {
+            base.Close();
+            if (onClose != null)
+            {
+               onClose(this);
+            }
+         }      
+
+
+      }
 
 
       /// <summary>
@@ -103,11 +182,13 @@ namespace Bitmanager.ImportPipeline.StreamProviders
       {
          public ProsessStreamProcessorBase StdErr { get; internal set; }
          public ProsessStreamProcessorBase StdOut { get; internal set; }
-         Process process;
+         protected Process process;
          ProcessStartInfo psi;
          private readonly bool viaShell;
 
-         public ProcessHelper(String cmd, String args, bool viaShell)
+         public Process Process { get { return process; } }
+
+         public ProcessHelper(String cmd, String args, bool viaShell, String workingdir)
          {
             this.viaShell = viaShell;
             process = new Process();
@@ -117,6 +198,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
             psi.UseShellExecute = false;
             psi.LoadUserProfile = false;
             psi.WindowStyle = ProcessWindowStyle.Hidden;
+            psi.WorkingDirectory = workingdir;
 
             if (viaShell)
             {
@@ -127,6 +209,12 @@ namespace Bitmanager.ImportPipeline.StreamProviders
                psi.FileName = Environment.GetEnvironmentVariable("comspec");
             }
          }
+
+         public void Dispose()
+         {
+            Utils.FreeAndNil(ref process);
+         }
+
 
          protected StringBuilder formatCmd(StringBuilder sb, String cmd, String args)
          {
@@ -189,8 +277,8 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          {
             process.WaitForExit();
 
-            if (StdOut != null) StdOut.Reset();
-            if (StdErr != null) StdErr.Reset();
+            if (StdOut != null) StdOut.Terminate();
+            if (StdErr != null) StdErr.Terminate();
             return process.ExitCode;
          }
 
@@ -211,80 +299,26 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          /// <summary>
          /// Initialize redirected streams by redirecting them to a stream
          /// </summary>
-         public void SetStreams(Stream strmOut, Stream strmErr, bool errorToBoth, Encoding enc)
+         public void SetStreams(Object strmOut, object strmErr, bool errorToBoth, Encoding enc)
          {
-            if (strmOut == null && strmErr == null)
-            {
-               this.StdErr = null;
-               this.StdOut = null;
-               return;
-            }
-
-            if (strmOut != null)
-            {
-               this.StdOut = new ProsessStreamProcessor(strmOut, enc);
-            }
-
-            if (errorToBoth)
-            {
-               if (strmOut == null && StdOut != null) strmOut = ((ProsessStreamProcessor)StdOut).Strm;
-
-               if (strmErr != null)
-               {
-                  this.StdErr = new ProsessStreamProcessor(strmErr, strmOut, enc);
-
-               }
-            }
-            else
-            {
-               if (strmErr != null)
-                  this.StdErr = new ProsessStreamProcessor(strmErr, enc);
-            }
-
+            this.StdOut = objectToProcessor(strmOut, null, enc);
+            this.StdErr = objectToProcessor(strmErr, errorToBoth ? this.StdOut :null, enc);
          }
 
-
-         /// <summary>
-         /// Initialize redirected streams by redirecting them to a string buffer
-         /// </summary>
-         public void SetBuffers(StringBuilder sbOut, StringBuilder sbErr, bool errorToBoth)
+         private ProsessStreamProcessorBase objectToProcessor (Object x, ProsessStreamProcessorBase slave, Encoding enc)
          {
-            SetBuffers(sbOut, sbErr, errorToBoth, Encoding.UTF8);
-         }
+            if (x == null) return null;
 
-         /// <summary>
-         /// Initialize redirected streams by redirecting them to a string buffer
-         /// </summary>
-         public void SetBuffers(StringBuilder sbOut, StringBuilder sbErr, bool errorToBoth, Encoding enc)
-         {
-            if (sbOut == null && sbErr == null)
-            {
-               this.StdErr = null;
-               this.StdOut = null;
-               return;
-            }
+            var strm = x as Stream;
+            if (strm != null) return new ProsessStreamProcessor(strm, enc, slave);
 
-            if (sbOut != null)
-            {
-               this.StdOut = new ProsessStringStreamProcessor(sbOut, enc);
-            }
+            var sb = x as StringBuilder;
+            if (sb != null) return new ProsessStringStreamProcessor(sb, enc, slave);
 
-            if (errorToBoth)
-            {
-               if (sbOut == null && StdOut != null) sbOut = ((ProsessStringStreamProcessor)StdOut).Buffer;
+            var lg = x as Logger;
+            if (lg == null) throw new BMException("Unexpected object: type [{0}]", x.GetType());
 
-               if (sbErr != null)
-               {
-                  this.StdErr = new ProsessStringStreamProcessor(sbErr, sbOut, enc);
-
-               }
-            }
-            else
-            {
-               if (sbErr != null)
-                  this.StdErr = new ProsessStringStreamProcessor(sbErr, enc);
-            }
-
+            return new ProsessStreamLogProcessor (lg, enc, slave);
          }
 
 
@@ -294,16 +328,46 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          public abstract class ProsessStreamProcessorBase
          {
             public readonly Encoding encoding;
+            public readonly ProsessStreamProcessorBase SlaveProcessor;
 
-            protected ProsessStreamProcessorBase(Encoding enc)
+            protected ProsessStreamProcessorBase(Encoding enc, ProsessStreamProcessorBase slave)
             {
+               SlaveProcessor = slave;
                encoding = enc;
             }
 
+            protected void forwardToSlave (object sender, DataReceivedEventArgs e)
+            {
+               if (SlaveProcessor != null) SlaveProcessor.OnData(sender, e);
+            }
+
             public abstract void OnData(object sender, DataReceivedEventArgs e);
+            public abstract void Terminate();
 
             public abstract String ReadAll();
-            public abstract void Reset();
+         }
+
+         public class ProsessStreamLogProcessor: ProsessStreamProcessorBase
+         {
+            public readonly Logger Logger;
+
+            public ProsessStreamLogProcessor(Logger logger, Encoding enc, ProsessStreamProcessorBase slave)
+               : base(enc, slave)
+            {
+               Logger = logger;
+            }
+
+            public override void OnData(object sender, DataReceivedEventArgs e)
+            {
+               Logger.Log(e.Data);
+               forwardToSlave(sender, e);
+            }
+            public override void Terminate() {}
+
+            public override String ReadAll()
+            {
+               return null;
+            }
          }
 
 
@@ -313,24 +377,11 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          public class ProsessStreamProcessor : ProsessStreamProcessorBase
          {
             public readonly Stream Strm;
-            public readonly Stream SlaveStream;
             private byte[] buf;
 
-            public ProsessStreamProcessor(Stream x, Encoding enc): base(enc)
+            public ProsessStreamProcessor(Stream x, Encoding enc, ProsessStreamProcessorBase slave): base(enc, slave)
             {
                Strm = x;
-            }
-
-            public ProsessStreamProcessor(Stream strmMaster, Stream strmSlave, Encoding enc): base (enc)
-            {
-               if (strmMaster == null)
-                  Strm = strmSlave;
-               else
-               {
-                  Strm = strmMaster;
-                  if (strmSlave != null && strmSlave != strmMaster)
-                     this.SlaveStream = strmSlave;
-               }
             }
 
             public override void OnData(object sender, DataReceivedEventArgs e)
@@ -341,8 +392,8 @@ namespace Bitmanager.ImportPipeline.StreamProviders
                   buf = new byte[len];
                len = encoding.GetBytes(e.Data, 0, e.Data.Length, buf, 0);
                buf[len] = 10; //lf
-               Strm.Write(buf, 0, len);
-               if (SlaveStream != null) SlaveStream.Write(buf, 0, len);
+               Strm.Write(buf, 0, len+1);
+               forwardToSlave(sender, e);
             }
 
             public override String ReadAll()
@@ -351,10 +402,20 @@ namespace Bitmanager.ImportPipeline.StreamProviders
                var sr = new StreamReader(Strm, encoding);
                return sr.ReadToEnd();
             }
-            public override void Reset()
+
+            private void terminateStream (Stream x)
             {
-               Strm.Position = 0; 
+               if (x.CanSeek) x.Position = 0;
+               var x2 = x as ProcessPipeStream;
+               if (x2 != null)
+                  x2.MarkTerminated();
             }
+
+            public override void Terminate()
+            {
+               terminateStream(Strm);
+            }
+
          }
 
 
@@ -364,33 +425,18 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          public class ProsessStringStreamProcessor : ProsessStreamProcessorBase
          {
             public readonly StringBuilder Buffer;
-            public readonly StringBuilder SlaveBuffer;
-            private byte[] buf;
 
-            public ProsessStringStreamProcessor(StringBuilder sb, Encoding enc)
-               : base(enc)
+            public ProsessStringStreamProcessor(StringBuilder sb, Encoding enc, ProsessStreamProcessorBase slave)
+               : base(enc, slave)
             {
                Buffer = sb;
-            }
-
-            public ProsessStringStreamProcessor(StringBuilder sbMaster, StringBuilder sbSlave, Encoding enc)
-               : base(enc)
-            {
-               if (sbMaster == null)
-                  Buffer = sbMaster;
-               else
-               {
-                  Buffer = sbMaster;
-                  if (sbSlave != null && sbSlave != sbMaster)
-                     this.SlaveBuffer = sbSlave;
-               }
             }
 
             public override void OnData(object sender, DataReceivedEventArgs e)
             {
                if (e.Data == null) return;
                Buffer.AppendLine(e.Data);
-               if (SlaveBuffer != null) SlaveBuffer.AppendLine(e.Data); ;
+               forwardToSlave(sender, e);
             }
 
             public override String ReadAll()
@@ -398,16 +444,11 @@ namespace Bitmanager.ImportPipeline.StreamProviders
                return Buffer.ToString();
             }
 
-            public override void Reset()
+            public override void Terminate()
             {
             }
-
          }
 
-         public void Dispose()
-         {
-            Utils.FreeAndNil(ref process);
-         }
       }
 
       /// <summary>
@@ -434,6 +475,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
 
          public void Add(String str, int howToHandle)
          {
+            if (String.IsNullOrEmpty(str)) return;
             foreach (var rcStr in str.SplitStandard())
             {
                handlers[Invariant.ToInt32(rcStr)] = howToHandle;
@@ -446,5 +488,183 @@ namespace Bitmanager.ImportPipeline.StreamProviders
             return handlers.TryGetValue(rc, out ret) ? ret : def;
          }
       }
+
+
+      public class ProcessPipeStream : Stream
+      {
+         private const int MAX_SEM = 10000;
+         private class Buffer
+         {
+            public Buffer Next;
+            public byte[] Bytes;
+            private int offset;
+            public Buffer(byte[] bytes, int offset, int count)
+            {
+               Bytes = new byte[count];
+               Array.Copy(bytes, offset, Bytes, 0, count);
+            }
+
+            public int CopyBytes (byte[] b, int dstOffs, int dstlen)
+            {
+               int possible = Bytes.Length - offset;
+               if (possible < dstlen) dstlen = possible;
+               if (dstlen>0)
+               {
+                  Array.Copy(this.Bytes, offset, b, dstOffs, dstlen);
+                  offset += dstlen;
+               }
+               return dstlen;
+            }
+
+            public bool EndOfBuffer { get { return offset >= Bytes.Length; } }
+         }
+
+         Action<Stream> onClose;
+
+         private Buffer first, last;
+         private Object objLock;
+         private Semaphore prodSemaphore, consSemaphore;
+         private bool eof;
+ 
+         public ProcessPipeStream(Action<Stream> onClose=null)
+         {
+            this.onClose = onClose;
+            objLock = new Object();
+            prodSemaphore = new Semaphore(MAX_SEM, MAX_SEM);
+            consSemaphore = new Semaphore(0, MAX_SEM);
+
+         }
+
+         public override void Close()
+         {
+            base.Close();
+            if (onClose != null)
+            {
+               onClose(this);
+            }
+         }
+         
+         public override bool CanRead
+         {
+            get { return true; }
+         }
+
+         public override bool CanSeek
+         {
+            get { return false; }
+         }
+
+         public override bool CanWrite
+         {
+            get { return true; }
+         }
+
+         public override void Flush()
+         {
+         }
+
+         public override long Length
+         {
+            get { throw new NotImplementedException(); }
+         }
+
+         public override long Position
+         {
+            get
+            {
+               throw new NotImplementedException();
+            }
+            set
+            {
+               throw new NotImplementedException();
+            }
+         }
+
+         public void MarkTerminated ()
+         {
+            consSemaphore.Release();
+         }
+
+         public override int Read(byte[] buffer, int offset, int count)
+         {
+            if (count==0 || eof) return 0;
+            
+
+
+            int releaseCount = 0;
+            int cnt = 0;
+
+            while (true)
+            {
+               consSemaphore.WaitOne();
+               lock (objLock)
+               {
+                  if (first == null)
+                  {
+                     eof = true;
+                     goto EXIT_READ;
+                  }
+
+                  int read = first.CopyBytes(buffer, offset, count);
+                  cnt += read;
+                  count -= read;
+                  offset += read;
+                  if (!first.EndOfBuffer)
+                  {
+                     consSemaphore.Release(1);
+                     goto EXIT_READ; //Not all bytes could be copied
+                  }
+
+                  ++releaseCount;
+                  if (first == last)
+                  {
+                     first = null;
+                     last = null;
+                  }
+                  else
+                     first = first.Next;
+                  if (first == null) break;
+               }
+            }
+
+            EXIT_READ:
+            if (releaseCount > 0) prodSemaphore.Release(releaseCount);
+            return cnt;
+         }
+
+         public override long Seek(long offset, SeekOrigin origin)
+         {
+            throw new NotImplementedException();
+         }
+
+         public override void SetLength(long value)
+         {
+            throw new NotImplementedException();
+         }
+
+         public override void Write(byte[] buffer, int offset, int count)
+         {
+
+            if (count > 0)
+            {
+               prodSemaphore.WaitOne();
+               Buffer buf = new Buffer(buffer, offset, count);
+               lock (objLock)
+               {
+                  if (last == null)
+                  {
+                     last = first = buf;
+                  }
+                  else
+                  {
+                     last = last.Next = buf;
+                  }
+               }
+            }
+
+            consSemaphore.Release();
+         }
+      }
+
    }
 }

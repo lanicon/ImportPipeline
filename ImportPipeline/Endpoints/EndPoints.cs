@@ -271,6 +271,7 @@ namespace Bitmanager.ImportPipeline
                ctx.RunAdministrations.Merge(ep.LoadAdministration(ctx));
                if (ctx.RunAdministrations.Count != oldCount)
                   ctx.ImportLog.Log("-- merged {0} run-administrations from endpoint. Now contains {1} runs.", ctx.RunAdministrations.Count - oldCount, ctx.RunAdministrations.Count);
+               ctx.RunAdministrations.OptDump("Load from endpoint");
             }
          } 
          return this;
@@ -283,7 +284,11 @@ namespace Bitmanager.ImportPipeline
          IAdminEndpoint admin = GetAdminEndpoint(ctx);
          try
          {
-            if (admin != null) admin.SaveAdministration(ctx, ctx.RunAdministrations);
+            if (admin != null)
+            {
+               admin.SaveAdministration(ctx, ctx.RunAdministrations);
+               ctx.RunAdministrations.OptDump("Save to endpoint");
+            }
          } 
          finally
          {

@@ -66,7 +66,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          uri = new Uri ("file://" + fullName);
       }
 
-      public override Stream CreateStream()
+      public override Stream CreateStream(PipelineContext ctx)
       {
          return new FileStream(fullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 16*1024);
       }

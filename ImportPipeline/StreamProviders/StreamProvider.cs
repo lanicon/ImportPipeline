@@ -44,7 +44,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
       String RelativeName { get; }
       String FullName { get; }
       Uri Uri { get; }
-      Stream CreateStream();
+      Stream CreateStream(PipelineContext ctx);
       CredentialCache Credentials { get; }
       DateTime LastModified { get; }
       FileAttributes Attributes { get; }
@@ -218,7 +218,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
       }
 
 
-      public abstract Stream CreateStream();
+      public abstract Stream CreateStream(PipelineContext ctx);
 
 
       public string VirtualName

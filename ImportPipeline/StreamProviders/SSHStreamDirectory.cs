@@ -129,7 +129,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
       //   }
       //}
 
-      public override Stream CreateStream()
+      public override Stream CreateStream(PipelineContext ctx)
       {
          base.InitCredentials();
          var cache = base.credentialCache;

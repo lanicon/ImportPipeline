@@ -124,21 +124,21 @@ namespace Bitmanager.ImportPipeline
          throw new BMNodeException (node, "Invalid character({0}) at expression {1}. Must be: single char, \\uXXXX, 0xXX", v, attr);
       }
 
-      private Stream createInputStream (String fn)
-      {
-         FileStream fs = new FileStream(fn, FileMode.Open, FileAccess.Read, FileShare.Read, 16 * 1024, false);
-         //_FileStream fs = new _FileStream(fn, _FileMode.Open, _FileAccess.Read, _FileShare.Read, 16 * 1024);
-         String ext = Path.GetExtension(fn);
-         if (!String.Equals(".gz", ext, StringComparison.OrdinalIgnoreCase)) goto NO_ZIP;
-         byte[] buf = new byte[2];
-         fs.Read(buf, 0, 2);
-         if (buf[0] != 0x1f || buf[1] != 0x8b) goto NO_ZIP;
-         fs.Position = 0;
-         return new GZipStream(fs, CompressionMode.Decompress, false);
+      //private Stream createInputStream (String fn)
+      //{
+      //   FileStream fs = new FileStream(fn, FileMode.Open, FileAccess.Read, FileShare.Read, 16 * 1024, false);
+      //   //_FileStream fs = new _FileStream(fn, _FileMode.Open, _FileAccess.Read, _FileShare.Read, 16 * 1024);
+      //   String ext = Path.GetExtension(fn);
+      //   if (!String.Equals(".gz", ext, StringComparison.OrdinalIgnoreCase)) goto NO_ZIP;
+      //   byte[] buf = new byte[2];
+      //   fs.Read(buf, 0, 2);
+      //   if (buf[0] != 0x1f || buf[1] != 0x8b) goto NO_ZIP;
+      //   fs.Position = 0;
+      //   return new GZipStream(fs, CompressionMode.Decompress, false);
 
-      NO_ZIP:
-         return fs;
-      }
+      //NO_ZIP:
+      //   return fs;
+      //}
 
 
       protected override void ImportStream(PipelineContext ctx, IDatasourceSink sink, IStreamProvider elt, Stream strm)

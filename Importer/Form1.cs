@@ -451,6 +451,12 @@ namespace Bitmanager.Importer
 
       private void btnOpen_Click(object sender, EventArgs e)
       {
+         if (!String.IsNullOrEmpty(comboBox1.Text))
+            try
+            {
+               openFileDialog1.InitialDirectory = Path.GetDirectoryName(Path.GetDirectoryName(comboBox1.Text));
+            }
+            catch { }
          if (openFileDialog1.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
          int pos = ac.AddItem(openFileDialog1.FileName);
 

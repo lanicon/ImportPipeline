@@ -145,7 +145,7 @@ namespace Bitmanager.ImportPipeline.StreamProviders
             dlgAsyncTerminatorResult = dlgAsyncTerminator.BeginInvoke(null, null);
             return x;
          }
-         catch (Exception e)
+         catch 
          {
             processHelper.Dispose();
             processHelper = null;

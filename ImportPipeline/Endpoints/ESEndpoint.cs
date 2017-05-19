@@ -243,7 +243,19 @@ namespace Bitmanager.ImportPipeline
       protected override IDataEndpoint CreateDataEndpoint(PipelineContext ctx, string dataName, bool mustExcept)
       {
          var dt = getDocType(dataName, mustExcept);
-         return dt == null ? null : new ESDataEndpoint(this, dt);
+         IDataEndpoint ret = null;
+         if (dt != null)
+         {
+            switch (dt.TypeName)
+            {
+               case "_mapping":
+               case "_settings":
+                  ret = new ESCmdEndPoint(this, dt); break;
+               default:
+                  ret = new ESDataEndpoint(this, dt); break;
+            }
+         }
+         return ret;
       }
       protected override bool CheckDataEndpoint(PipelineContext ctx, string dataName, bool mustExcept)
       {
@@ -255,11 +267,14 @@ namespace Bitmanager.ImportPipeline
       {
          var type = getDocType("admin_", false);
          ctx.ImportLog.Log("admin doctype={0}...", type);
+
          return type==null ? null : new ESDataEndpoint(this, type);
       }
    }
 
-
+   /// <summary>
+   /// Data endpoint for ESEndpoint
+   /// </summary>
    public class ESDataEndpoint : JsonEndpointBase<ESEndpoint>, IAdminEndpoint, IErrorEndpoint
    {
       public readonly ESConnection Connection;
@@ -379,7 +394,6 @@ namespace Bitmanager.ImportPipeline
             Pipeline.EmitToken(ctx, sink, token, eventKey, maxLevel);
       }
 
-
       #region IAdminEndpoint
       public void SaveAdministration(PipelineContext ctx, RunAdministrations admins)
       {
@@ -455,5 +469,33 @@ namespace Bitmanager.ImportPipeline
       }
       #endregion
    }
+
+
+   /// <summary>
+   /// DataEndpoint for _mapping and _settings
+   /// </summary>
+   public class ESCmdEndPoint : JsonEndpointBase<ESEndpoint>
+   {
+      public readonly ESConnection Connection;
+      public readonly ESIndexDocType Doctype;
+      public ESCmdEndPoint(ESEndpoint endpoint, ESIndexDocType doctype)
+         : base(endpoint)
+      {
+         this.Connection = endpoint.Connection;
+         this.Doctype = doctype;
+      }
+
+      public override void Add(PipelineContext ctx)
+      {
+         if ((ctx.ImportFlags & _ImportFlags.TraceValues) != 0)
+         {
+            ctx.DebugLog.Log("Add: accumulator.Count={0}", accumulator.Count);
+         }
+         if (accumulator.Count == 0) return;
+
+         Connection.Put(Doctype.UrlPart, accumulator).ThrowIfError();
+      }
+   }
+
 
 }

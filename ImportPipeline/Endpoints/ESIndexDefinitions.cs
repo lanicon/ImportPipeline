@@ -476,7 +476,7 @@ namespace Bitmanager.ImportPipeline
             cmd.RemoveIndex(existingIndexName);
          }
 
-         cmd.RenameAlias(AliasName, IndexName);
+         cmd.MoveAllAliases(AliasName, IndexName, existingIndexName);
 
          //Changing the #replica's if requested.
          if (this.NumReplicasAfterIndexed > 0)

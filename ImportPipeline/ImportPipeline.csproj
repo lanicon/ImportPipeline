@@ -114,6 +114,10 @@
     <Compile Include="Datasources\ExcelDatasource.cs" />
     <Compile Include="Datasources\FileNameDatasource.cs" />
     <Compile Include="Datasources\CdoDatasource.cs" />
+    <Compile Include="Datasources\HtmlDatasource.cs" />
+    <Compile Include="Datasources\NodeExporters.cs" />
+    <Compile Include="Datasources\NodeSelectors.cs" />
+    <Compile Include="Datasources\NodeWrappers.cs" />
     <Compile Include="Datasources\StreamDatasourceBase.cs" />
     <Compile Include="Datasources\TextDatasource.cs" />
     <Compile Include="Datasources\NopDatasource.cs" />

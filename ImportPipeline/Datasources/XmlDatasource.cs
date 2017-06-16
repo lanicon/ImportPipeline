@@ -22,12 +22,12 @@ using Bitmanager.Core;
 using Bitmanager.Json;
 using Newtonsoft.Json.Linq;
 
+using Bitmanager.IO;
 using Bitmanager.Xml;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-//using System.Threading.Tasks;
 using System.Xml;
 using System.Net;
 using System.IO;
@@ -37,11 +37,13 @@ using System.Web;
 using System.Threading;
 using Bitmanager.Elastic;
 using Bitmanager.ImportPipeline.StreamProviders;
+using Bitmanager.ImportPipeline.Datasources;
 
 namespace Bitmanager.ImportPipeline
 {
    public class XmlDatasource : StreamDatasourceBase
    {
+      protected NodeSelector selector;  //If selector is used, the extraction will be based on XPath expressions
       private bool dumpReader;
 
       public XmlDatasource(): base(false, false)
@@ -51,6 +53,9 @@ namespace Bitmanager.ImportPipeline
       {
          base.Init(ctx, node);
          dumpReader = node.ReadBool("@debug", false);
+         XmlNode x = node.SelectSingleNode("select");
+         if (x != null)
+            selector = NodeSelector.Parse(x);
       }
 
 
@@ -71,6 +76,16 @@ namespace Bitmanager.ImportPipeline
 
       protected override void ImportStream(PipelineContext ctx, IDatasourceSink sink, IStreamProvider elt, Stream strm)
       {
+         if (selector != null)
+         {
+            XmlHelper h = new XmlHelper();
+            h.Load(strm.CreateTextReader(), elt.FullName);
+
+            selector.Process(ctx, new XmlNodeWrapper(h.DocumentElement));
+            return;
+         }
+
+
          List<String> keys = new List<string>();
          List<String> values = new List<String>();
          int lvl = -1;

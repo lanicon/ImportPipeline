@@ -132,5 +132,13 @@ namespace Bitmanager.ImportPipeline.Datasources
       {
          return Wrapped;
       }
+
+      public override String ToString()
+      {
+         String v = Wrapped.Value;
+         if (String.IsNullOrEmpty(v)) v = Wrapped.InnerText;
+         if (String.IsNullOrEmpty(v)) v = Wrapped.OuterXml;
+         return String.Format("XmlNode [name={0}, type={1}, value={2}]", Wrapped.Name, Wrapped.NodeType, TrimToLength(v, 50));
+      }
    }
 }

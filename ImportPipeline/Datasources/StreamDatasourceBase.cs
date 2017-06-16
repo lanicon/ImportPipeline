@@ -137,12 +137,13 @@ namespace Bitmanager.ImportPipeline
          {
             ImportStream(ctx, sink, elt, fs);
          }
+         if (!addEmitted && orgEmitted == ctx.Emitted) ctx.IncrementEmitted();
          ctx.OptSendItemStop();
          return;
 
       SKIPPED:
          ctx.Skipped++;
-         if (!addEmitted && orgEmitted == ctx.Emitted) ++ctx.Emitted;
+         if (!addEmitted && orgEmitted == ctx.Emitted) ctx.IncrementEmitted(); 
          if (logSkips) ctx.DebugLog.Log("Skipped: {0}. Date={1}", elt.FullName, elt.LastModified);
       }
 

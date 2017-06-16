@@ -191,7 +191,7 @@ namespace Bitmanager.ImportPipeline
          {
              dlg = (T)(Object)Delegate.CreateDelegate(typeof(T), ScriptObject, mi);
          } 
-         catch (Exception err)
+         catch 
          {
             ParameterInfo[] parms = mi.GetParameters();
             if (parms.Length != 3 || parms[0].ParameterType != typeof(PipelineContext) || parms[1].ParameterType != typeof(String) || parms[2].ParameterType != typeof(Object))

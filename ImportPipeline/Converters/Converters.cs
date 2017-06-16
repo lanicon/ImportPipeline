@@ -668,7 +668,6 @@ namespace Bitmanager.ImportPipeline
 
    public class CanonicalizeConverter : Converter
    {
-      char sep = ';';
       public CanonicalizeConverter(XmlNode node) : base(node) { }
 
       public override object Convert(PipelineContext ctx, object value)
@@ -687,7 +686,6 @@ namespace Bitmanager.ImportPipeline
 
    public class CloneConverter : Converter
    {
-      char sep = ';';
       public CloneConverter(XmlNode node) : base(node) { }
 
       public override object Convert(PipelineContext ctx, object value)

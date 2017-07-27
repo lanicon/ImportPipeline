@@ -75,7 +75,8 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          {
             recursive = XmlUtils.ReadBool(node, "@recursive", false);
             File = ctx.ImportEngine.Xml.CombinePath(file);
-            RootLen = 1 + Path.GetDirectoryName(File).Length;
+            RootLen = 1 + IOUtils.DelSlash (Path.GetDirectoryName(File)).Length;
+            //ctx.ImportLog.Log("File={0}, root={1}, len={2}", File, IOUtils.DelSlash(Path.GetDirectoryName(File)), RootLen);
          }
          else
          {

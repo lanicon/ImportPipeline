@@ -22,6 +22,7 @@ using Bitmanager.ImportPipeline;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -37,6 +38,8 @@ namespace Bitmanager.Importer
       [STAThread]
       static int Main(String[] args)
       {
+         logInfo("");
+         logInfo("Starting importer. Current identity={0}, current user={1}", WindowsIdentity.GetCurrent().Name, Environment.UserName);
          if (args != null && args.Length > 0)
          {
             return runAsConsole(args);
@@ -55,8 +58,14 @@ namespace Bitmanager.Importer
          Logs.ErrorLog.Log(_LogType.ltError, msg);
          Console.WriteLine(msg);
       }
+      private static void logInfo(String fmt, params Object[] args)
+      {
+         String msg = String.Format(fmt, args);
+         Logs.ErrorLog.Log(_LogType.ltInfo, msg);
+         Console.WriteLine(msg);
+      }
 
-      private static int runAsConsole(String[] args)
+      private static int runAsConsole(String[] args) 
       {
          try
          {

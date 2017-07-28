@@ -194,8 +194,11 @@ namespace Bitmanager.ImportPipeline.StreamProviders
          DateTime maxUtc = DateTime.MaxValue;
          foreach (var info in files)
          {
-            if (info.LastWriteTimeUtc < minUtc) continue;
-            if (info.LastWriteTimeUtc >= maxUtc) continue;
+            var dtLastWrite = info.LastWriteTimeUtc;
+            if (info.CreationTimeUtc > dtLastWrite) dtLastWrite = info.CreationTimeUtc; //In this case the file was probably moved...
+
+            if (dtLastWrite < minUtc) continue;
+            if (dtLastWrite >= maxUtc) continue;
             list.Add(new _FileElt(info));
          }
 

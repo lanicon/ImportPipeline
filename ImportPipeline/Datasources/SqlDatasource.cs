@@ -37,18 +37,48 @@ namespace Bitmanager.ImportPipeline
       private StringDict<ConversionError> conversionErrors;
       public String ConnectionString;
       public List<Query> Queries;
+      public int? ConnectionTimeout;
+      public int? DefaultCommandTimeout;
       public bool AllowConversionErrors;
       public void Init(PipelineContext ctx, XmlNode node)
       {
          ConnectionString = node.ReadStr("connection");
+         ConnectionTimeout = ReadTimeoutFromNode (node, "connection/@timeout", null);
+         int? DefaultCommandTimeout = ReadTimeoutFromNode(node, "connection/@query_timeout", 0);
          AllowConversionErrors = node.ReadBool("@allowconversionerrors", true);
 
          XmlNodeList ch = node.SelectNodes("query");
          if (ch.Count > 0)
          {
             Queries = new List<Query>(ch.Count);
-            foreach (XmlNode n in ch) Queries.Add(new Query(n));
+            foreach (XmlNode n in ch) Queries.Add(new Query(n, DefaultCommandTimeout));
          }
+      }
+
+      protected String getConnectionStringPlusTimeout()
+      {
+         String tmp = ConnectionString;
+         if (ConnectionTimeout == null || tmp==null) return tmp;
+         for (int i = tmp.Length - 1; i >= 0; i--)
+         {
+            switch (tmp[i])
+            {
+               case ' ': continue;
+               case ';': goto NO_APPEND;
+            }
+            break;
+         }
+         tmp = tmp + "; ";
+         NO_APPEND:;
+         return String.Format("{0} Connection Timeout={1};", tmp, (int)ConnectionTimeout);
+      }
+
+      public static int? ReadTimeoutFromNode (XmlNode node, String key, int? def)
+      {
+         String x = node.ReadStrRaw(key, _XmlRawMode.Trim);
+         if (x == null) return def;
+         if (x.Length == 0) return null;
+         return (999 + Invariant.ToInterval(x)) / 1000;
       }
 
       private void addConversionError(String field, Exception e)
@@ -83,6 +113,7 @@ namespace Bitmanager.ImportPipeline
          try
          {
             connection = createConnection();
+            ctx.DebugLog.Log("Open SQL connection with [{0}], timeout={1} (sec).", connection.ConnectionString, connection.ConnectionTimeout);
             connection.Open();
 
             if (Queries == null)
@@ -120,16 +151,14 @@ namespace Bitmanager.ImportPipeline
 
       protected void EmitTable(PipelineContext ctx, DbConnection connection, String table)
       {
-         Query q = new Query(table, String.Format("select * from {0};", table), this.AllowConversionErrors);
+         Query q = new Query(table, String.Format("select * from {0};", table), this.DefaultCommandTimeout, this.AllowConversionErrors);
          EmitQuery(ctx, connection, q);
       }
 
       protected void EmitQuery(PipelineContext ctx, DbConnection connection, Query q)
       {
-         var cmd = connection.CreateCommand();
-         cmd.CommandText = q.Command;
-         cmd.CommandTimeout = 15;
-         cmd.CommandType = CommandType.Text;
+         var cmd = q.CreateCommand(connection);
+         ctx.DebugLog.Log("Exec SQL command [{0}], timeout={1} (sec).", cmd.CommandText, cmd.CommandTimeout);
 
          ctx.SendItemStart (cmd);
          using (DbDataReader rdr = executeReader(ctx, cmd))
@@ -194,19 +223,32 @@ namespace Bitmanager.ImportPipeline
          public readonly String Prefix;
          public readonly String Command;
          public readonly bool AllowConversionErrors;
-         public Query(XmlNode node)
+         public readonly int? Timeout;
+         public Query(XmlNode node, int? defaultTimeout)
          {
             Prefix = node.ReadStr("@prefix", null);
             Command = node.ReadStr("@cmd", null);
             if (Command == null)
                Command = node.ReadStr(null);
             AllowConversionErrors = node.ReadBool(1, "@allowconversionerrors", true);
+            Timeout = SqlDatasource.ReadTimeoutFromNode(node, "@timeout", defaultTimeout);
          }
-         public Query(String pfx, String cmd, bool allowConvErrors)
+         public Query(String pfx, String cmd, int? timeout, bool allowConvErrors)
          {
             Prefix = pfx;
             Command = cmd;
             AllowConversionErrors = allowConvErrors;
+            Timeout = timeout;
+         }
+
+         public DbCommand CreateCommand (DbConnection connection)
+         {
+            var cmd = connection.CreateCommand();
+            cmd.CommandText = Command;
+            if (Timeout != null)
+               cmd.CommandTimeout = (int)Timeout;
+            cmd.CommandType = CommandType.Text;
+            return cmd;
          }
       }
 
@@ -232,14 +274,18 @@ namespace Bitmanager.ImportPipeline
    {
       protected override DbConnection createConnection()
       {
-         return new MySqlConnection(ConnectionString);
+         return new MySqlConnection(getConnectionStringPlusTimeout());
       }
    }
+
    public class OdbcDatasource : SqlDatasource
    {
       protected override DbConnection createConnection()
       {
-         return new OdbcConnection(ConnectionString);
+         var ret = new OdbcConnection(ConnectionString);
+         if (ConnectionTimeout != null)
+            ret.ConnectionTimeout = (int)ConnectionTimeout;
+         return ret;
       }
    }
 }

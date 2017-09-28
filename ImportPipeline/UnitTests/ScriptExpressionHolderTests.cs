@@ -33,7 +33,7 @@ namespace UnitTests
    public class ScriptExpressionHolderTest : FileTestBase
    {
       [TestMethod]
-      public void TestSimple()
+      public void TestSimpleExpression()
       {
          String fn = "testSimple.txt"; 
          ScriptExpressionHolder h = new ScriptExpressionHolder(null);

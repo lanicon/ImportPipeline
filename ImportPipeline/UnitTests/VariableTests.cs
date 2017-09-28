@@ -28,7 +28,7 @@ namespace UnitTests
    public class VariableTests
    {
       [TestMethod]
-      public void TestMethod1()
+      public void TestVariables()
       {
          IVariables v = new Variables();
          v.CopyFromDictionary(Environment.GetEnvironmentVariables());

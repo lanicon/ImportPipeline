@@ -9,7 +9,7 @@ namespace UnitTests
    public class TimeBasedIdGeneratorTest
    {
       [TestMethod]
-      public void TestMethod1()
+      public void TestTimeBasedIdGenerator()
       {
          var gen = new TimeBasedIdGenerator();
 

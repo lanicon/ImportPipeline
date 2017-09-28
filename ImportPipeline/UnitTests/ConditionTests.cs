@@ -28,7 +28,7 @@ namespace UnitTests
    public class ConditionTests
    {
       [TestMethod]
-      public void TestMethod1()
+      public void TestHasCondition()
       {
          Condition c = Condition.Create(",string|lt,b");
          Assert.AreEqual(true, c.HasCondition((JToken)null));

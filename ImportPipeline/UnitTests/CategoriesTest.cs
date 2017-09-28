@@ -30,7 +30,7 @@ namespace UnitTests
    public class CategoriesTest
    {
       [TestMethod]
-      public void TestMethod1()
+      public void TestCategories()
       {
          using (ImportEngine eng = new ImportEngine())
          {

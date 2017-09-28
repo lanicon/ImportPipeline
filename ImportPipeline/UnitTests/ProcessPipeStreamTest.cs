@@ -11,7 +11,7 @@ namespace UnitTests
    public class ProcessPipeStreamTest
    {
       [TestMethod]
-      public void TestMethod1()
+      public void TestProcessPipeStream()
       {
          const int ALL=10000000;
          var strm = new ShellStreamProvider.ProcessPipeStream();

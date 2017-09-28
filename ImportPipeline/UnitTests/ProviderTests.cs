@@ -36,7 +36,7 @@ namespace UnitTests
    {
       String root = IOUtils.FindDirectoryToRoot(Assembly.GetExecutingAssembly().Location, "data\\providers", FindToTootFlags.Except) + "\\";
       [TestMethod]
-      public void TestMethod1()
+      public void TestProviders()
       {
          Console.WriteLine(root);
          using (ImportEngine eng = new ImportEngine())

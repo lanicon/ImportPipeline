@@ -37,7 +37,7 @@ namespace UnitTests
       }
 
       [TestMethod]
-      public void TestSimple()
+      public void TestSimpleTemplate()
       {
          ITemplateEngine eng = new TemplateFactory().CreateEngine();
 
@@ -47,7 +47,7 @@ namespace UnitTests
       }
 
       [TestMethod]
-      public void TestSimpleRecursive()
+      public void TestSimpleRecursiveTemplate()
       {
          var factory = new TemplateFactory();
          factory.AutoWriteGenerated = true;

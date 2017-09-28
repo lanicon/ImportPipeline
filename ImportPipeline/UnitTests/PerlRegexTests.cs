@@ -27,7 +27,7 @@ namespace UnitTests
    public class PerlRegexTests
    {
       [TestMethod]
-      public void TestMethod1()
+      public void TestPerlRegex()
       {
          Regex expr = new Regex("^(.*)"); //zonder ^ is het resultaat xabcx (ivm lege match)
          String x = expr.Replace("abc", "x$1");

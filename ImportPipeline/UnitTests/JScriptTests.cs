@@ -37,7 +37,7 @@ namespace UnitTests
       }
 
       [TestMethod]
-      public void TestMethod1()
+      public void TestJScript()
       {
          //JScriptException
          //dump ("function x(aa,bb) {return aa + bb;}");

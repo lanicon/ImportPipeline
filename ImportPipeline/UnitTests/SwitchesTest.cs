@@ -8,7 +8,7 @@ namespace UnitTests
    public class SwitchesTest
    {
       [TestMethod]
-      public void TestMethod1()
+      public void TestSwitches()
       {
          var sw = new Switches("test1, test2, -test1, -test3, -test4, test4 test6 test7");
          Assert.AreEqual(false, sw.IsOn("test5"));

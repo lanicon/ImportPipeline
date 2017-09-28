@@ -10,7 +10,7 @@ namespace UnitTests
    public class RunAdminTest
    {
       [TestMethod]
-      public void TestMethod1()
+      public void TestRunAdmins()
       {
          var eng = new ImportEngine();
 

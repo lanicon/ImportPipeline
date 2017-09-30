@@ -413,6 +413,8 @@ namespace Bitmanager.ImportPipeline
 
          try
          {
+            if (!DocType.IndexExists) return ret;  //Nothing to load here...
+
             String url = ((ctx.ImportFlags & _ImportFlags.FullImport) == 0) ? DocType.UrlPart : DocType.UrlPartForPreviousIndex;
             if (!Connection.Exists (url))
             {

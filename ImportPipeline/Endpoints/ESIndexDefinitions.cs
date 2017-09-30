@@ -174,6 +174,8 @@ namespace Bitmanager.ImportPipeline
       public List<String> DocMappings { get; private set; }
       public List<ESIndexDocType> DocTypes { get; private set; }
 
+      public String ExtraAlias;
+
       public bool IsNewIndex { get; private set; }
       public bool RenameNeeded { get; private set; }
       public bool IndexExists { get; private set; }
@@ -187,6 +189,7 @@ namespace Bitmanager.ImportPipeline
          Name = node.ReadStr("@name");
          IndexName = node.ReadStr("@indexname", Name);
          AliasName = IndexName;
+         ExtraAlias = node.ReadStr("@extra_alias", null);
          NumShardsOnCreate = node.ReadInt("@shards", -1);
          NumReplicasAfterIndexed = node.ReadInt("@replicas", -1);
          OptimizeToSegments = node.ReadInt("@optimize_segments", 5);
@@ -477,6 +480,8 @@ namespace Bitmanager.ImportPipeline
          }
 
          cmd.MoveAllAliases(AliasName, IndexName, existingIndexName);
+         if (ExtraAlias != null)
+            cmd.CreateAliases(ExtraAlias.SplitStandard(), IndexName);
 
          //Changing the #replica's if requested.
          if (this.NumReplicasAfterIndexed > 0)
